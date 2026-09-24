@@ -1,0 +1,25 @@
+# Secretos: nunca al repo (usar .env.example como plantilla)
+.env
+*.local
+
+# Build
+bin/
+obj/
+[Dd]ebug/
+[Rr]elease/
+publish/
+*.nupkg
+
+# Tests
+TestResults/
+coverage*.xml
+*.coverage
+
+# IDE
+.vs/
+.vscode/
+.idea/
+*.user
+*.suo
+*.DotSettings.user
+.DS_Store

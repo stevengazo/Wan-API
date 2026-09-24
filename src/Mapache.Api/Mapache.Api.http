@@ -1,0 +1,17 @@
+@host = http://localhost:5238
+@token = pegar-aquí-el-accessToken-del-login
+
+POST {{host}}/api/auth/login
+Content-Type: application/json
+
+{ "email": "admin@mapache.local", "password": "cambiar-esto" }
+
+###
+
+GET {{host}}/api/extensions
+Authorization: Bearer {{token}}
+
+###
+
+GET {{host}}/api/providers
+Authorization: Bearer {{token}}
