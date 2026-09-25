@@ -142,6 +142,22 @@ Responde `409` si intentas borrarte a ti mismo o dejar el sistema sin administra
 | `POST` | `/agent-tools/ping` | agente | Prueba del token |
 | `POST` | `/webhooks/elevenlabs/post-call` | firma | Transcripción y audio al terminar |
 
+## Analítica
+
+| Método | Ruta | Acceso | Descripción |
+|--------|------|--------|-------------|
+| `GET` | `/analytics?days=30&extensionId=&timeZone=America/Costa_Rica` | usuario | Totales, llamadas por día, mapa de calor día × hora, por extensión, motivos de fin y resultados de campañas. Los días y horas en la zona indicada |
+
+## Campañas
+
+| Método | Ruta | Acceso | Descripción |
+|--------|------|--------|-------------|
+| `GET` | `/campaigns`, `/campaigns/{id}`, `/campaigns/{id}/contacts` | usuario | Con avance por estado y resultados |
+| `POST`, `PUT`, `DELETE` | `/campaigns[/{id}]` | admin | No se borra una campaña en curso |
+| `POST` | `/campaigns/{id}/start`, `/campaigns/{id}/pause` | admin | |
+| `POST` | `/campaigns/{id}/contacts/import` | admin | `{csv}`: devuelve importados, repetidos y problemas |
+| `POST` / `DELETE` | `/campaigns/{id}/contacts/{contactId}[/retry]` | admin | Volver a llamar / quitar |
+
 ## Otros
 
 | Ruta | Acceso | Descripción |
