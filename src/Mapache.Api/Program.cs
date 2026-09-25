@@ -4,6 +4,7 @@ using Hangfire;
 using Hangfire.PostgreSql;
 using Mapache.Api.Auth;
 using Mapache.Api.Jobs;
+using Mapache.Api.Mcp;
 using Mapache.Api.Realtime;
 using Mapache.Api.Webhooks;
 using Mapache.Infrastructure;
@@ -104,12 +105,22 @@ try
                 },
             };
         })
-        .AddScheme<AuthenticationSchemeOptions, AgentToolAuthenticationHandler>(AgentToolAuthenticationHandler.SchemeName, null);
+        .AddScheme<AuthenticationSchemeOptions, AgentToolAuthenticationHandler>(AgentToolAuthenticationHandler.SchemeName, null)
+        .AddScheme<AuthenticationSchemeOptions, McpTokenAuthenticationHandler>(McpTokenAuthenticationHandler.SchemeName, null);
 
     builder.Services.AddAuthorizationBuilder()
         .AddPolicy(AgentToolAuthenticationHandler.PolicyName, policy => policy
             .AddAuthenticationSchemes(AgentToolAuthenticationHandler.SchemeName)
+            .RequireAuthenticatedUser())
+        .AddPolicy(McpTokenAuthenticationHandler.PolicyName, policy => policy
+            .AddAuthenticationSchemes(McpTokenAuthenticationHandler.SchemeName)
             .RequireAuthenticatedUser());
+
+    // Servidor MCP para agentes externos. Sin estado: cada petición se resuelve sola, así funciona detrás de
+    // nginx y con varias instancias de la API.
+    builder.Services.AddMcpServer()
+        .WithHttpTransport(o => o.Stateless = true)
+        .WithTools<MapacheMcpTools>();
 
     // Detrás de nginx la IP remota es la del proxy: sin esto el rate limit del login sería uno solo para todos.
     // Solo se habilita con ReverseProxy:Enabled porque confiar en X-Forwarded-For sin proxy permite falsear la IP.
@@ -158,6 +169,7 @@ try
 
     app.MapControllers();
     app.MapHub<EventsHub>(EventsHub.Path);
+    app.MapMcp("/api/mcp").RequireAuthorization(McpTokenAuthenticationHandler.PolicyName);
     app.MapGet("/health", () => Results.Ok(new { status = "ok" })).AllowAnonymous();
 
     app.Run();

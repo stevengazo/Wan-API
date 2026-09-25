@@ -31,6 +31,12 @@ public class MapacheDbContext(DbContextOptions<MapacheDbContext> options) : DbCo
 
     public DbSet<CallMessage> CallMessages => Set<CallMessage>();
 
+    public DbSet<HttpTool> HttpTools => Set<HttpTool>();
+
+    public DbSet<McpServerConnection> McpServers => Set<McpServerConnection>();
+
+    public DbSet<McpAccessToken> McpAccessTokens => Set<McpAccessToken>();
+
     public DbSet<KnowledgeBase> KnowledgeBases => Set<KnowledgeBase>();
 
     public DbSet<KnowledgeDocument> KnowledgeDocuments => Set<KnowledgeDocument>();
@@ -130,6 +136,33 @@ public class MapacheDbContext(DbContextOptions<MapacheDbContext> options) : DbCo
             e.Property(s => s.Host).HasMaxLength(256);
             e.Property(s => s.Username).HasMaxLength(256);
             e.Property(s => s.From).HasMaxLength(256);
+        });
+
+        modelBuilder.Entity<HttpTool>(e =>
+        {
+            e.Property(t => t.Name).HasMaxLength(64);
+            e.HasIndex(t => t.Name).IsUnique();
+            e.Property(t => t.Description).HasMaxLength(1000);
+            e.Property(t => t.Method).HasMaxLength(8);
+            e.Property(t => t.UrlTemplate).HasMaxLength(2000);
+            e.Property(t => t.Parameters).HasColumnType("jsonb").HasConversion(Json<List<HttpToolParameter>>());
+        });
+
+        modelBuilder.Entity<McpServerConnection>(e =>
+        {
+            e.ToTable("McpServers");
+            e.Property(s => s.Name).HasMaxLength(64);
+            e.Property(s => s.Url).HasMaxLength(2000);
+            e.Property(s => s.LastError).HasMaxLength(1000);
+            e.Property(s => s.Tools).HasColumnType("jsonb").HasConversion(Json<List<McpToolInfo>>());
+        });
+
+        modelBuilder.Entity<McpAccessToken>(e =>
+        {
+            e.Property(t => t.Name).HasMaxLength(128);
+            e.Property(t => t.TokenHash).HasMaxLength(64);
+            e.HasIndex(t => t.TokenHash).IsUnique();
+            e.Property(t => t.Prefix).HasMaxLength(32);
         });
 
         modelBuilder.Entity<KnowledgeBase>(e =>

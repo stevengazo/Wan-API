@@ -6,6 +6,7 @@ using Mapache.Infrastructure.Llm;
 using Mapache.Infrastructure.Persistence;
 using Mapache.Infrastructure.Recordings;
 using Mapache.Infrastructure.Security;
+using Mapache.Infrastructure.Tools;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -42,6 +43,14 @@ public static class DependencyInjection
         services.AddHttpClient<LlmJsonClient>(c => c.Timeout = TimeSpan.FromSeconds(90));
         services.AddScoped<FormGenerator>();
         services.AddScoped<KnowledgeService>();
+
+        // Herramientas que ejecuta Mapache dentro del Custom LLM; el orden define cuál gana si se repite un nombre.
+        services.AddHttpClient<HttpToolRunner>();
+        services.AddScoped<IBotToolSource, KnowledgeToolSource>();
+        services.AddScoped<IBotToolSource, HttpToolSource>();
+        services.AddSingleton<McpConnector>();
+        services.AddScoped<IBotToolSource, McpToolSource>();
+        services.AddScoped<BotToolRegistry>();
 
         services.Configure<RecordingOptions>(configuration.GetSection(RecordingOptions.SectionName));
         services.AddSingleton<RecordingStore>();
