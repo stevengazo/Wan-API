@@ -15,14 +15,50 @@ public sealed record LoginRequest(
     [Required(ErrorMessage = Messages.Required), EmailAddress(ErrorMessage = "Correo inválido")] string Email,
     [Required(ErrorMessage = Messages.Required)] string Password);
 
+public sealed record RegisterRequest(
+    [Required(ErrorMessage = Messages.Required), StringLength(128, ErrorMessage = Messages.MaxLength)] string DisplayName,
+    [Required(ErrorMessage = Messages.Required), EmailAddress(ErrorMessage = "Correo inválido"), StringLength(256, ErrorMessage = Messages.MaxLength)] string Email,
+    [Required(ErrorMessage = Messages.Required), StringLength(128, MinimumLength = 8, ErrorMessage = "Entre {2} y {1} caracteres")] string Password);
+
 public sealed record UserDto(Guid Id, string Email, string DisplayName, UserRole Role);
 
 public sealed record LoginResponse(string AccessToken, DateTimeOffset ExpiresAt, UserDto User);
 
 [ApiController]
 [Route("api/auth")]
-public sealed class AuthController(MapacheDbContext db, IPasswordHasher<User> hasher, TokenService tokens) : ControllerBase
+public sealed class AuthController(MapacheDbContext db, IPasswordHasher<User> hasher, TokenService tokens, TimeProvider time) : ControllerBase
 {
+    /// <summary>
+    /// Registro abierto: la cuenta queda activa al instante con rol <see cref="UserRole.Operator"/>
+    /// (puede ver el panel, no modificar la configuración).
+    /// </summary>
+    [HttpPost("register")]
+    [AllowAnonymous]
+    [EnableRateLimiting("login")]
+    public async Task<ActionResult<LoginResponse>> Register(RegisterRequest request, CancellationToken ct)
+    {
+        var email = request.Email.Trim().ToLowerInvariant();
+        if (await db.Users.AnyAsync(u => u.Email == email, ct))
+        {
+            ModelState.AddModelError(nameof(RegisterRequest.Email), "Ya existe una cuenta con ese correo");
+            return ValidationProblem(ModelState);
+        }
+
+        var user = new User
+        {
+            Email = email,
+            DisplayName = request.DisplayName.Trim(),
+            Role = UserRole.Operator,
+            CreatedAt = time.GetUtcNow(),
+        };
+        user.PasswordHash = hasher.HashPassword(user, request.Password);
+        db.Users.Add(user);
+        await db.SaveChangesAsync(ct);
+
+        var (token, expiresAt) = tokens.Create(user);
+        return new LoginResponse(token, expiresAt, ToDto(user));
+    }
+
     [HttpPost("login")]
     [AllowAnonymous]
     [EnableRateLimiting("login")]
