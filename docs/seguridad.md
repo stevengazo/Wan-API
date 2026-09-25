@@ -11,6 +11,7 @@
 | Secretos de webhooks y contraseña SMTP | `FormActions`, `SmtpSettings` | Cifrados |
 | Tokens MCP | `McpAccessTokens` | Solo el SHA-256; el valor se muestra una vez |
 | Contraseñas de usuarios | `Users` | `PasswordHasher` de ASP.NET Identity |
+| Grabaciones | Disco, S3 o Azure | AES-256-GCM con clave propia, protegida con Data Protection ([detalle](grabaciones.md#cifrado)) |
 
 La API **nunca devuelve** un secreto: solo dice si está cargado. Al editar, un campo vacío conserva el valor anterior.
 
@@ -27,6 +28,23 @@ Hoy esas llaves no están cifradas en reposo. En producción conviene protegerla
 - **ElevenLabs → Mapache:** Custom LLM y server tools con un bearer token propio; webhook post-llamada con firma HMAC-SHA256 y una ventana de 30 minutos contra repeticiones.
 - **Clientes MCP:** tokens revocables con permisos por herramienta.
 - **Webhooks salientes:** firmados con `X-Mapache-Signature` si la acción tiene secreto.
+
+## Auditoría
+
+**Auditoría** (solo administradores) registra quién hizo qué, cuándo y desde qué IP. Se filtra por días, acción y texto, y se exporta a CSV (`GET /api/audit?format=csv`).
+
+| Área | Acciones |
+|------|----------|
+| Sesión | Inicios de sesión correctos y fallidos, cambio de contraseña |
+| Usuarios | Alta, cambios, restablecimiento de contraseña, baja |
+| Grabaciones | Escuchada o descargada, borrada |
+| Recados | Enlace público creado, abierto por un tercero, borrado |
+| Configuración | Cambios en voz, llamadas, almacenamiento, SMTP y demás |
+| MCP | Tokens creados, cambiados o revocados |
+| Campañas | Iniciadas, pausadas, borradas, contactos importados |
+| Retención | Borrado automático de grabaciones y transcripciones |
+
+El registro se escribe aparte de la operación: si falla, la operación no se cae y el error queda en los logs.
 
 ## Antes de exponer Mapache a internet
 

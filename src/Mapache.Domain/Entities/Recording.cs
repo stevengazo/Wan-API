@@ -21,6 +21,9 @@ public class Recording
 
     public double? DurationSeconds { get; set; }
 
+    /// <summary>Guardada cifrada (AES-256-GCM): se descifra en la API al escucharla.</summary>
+    public bool Encrypted { get; set; }
+
     public long SizeBytes { get; set; }
 
     public DateTimeOffset CreatedAt { get; set; }
@@ -38,6 +41,12 @@ public class CallSettings
 
     /// <summary>Aviso de grabación que el bot debe dar al inicio de la llamada.</summary>
     public string? RecordingNotice { get; set; }
+
+    /// <summary>Días que se guardan las grabaciones; nulo = sin borrado automático.</summary>
+    public int? RecordingRetentionDays { get; set; }
+
+    /// <summary>Días que se guardan las transcripciones de las llamadas; nulo = sin borrado automático.</summary>
+    public int? TranscriptRetentionDays { get; set; }
 
     public DateTimeOffset UpdatedAt { get; set; }
 }

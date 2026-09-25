@@ -21,7 +21,8 @@ public sealed record StorageSettingsDto(
     bool HasS3SecretKey,
     bool HasAzureConnectionString,
     string? AzureContainer,
-    string? Prefix);
+    string? Prefix,
+    bool EncryptRecordings);
 
 /// <summary>Secretos vacíos conservan los guardados.</summary>
 public sealed record SaveStorageSettingsRequest(
@@ -33,7 +34,8 @@ public sealed record SaveStorageSettingsRequest(
     [StringLength(256, ErrorMessage = Messages.MaxLength)] string? S3SecretKey,
     [StringLength(2000, ErrorMessage = Messages.MaxLength)] string? AzureConnectionString,
     [StringLength(128, ErrorMessage = Messages.MaxLength)] string? AzureContainer,
-    [StringLength(256, ErrorMessage = Messages.MaxLength)] string? Prefix);
+    [StringLength(256, ErrorMessage = Messages.MaxLength)] string? Prefix,
+    bool EncryptRecordings = true);
 
 [ApiController]
 [Authorize(Roles = Roles.Admin)]
@@ -96,6 +98,7 @@ public sealed class StorageSettingsController(MapacheDbContext db, RecordingServ
             value is null ? current : string.IsNullOrWhiteSpace(value) ? null : value.Trim();
 
         settings.Provider = request.Provider;
+        settings.EncryptRecordings = request.EncryptRecordings;
         settings.S3Bucket = Merge(request.S3Bucket, settings.S3Bucket);
         settings.S3Region = Merge(request.S3Region, settings.S3Region);
         settings.S3ServiceUrl = Merge(request.S3ServiceUrl, settings.S3ServiceUrl);
@@ -156,5 +159,5 @@ public sealed class StorageSettingsController(MapacheDbContext db, RecordingServ
 
     private static StorageSettingsDto ToDto(StorageSettings s) => new(
         s.Provider, s.S3Bucket, s.S3Region, s.S3ServiceUrl, s.S3AccessKeyId, s.S3SecretKeyEncrypted is not null,
-        s.AzureConnectionStringEncrypted is not null, s.AzureContainer, s.Prefix);
+        s.AzureConnectionStringEncrypted is not null, s.AzureContainer, s.Prefix, s.EncryptRecordings);
 }

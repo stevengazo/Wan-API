@@ -27,13 +27,31 @@ En **Configuración → Grabaciones**:
 - Opcional: un **prefijo** (carpeta) dentro del bucket o contenedor. Las grabaciones se ordenan por `año/mes`.
 - Las credenciales se guardan **cifradas** y no se vuelven a mostrar.
 - Cada grabación recuerda dónde quedó: cambiar de destino no mueve las anteriores y se siguen escuchando, siempre que se conserven las credenciales de ese destino (cambiar de destino no las borra).
-- El reproductor del panel y la página pública de recados usan el enlace firmado directamente: no hace falta configurar CORS en el bucket.
+- Sin cifrado, el reproductor del panel y la página pública de recados usan el enlace firmado directamente: no hace falta configurar CORS en el bucket.
+
+## Cifrado
+
+**Cifrar grabaciones** (activado por defecto) cifra cada grabación con AES-256-GCM antes de guardarla, en disco o en la nube:
+
+- El archivo guardado empieza con `MPC1`, seguido del nonce, la etiqueta de autenticación y el audio cifrado. Si alguien lo altera, no se descifra.
+- La clave se crea con la primera grabación y se guarda en `StorageSettings`, protegida con Data Protection. **Si se pierden las llaves de Data Protection, las grabaciones cifradas quedan ilegibles**; ver [seguridad](seguridad.md).
+- Las cifradas no se sirven con enlace firmado: la API las descarga, las descifra y las entrega (panel y página pública de recados).
+- Desactivarlo aplica solo a las grabaciones nuevas; las anteriores siguen cifradas y se siguen escuchando.
+
+## Retención
+
+En **Configuración → Llamadas** se definen los días que se guardan las **grabaciones** y las **transcripciones** (vacío = sin límite):
+
+- Un trabajo de Hangfire (`retencion`) borra todos los días a las 3:00 UTC lo que supera el plazo: el archivo del almacenamiento y la fila de la base.
+- **Aplicar ahora** ejecuta el borrado en el momento (`POST /api/settings/calls/retention/run`, solo administradores).
+- Cada borrado queda en la [auditoría](seguridad.md#auditoría) como `retention.purged`.
+- Si un archivo no se puede borrar (por ejemplo, credenciales de la nube vencidas), se reintenta al día siguiente.
 
 ## Recomendaciones
 
-- En la nube conviene activar una **regla de ciclo de vida** del bucket o contenedor para borrar grabaciones viejas según la política de retención.
+- En la nube, una **regla de ciclo de vida** del bucket o contenedor es un respaldo útil de la retención, con un plazo algo mayor.
 - Informa que la llamada se graba: el aviso se agrega a las instrucciones del bot y conviene decirlo al inicio.
 
 ## Estado de las pruebas
 
-Probado con llamadas SIP reales y OpenAI Realtime en los tres destinos: disco, S3 (servidor compatible S3Mock) y Azure (emulador Azurite). En cada uno se verificó el WAV descargado por el enlace de reproducción.
+Probado con llamadas SIP reales y OpenAI Realtime en los tres destinos: disco, S3 (servidor compatible S3Mock) y Azure (emulador Azurite). En cada uno se verificó el WAV descargado por el enlace de reproducción. El cifrado y la retención se verificaron en disco: archivo con `MPC1`, WAV correcto al escucharlo y borrado con registro de auditoría.

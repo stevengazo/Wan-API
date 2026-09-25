@@ -12,8 +12,11 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Mapache.Infrastructure.Recordings;
 
-/// <summary>Dónde escuchar una grabación: un archivo local (con rangos) o una URL firmada de corta duración.</summary>
-public sealed record RecordingLocation(string? LocalPath, Uri? Url, string ContentType);
+/// <summary>
+/// Dónde escuchar una grabación: un archivo local (con rangos), una URL firmada de corta duración o, si está
+/// cifrada, el audio ya descifrado en memoria.
+/// </summary>
+public sealed record RecordingLocation(string? LocalPath, Uri? Url, string ContentType, byte[]? Content = null);
 
 /// <summary>Un destino de grabaciones: disco, S3 o Azure Blob.</summary>
 public interface IRecordingStorage
@@ -24,6 +27,9 @@ public interface IRecordingStorage
     Task<RecordingLocation?> OpenAsync(string key, string contentType, CancellationToken ct);
 
     Task DeleteAsync(string key, CancellationToken ct);
+
+    /// <summary>El archivo completo, para descifrarlo.</summary>
+    Task<byte[]> ReadAsync(string key, CancellationToken ct);
 }
 
 /// <summary>Enlaces a la nube: lo justo para cargar el reproductor, que igual vuelve a pedir uno si se vence.</summary>
@@ -48,6 +54,9 @@ public sealed class LocalRecordingStorage(RecordingStore store) : IRecordingStor
         store.Delete(key);
         return Task.CompletedTask;
     }
+
+    public Task<byte[]> ReadAsync(string key, CancellationToken ct) =>
+        store.PathFor(key) is { } path ? File.ReadAllBytesAsync(path, ct) : throw new FileNotFoundException("La grabación ya no está en el disco");
 }
 
 public sealed class S3RecordingStorage(StorageSettings settings, string secretKey) : IRecordingStorage, IDisposable
@@ -95,6 +104,14 @@ public sealed class S3RecordingStorage(StorageSettings settings, string secretKe
     public async Task DeleteAsync(string key, CancellationToken ct) =>
         await _client.DeleteObjectAsync(Bucket, key, ct);
 
+    public async Task<byte[]> ReadAsync(string key, CancellationToken ct)
+    {
+        using var response = await _client.GetObjectAsync(Bucket, key, ct);
+        using var buffer = new MemoryStream();
+        await response.ResponseStream.CopyToAsync(buffer, ct);
+        return buffer.ToArray();
+    }
+
     public void Dispose() => _client.Dispose();
 }
 
@@ -123,6 +140,9 @@ public sealed class AzureBlobRecordingStorage(string connectionString, string co
 
     public async Task DeleteAsync(string key, CancellationToken ct) =>
         await _container.GetBlobClient(key).DeleteIfExistsAsync(cancellationToken: ct);
+
+    public async Task<byte[]> ReadAsync(string key, CancellationToken ct) =>
+        (await _container.GetBlobClient(key).DownloadContentAsync(ct)).Value.Content.ToArray();
 }
 
 /// <summary>
@@ -135,6 +155,14 @@ public sealed class RecordingService(MapacheDbContext db, RecordingStore localSt
         string conversationId, Stream content, string contentType, Guid? callId, double? durationSeconds, CancellationToken ct)
     {
         var settings = await db.StorageSettings.AsNoTracking().SingleOrDefaultAsync(ct) ?? new StorageSettings();
+        if (settings.EncryptRecordings)
+        {
+            // Se cifra en memoria: una grabación de una hora en WAV son ~60 MB, manejable.
+            using var plain = new MemoryStream();
+            await content.CopyToAsync(plain, ct);
+            content = new MemoryStream(RecordingCipher.Encrypt(await GetOrCreateKeyAsync(ct), plain.ToArray()));
+        }
+
         var recording = new Recording
         {
             Id = Guid.CreateVersion7(),
@@ -144,6 +172,7 @@ public sealed class RecordingService(MapacheDbContext db, RecordingStore localSt
             ContentType = contentType,
             CallId = callId,
             DurationSeconds = durationSeconds,
+            Encrypted = settings.EncryptRecordings,
             CreatedAt = time.GetUtcNow(),
         };
         var extension = contentType == "audio/wav" ? "wav" : "mp3";
@@ -175,6 +204,13 @@ public sealed class RecordingService(MapacheDbContext db, RecordingStore localSt
         var storage = await ForAsync(recording.Storage, ct);
         try
         {
+            if (recording.Encrypted)
+            {
+                // Cifrada no sirve un enlace directo: el navegador recibiría el archivo cifrado.
+                var sealedData = await storage.ReadAsync(recording.FileName, ct);
+                return new RecordingLocation(null, null, recording.ContentType, RecordingCipher.Decrypt(await GetOrCreateKeyAsync(ct), sealedData));
+            }
+
             return await storage.OpenAsync(recording.FileName, recording.ContentType, ct);
         }
         finally
@@ -217,6 +253,31 @@ public sealed class RecordingService(MapacheDbContext db, RecordingStore localSt
         {
             (storage as IDisposable)?.Dispose();
         }
+    }
+
+    /// <summary>
+    /// Clave de las grabaciones: se crea una sola vez y se guarda protegida con Data Protection. Si se pierden las
+    /// llaves de Data Protection, las grabaciones cifradas quedan ilegibles (igual que los demás secretos).
+    /// </summary>
+    private async Task<byte[]> GetOrCreateKeyAsync(CancellationToken ct)
+    {
+        var settings = await db.StorageSettings.SingleOrDefaultAsync(ct);
+        if (settings?.RecordingKeyEncrypted is { } stored)
+        {
+            return Convert.FromBase64String(protector.Unprotect(stored));
+        }
+
+        if (settings is null)
+        {
+            settings = new StorageSettings();
+            db.StorageSettings.Add(settings);
+        }
+
+        var key = RecordingCipher.NewKey();
+        settings.RecordingKeyEncrypted = protector.Protect(Convert.ToBase64String(key));
+        settings.UpdatedAt = time.GetUtcNow();
+        await db.SaveChangesAsync(ct);
+        return key;
     }
 
     private async Task<IRecordingStorage> ForAsync(StorageProvider provider, CancellationToken ct)

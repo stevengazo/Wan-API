@@ -22,11 +22,14 @@ public sealed record RecordingDto(
     Guid? CallId,
     double? DurationSeconds);
 
-public sealed record CallSettingsDto(bool RecordCalls, string? RecordingNotice);
+/// <summary>Días de retención nulos = sin borrado automático.</summary>
+public sealed record CallSettingsDto(bool RecordCalls, string? RecordingNotice, int? RecordingRetentionDays, int? TranscriptRetentionDays);
 
 public sealed record SaveCallSettingsRequest(
     bool RecordCalls,
-    [StringLength(1000, ErrorMessage = Messages.MaxLength)] string? RecordingNotice);
+    [StringLength(1000, ErrorMessage = Messages.MaxLength)] string? RecordingNotice,
+    [Range(1, 3650, ErrorMessage = Messages.Range)] int? RecordingRetentionDays = null,
+    [Range(1, 3650, ErrorMessage = Messages.Range)] int? TranscriptRetentionDays = null);
 
 [ApiController]
 public sealed class RecordingsController(
@@ -61,9 +64,13 @@ public sealed class RecordingsController(
 
         await audit.RecordAsync(AuditActions.RecordingPlayed, $"Grabación del {recording.CreatedAt:dd/MM/yyyy HH:mm}", recording.Id.ToString());
         var extension = recording.ContentType == "audio/wav" ? "wav" : "mp3";
-        return location.Url is { } url
-            ? Redirect(url.ToString())
-            : PhysicalFile(location.LocalPath!, location.ContentType, $"grabacion-{recording.CreatedAt:yyyyMMdd-HHmm}.{extension}", enableRangeProcessing: true);
+        var fileName = $"grabacion-{recording.CreatedAt:yyyyMMdd-HHmm}.{extension}";
+        return location switch
+        {
+            { Content: { } content } => File(content, location.ContentType, fileName, enableRangeProcessing: true),
+            { Url: { } url } => Redirect(url.ToString()),
+            _ => PhysicalFile(location.LocalPath!, location.ContentType, fileName, enableRangeProcessing: true),
+        };
     }
 
     /// <summary>
@@ -107,12 +114,17 @@ public sealed class RecordingsController(
         return NoContent();
     }
 
+    /// <summary>Aplica la retención ahora, sin esperar al trabajo diario.</summary>
+    [HttpPost("api/settings/calls/retention/run")]
+    [Authorize(Roles = Roles.Admin)]
+    public Task<RetentionResult> RunRetention([FromServices] RetentionJob job, CancellationToken ct) => job.RunAsync(ct);
+
     [HttpGet("api/settings/calls")]
     [Authorize]
     public async Task<CallSettingsDto> GetSettings(CancellationToken ct)
     {
         var settings = await db.CallSettings.AsNoTracking().SingleOrDefaultAsync(ct) ?? new CallSettings();
-        return new CallSettingsDto(settings.RecordCalls, settings.RecordingNotice);
+        return new CallSettingsDto(settings.RecordCalls, settings.RecordingNotice, settings.RecordingRetentionDays, settings.TranscriptRetentionDays);
     }
 
     [HttpPut("api/settings/calls")]
@@ -128,9 +140,14 @@ public sealed class RecordingsController(
 
         settings.RecordCalls = request.RecordCalls;
         settings.RecordingNotice = string.IsNullOrWhiteSpace(request.RecordingNotice) ? null : request.RecordingNotice.Trim();
+        settings.RecordingRetentionDays = request.RecordingRetentionDays;
+        settings.TranscriptRetentionDays = request.TranscriptRetentionDays;
         settings.UpdatedAt = time.GetUtcNow();
         await db.SaveChangesAsync(ct);
-        await audit.RecordAsync(AuditActions.SettingsChanged, "Llamadas", details: settings.RecordCalls ? "Grabación activada" : "Grabación desactivada");
-        return new CallSettingsDto(settings.RecordCalls, settings.RecordingNotice);
+        await audit.RecordAsync(
+            AuditActions.SettingsChanged,
+            "Llamadas",
+            details: $"Grabación {(settings.RecordCalls ? "activada" : "desactivada")}; retención grabaciones {settings.RecordingRetentionDays?.ToString() ?? "sin límite"} días, transcripciones {settings.TranscriptRetentionDays?.ToString() ?? "sin límite"} días");
+        return new CallSettingsDto(settings.RecordCalls, settings.RecordingNotice, settings.RecordingRetentionDays, settings.TranscriptRetentionDays);
     }
 }

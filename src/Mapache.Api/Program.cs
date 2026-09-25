@@ -62,6 +62,7 @@ try
     builder.Services.AddScoped<Mapache.Api.Agent.AgentIntake>();
     builder.Services.AddScoped<PublicUrlResolver>();
     builder.Services.AddSingleton<Mapache.Api.Audit.AuditLog>();
+    builder.Services.AddScoped<Mapache.Api.Audit.RetentionJob>();
     builder.Services.AddHostedService<Mapache.Api.Campaigns.CampaignDialer>();
     builder.Services.AddSingleton<Mapache.Sip.Media.IBotBrain, BotBrain>();
     builder.Services.AddScoped<Mapache.Infrastructure.Tools.IBotToolSource, Mapache.Api.Agent.IntakeToolSource>();
@@ -178,6 +179,10 @@ try
         // Por defecto el dashboard solo acepta requests locales; no se expone fuera de desarrollo.
         app.UseHangfireDashboard("/hangfire");
     }
+
+    // Retención: todos los días a las 3:00 UTC (fuera del horario de atención en América).
+    app.Services.GetRequiredService<Hangfire.IRecurringJobManager>()
+        .AddOrUpdate<Mapache.Api.Audit.RetentionJob>(Mapache.Api.Audit.RetentionJob.JobId, job => job.RunAsync(CancellationToken.None), Hangfire.Cron.Daily(3));
 
     app.UseWebSockets();
     app.UseAuthentication();

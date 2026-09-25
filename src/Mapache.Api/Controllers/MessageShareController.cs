@@ -94,9 +94,12 @@ public sealed class MessageShareController(MapacheDbContext db, RecordingService
 
         NoStore();
         await audit.RecordAsync(AuditActions.RecordingPlayed, $"Grabación del {recording.CreatedAt:dd/MM/yyyy HH:mm}", recording.Id.ToString(), "Desde el enlace público de un recado");
-        return location.Url is { } url
-            ? Redirect(url.ToString())
-            : PhysicalFile(location.LocalPath!, location.ContentType, enableRangeProcessing: true);
+        return location switch
+        {
+            { Content: { } content } => File(content, location.ContentType, enableRangeProcessing: true),
+            { Url: { } url } => Redirect(url.ToString()),
+            _ => PhysicalFile(location.LocalPath!, location.ContentType, enableRangeProcessing: true),
+        };
     }
 
     private (Guid MessageId, DateTimeOffset ExpiresAt)? Open(string token)

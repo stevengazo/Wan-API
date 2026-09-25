@@ -223,6 +223,12 @@ namespace Mapache.Infrastructure.Persistence.Migrations
                         .HasMaxLength(1000)
                         .HasColumnType("character varying(1000)");
 
+                    b.Property<int?>("RecordingRetentionDays")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("TranscriptRetentionDays")
+                        .HasColumnType("integer");
+
                     b.Property<DateTimeOffset>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -979,6 +985,9 @@ namespace Mapache.Infrastructure.Persistence.Migrations
                     b.Property<double?>("DurationSeconds")
                         .HasColumnType("double precision");
 
+                    b.Property<bool>("Encrypted")
+                        .HasColumnType("boolean");
+
                     b.Property<string>("FileName")
                         .IsRequired()
                         .HasMaxLength(256)
@@ -1065,6 +1074,9 @@ namespace Mapache.Infrastructure.Persistence.Migrations
                         .HasMaxLength(128)
                         .HasColumnType("character varying(128)");
 
+                    b.Property<bool>("EncryptRecordings")
+                        .HasColumnType("boolean");
+
                     b.Property<string>("Prefix")
                         .HasMaxLength(256)
                         .HasColumnType("character varying(256)");
@@ -1073,6 +1085,9 @@ namespace Mapache.Infrastructure.Persistence.Migrations
                         .IsRequired()
                         .HasMaxLength(16)
                         .HasColumnType("character varying(16)");
+
+                    b.Property<string>("RecordingKeyEncrypted")
+                        .HasColumnType("text");
 
                     b.Property<string>("S3AccessKeyId")
                         .HasMaxLength(128)

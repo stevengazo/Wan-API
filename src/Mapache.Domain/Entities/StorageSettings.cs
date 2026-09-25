@@ -39,5 +39,11 @@ public class StorageSettings
     /// <summary>Carpeta dentro del bucket o contenedor ("mapache/grabaciones").</summary>
     public string? Prefix { get; set; }
 
+    /// <summary>Cifrar las grabaciones nuevas antes de guardarlas, en disco o en la nube.</summary>
+    public bool EncryptRecordings { get; set; } = true;
+
+    /// <summary>Clave AES-256 de las grabaciones, protegida con Data Protection. Se crea al cifrar la primera.</summary>
+    public string? RecordingKeyEncrypted { get; set; }
+
     public DateTimeOffset UpdatedAt { get; set; }
 }
