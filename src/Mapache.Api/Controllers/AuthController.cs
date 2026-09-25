@@ -20,6 +20,13 @@ public sealed record RegisterRequest(
     [Required(ErrorMessage = Messages.Required), EmailAddress(ErrorMessage = "Correo inválido"), StringLength(256, ErrorMessage = Messages.MaxLength)] string Email,
     [Required(ErrorMessage = Messages.Required), StringLength(128, MinimumLength = 8, ErrorMessage = "Entre {2} y {1} caracteres")] string Password);
 
+public sealed record UpdateProfileRequest(
+    [Required(ErrorMessage = Messages.Required), StringLength(128, ErrorMessage = Messages.MaxLength)] string DisplayName);
+
+public sealed record ChangePasswordRequest(
+    [Required(ErrorMessage = Messages.Required)] string CurrentPassword,
+    [Required(ErrorMessage = Messages.Required), StringLength(128, MinimumLength = 8, ErrorMessage = "Entre {2} y {1} caracteres")] string NewPassword);
+
 public sealed record UserDto(Guid Id, string Email, string DisplayName, UserRole Role);
 
 public sealed record LoginResponse(string AccessToken, DateTimeOffset ExpiresAt, UserDto User);
@@ -89,6 +96,46 @@ public sealed class AuthController(MapacheDbContext db, IPasswordHasher<User> ha
         var user = await db.Users.AsNoTracking().SingleOrDefaultAsync(u => u.Id == id, ct);
         return user is null ? Unauthorized() : ToDto(user);
     }
+
+    [HttpPut("me")]
+    [Authorize]
+    public async Task<ActionResult<UserDto>> UpdateProfile(UpdateProfileRequest request, CancellationToken ct)
+    {
+        if (await CurrentUserAsync(ct) is not { } user)
+        {
+            return Unauthorized();
+        }
+
+        user.DisplayName = request.DisplayName.Trim();
+        await db.SaveChangesAsync(ct);
+        return ToDto(user);
+    }
+
+    [HttpPost("password")]
+    [Authorize]
+    [EnableRateLimiting("login")]
+    public async Task<IActionResult> ChangePassword(ChangePasswordRequest request, CancellationToken ct)
+    {
+        if (await CurrentUserAsync(ct) is not { } user)
+        {
+            return Unauthorized();
+        }
+
+        if (hasher.VerifyHashedPassword(user, user.PasswordHash, request.CurrentPassword) == PasswordVerificationResult.Failed)
+        {
+            ModelState.AddModelError(nameof(ChangePasswordRequest.CurrentPassword), "La contraseña actual no es correcta");
+            return ValidationProblem(ModelState);
+        }
+
+        user.PasswordHash = hasher.HashPassword(user, request.NewPassword);
+        await db.SaveChangesAsync(ct);
+        return NoContent();
+    }
+
+    private async Task<User?> CurrentUserAsync(CancellationToken ct) =>
+        Guid.TryParse(User.FindFirstValue("sub"), out var id)
+            ? await db.Users.SingleOrDefaultAsync(u => u.Id == id, ct)
+            : null;
 
     private static UserDto ToDto(User user) => new(user.Id, user.Email, user.DisplayName, user.Role);
 }
