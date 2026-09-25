@@ -62,6 +62,77 @@ namespace Mapache.Infrastructure.Persistence.Migrations
                     b.ToTable("Calls");
                 });
 
+            modelBuilder.Entity("Mapache.Domain.Entities.CallMessage", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Body")
+                        .IsRequired()
+                        .HasMaxLength(4000)
+                        .HasColumnType("character varying(4000)");
+
+                    b.Property<string>("CallbackNumber")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<string>("CallerName")
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)");
+
+                    b.Property<string>("ConversationId")
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("DirectoryEntryId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Recipient")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)");
+
+                    b.Property<bool>("Urgent")
+                        .HasColumnType("boolean");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CreatedAt");
+
+                    b.HasIndex("DirectoryEntryId");
+
+                    b.ToTable("CallMessages");
+                });
+
+            modelBuilder.Entity("Mapache.Domain.Entities.CallSettings", b =>
+                {
+                    b.Property<int>("Id")
+                        .HasColumnType("integer");
+
+                    b.Property<bool>("RecordCalls")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("RecordingNotice")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("CallSettings");
+                });
+
             modelBuilder.Entity("Mapache.Domain.Entities.CallTranscript", b =>
                 {
                     b.Property<Guid>("Id")
@@ -257,6 +328,77 @@ namespace Mapache.Infrastructure.Persistence.Migrations
                     b.ToTable("Extensions");
                 });
 
+            modelBuilder.Entity("Mapache.Domain.Entities.FormSubmission", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("CallerNumber")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<string>("ConversationId")
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("FormTemplateId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)");
+
+                    b.Property<string>("Values")
+                        .IsRequired()
+                        .HasColumnType("jsonb");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CreatedAt");
+
+                    b.HasIndex("FormTemplateId");
+
+                    b.ToTable("FormSubmissions");
+                });
+
+            modelBuilder.Entity("Mapache.Domain.Entities.FormTemplate", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<bool>("Enabled")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Fields")
+                        .IsRequired()
+                        .HasColumnType("jsonb");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("FormTemplates");
+                });
+
             modelBuilder.Entity("Mapache.Domain.Entities.LlmProviderSettings", b =>
                 {
                     b.Property<string>("Provider")
@@ -294,6 +436,38 @@ namespace Mapache.Infrastructure.Persistence.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("LlmSettings");
+                });
+
+            modelBuilder.Entity("Mapache.Domain.Entities.Recording", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ConversationId")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("FileName")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)");
+
+                    b.Property<long>("SizeBytes")
+                        .HasColumnType("bigint");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ConversationId")
+                        .IsUnique();
+
+                    b.HasIndex("CreatedAt");
+
+                    b.ToTable("Recordings");
                 });
 
             modelBuilder.Entity("Mapache.Domain.Entities.User", b =>
@@ -362,6 +536,16 @@ namespace Mapache.Infrastructure.Persistence.Migrations
                     b.Navigation("Extension");
                 });
 
+            modelBuilder.Entity("Mapache.Domain.Entities.CallMessage", b =>
+                {
+                    b.HasOne("Mapache.Domain.Entities.DirectoryEntry", "DirectoryEntry")
+                        .WithMany()
+                        .HasForeignKey("DirectoryEntryId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("DirectoryEntry");
+                });
+
             modelBuilder.Entity("Mapache.Domain.Entities.CallTranscript", b =>
                 {
                     b.HasOne("Mapache.Domain.Entities.Call", null)
@@ -369,6 +553,17 @@ namespace Mapache.Infrastructure.Persistence.Migrations
                         .HasForeignKey("CallId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+                });
+
+            modelBuilder.Entity("Mapache.Domain.Entities.FormSubmission", b =>
+                {
+                    b.HasOne("Mapache.Domain.Entities.FormTemplate", "FormTemplate")
+                        .WithMany()
+                        .HasForeignKey("FormTemplateId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("FormTemplate");
                 });
 
             modelBuilder.Entity("Mapache.Domain.Entities.Call", b =>

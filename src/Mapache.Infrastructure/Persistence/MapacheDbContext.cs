@@ -1,3 +1,5 @@
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using Mapache.Domain.Entities;
 using Microsoft.AspNetCore.DataProtection.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
@@ -15,6 +17,16 @@ public class MapacheDbContext(DbContextOptions<MapacheDbContext> options) : DbCo
     public DbSet<LlmSettings> LlmSettings => Set<LlmSettings>();
 
     public DbSet<DirectoryEntry> DirectoryEntries => Set<DirectoryEntry>();
+
+    public DbSet<FormTemplate> FormTemplates => Set<FormTemplate>();
+
+    public DbSet<FormSubmission> FormSubmissions => Set<FormSubmission>();
+
+    public DbSet<CallMessage> CallMessages => Set<CallMessage>();
+
+    public DbSet<Recording> Recordings => Set<Recording>();
+
+    public DbSet<CallSettings> CallSettings => Set<CallSettings>();
 
     public DbSet<LlmProviderSettings> LlmProviderSettings => Set<LlmProviderSettings>();
 
@@ -65,6 +77,50 @@ public class MapacheDbContext(DbContextOptions<MapacheDbContext> options) : DbCo
             e.Property(d => d.Description).HasMaxLength(1000);
         });
 
+        modelBuilder.Entity<FormTemplate>(e =>
+        {
+            e.Property(f => f.Name).HasMaxLength(128);
+            e.Property(f => f.Description).HasMaxLength(1000);
+            e.Property(f => f.Fields).HasColumnType("jsonb").HasConversion(Json<List<FormField>>());
+        });
+
+        modelBuilder.Entity<FormSubmission>(e =>
+        {
+            e.Property(s => s.Values).HasColumnType("jsonb").HasConversion(Json<Dictionary<string, string>>());
+            e.Property(s => s.Status).HasConversion<string>().HasMaxLength(16);
+            e.Property(s => s.ConversationId).HasMaxLength(128);
+            e.Property(s => s.CallerNumber).HasMaxLength(64);
+            e.HasIndex(s => s.CreatedAt);
+            e.HasOne(s => s.FormTemplate).WithMany().OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<CallMessage>(e =>
+        {
+            e.Property(m => m.Recipient).HasMaxLength(128);
+            e.Property(m => m.CallerName).HasMaxLength(128);
+            e.Property(m => m.CallbackNumber).HasMaxLength(64);
+            e.Property(m => m.Body).HasMaxLength(4000);
+            e.Property(m => m.Status).HasConversion<string>().HasMaxLength(16);
+            e.Property(m => m.ConversationId).HasMaxLength(128);
+            e.HasIndex(m => m.CreatedAt);
+            // Borrar una entrada del directorio no borra sus recados: se quedan con el nombre en texto.
+            e.HasOne(m => m.DirectoryEntry).WithMany().OnDelete(DeleteBehavior.SetNull);
+        });
+
+        modelBuilder.Entity<Recording>(e =>
+        {
+            e.Property(r => r.ConversationId).HasMaxLength(128);
+            e.HasIndex(r => r.ConversationId).IsUnique();
+            e.Property(r => r.FileName).HasMaxLength(256);
+            e.HasIndex(r => r.CreatedAt);
+        });
+
+        modelBuilder.Entity<CallSettings>(e =>
+        {
+            e.Property(s => s.Id).ValueGeneratedNever();
+            e.Property(s => s.RecordingNotice).HasMaxLength(1000);
+        });
+
         modelBuilder.Entity<LlmSettings>(e =>
         {
             e.Property(s => s.Id).ValueGeneratedNever();
@@ -93,4 +149,16 @@ public class MapacheDbContext(DbContextOptions<MapacheDbContext> options) : DbCo
             e.Property(t => t.Speaker).HasConversion<string>().HasMaxLength(16);
         });
     }
+
+    private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web)
+    {
+        Converters = { new JsonStringEnumConverter() },
+    };
+
+    /// <summary>
+    /// Columna jsonb para un objeto que se serializa entero. EF compara por referencia: al editar hay que
+    /// asignar una lista o diccionario nuevos, no modificar el existente.
+    /// </summary>
+    private static Microsoft.EntityFrameworkCore.Storage.ValueConversion.ValueConverter<T, string> Json<T>() where T : new() =>
+        new(v => JsonSerializer.Serialize(v, JsonOptions), v => JsonSerializer.Deserialize<T>(v, JsonOptions) ?? new T());
 }

@@ -12,6 +12,8 @@ RUN dotnet publish src/Mapache.Api/Mapache.Api.csproj -c Release -o /app --no-re
 FROM mcr.microsoft.com/dotnet/aspnet:10.0
 WORKDIR /app
 COPY --from=build /app .
+# El volumen de grabaciones hereda este dueño al crearse: sin esto el usuario app no podría escribir.
+RUN mkdir -p /app/data/recordings && chown -R app:app /app/data
 USER app
 EXPOSE 8080
 ENTRYPOINT ["dotnet", "Mapache.Api.dll"]

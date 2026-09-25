@@ -11,6 +11,15 @@ public interface IEventsClient
 {
     /// <summary>Se creó, editó o borró una extensión: el panel refresca la lista.</summary>
     Task ExtensionsChanged();
+
+    /// <summary>El bot dejó un recado o alguien cambió su estado.</summary>
+    Task MessagesChanged();
+
+    /// <summary>El bot envió un formulario o alguien cambió el estado de una respuesta.</summary>
+    Task FormSubmissionsChanged();
+
+    /// <summary>Llegó o se borró una grabación.</summary>
+    Task RecordingsChanged();
 }
 
 /// <summary>Hub de solo servidor → panel. En Fase 2 suma estado de registro SIP y llamadas en vivo.</summary>

@@ -83,6 +83,15 @@ dotnet ef migrations add <Nombre> --project src/Mapache.Infrastructure --startup
 | `GET` | `/api/directory`, `/api/directory/{id}` | autenticado |
 | `POST`, `PUT`, `DELETE` | `/api/directory[/{id}]` | `Admin` |
 | `POST` | `/api/agent-tools/directory/search` | token de tools del agente (server tool `search_directory`) |
+| `GET` | `/api/forms`, `/api/forms/{id}`, `/api/forms/{id}/submissions` | autenticado |
+| `POST`, `PUT`, `DELETE` | `/api/forms[/{id}]` | `Admin` |
+| `PATCH`, `DELETE` | `/api/form-submissions/{id}` | autenticado / `Admin` |
+| `GET`, `PATCH` / `DELETE` | `/api/messages[/{id}]` | autenticado / `Admin` |
+| `GET` | `/api/recordings`, `/api/recordings/{id}/audio` | autenticado (audio con rangos) |
+| `DELETE` | `/api/recordings/{id}` | `Admin` |
+| `GET` / `PUT` | `/api/settings/calls` | autenticado / `Admin` |
+| `POST` | `/api/agent-tools/forms/submit` | token de tools (server tool `submit_form`) |
+| `POST` | `/api/agent-tools/messages` | token de tools (server tool `leave_message`) |
 | `GET` | `/api/llm/settings` | autenticado (sin API keys, solo si están cargadas) |
 | `PUT` | `/api/llm/settings` | `Admin` |
 | `POST` | `/api/webhooks/elevenlabs/post-call` | firma HMAC de ElevenLabs |
@@ -112,6 +121,15 @@ Destinos a los que el bot puede transferir (nombre, área, extensión/número/UR
 - **Siempre presente:** el Custom LLM agrega las entradas activas como un mensaje de sistema, después de las instrucciones. El bot las conoce sin configurar nada más.
 - **Server tool opcional:** `search_directory` en el agente, `POST /api/agent-tools/directory/search` con body `{"query": "..."}` y el mismo header `Authorization` de los demás tools. Busca sin mayúsculas ni tildes por nombre, área, destino y descripción.
 - La transferencia en sí (REFER) la hace el motor SIP (Fase 3); por ahora el bot sabe a dónde transferir.
+
+### Formularios, recados y grabaciones
+
+Las tools se crean en el agente de ElevenLabs como *server tools* (POST, JSON), con el mismo header `Authorization` que las demás. En los parámetros `conversation_id` y `caller_number` conviene usar las variables de sistema `system__conversation_id` y `system__caller_id`: enlazan la respuesta o el recado con la grabación.
+
+- **`submit_form`** → `/api/agent-tools/forms/submit`. Body: `form` (nombre del formulario), `values` (objeto campo → valor), `conversation_id`, `caller_number`. Responde siempre 200: `ok: false` con `problems` si falta o no es válido algún dato, para que el bot vuelva a preguntar. Los valores se normalizan por tipo (teléfono, correo, número, sí/no, opciones).
+- **`leave_message`** → `/api/agent-tools/messages`. Body: `recipient`, `message`, `caller_name`, `callback_number`, `urgent`, `conversation_id`. El destinatario se enlaza con el directorio si hay una sola coincidencia clara.
+- **Contexto para el bot:** el Custom LLM agrega los formularios activos y las instrucciones de recados solo si el agente tiene la tool correspondiente (`BotContext`); pedirle usar una herramienta que no existe lo confunde.
+- **Grabaciones:** con "Grabar llamadas" activo en Configuración, el webhook post-llamada guarda el MP3 de los eventos `post_call_audio` (activar *Send audio data* en el webhook de ElevenLabs). Los archivos van a `Recordings:Path` (volumen `recordings` en Docker); una conversación se guarda una sola vez aunque ElevenLabs reintente. El aviso de grabación se agrega a las instrucciones del bot; conviene incluirlo también en el primer mensaje del agente, que ElevenLabs dice antes de consultar al LLM.
 
 ### Tiempo real y trabajos en segundo plano
 

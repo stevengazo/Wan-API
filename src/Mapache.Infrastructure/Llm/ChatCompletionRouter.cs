@@ -2,7 +2,6 @@ using System.Text.Json.Nodes;
 using Mapache.Domain.Entities;
 using Mapache.Infrastructure.Persistence;
 using Mapache.Infrastructure.Security;
-using Mapache.Infrastructure.Transfers;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -41,7 +40,9 @@ public sealed class ChatCompletionRouter(
         var apiKey = protector.Unprotect(encryptedKey);
 
         var directory = await db.DirectoryEntries.AsNoTracking().Where(d => d.Enabled).ToListAsync(ct);
-        Prepare(request, selection, DirectoryPrompt.Build(directory));
+        var forms = await db.FormTemplates.AsNoTracking().Where(f => f.Enabled).ToListAsync(ct);
+        var callSettings = await db.CallSettings.AsNoTracking().SingleOrDefaultAsync(ct);
+        Prepare(request, selection, BotContext.Build(request, directory, forms, callSettings));
         logger.LogInformation("Custom LLM: {Provider} {Model}", provider, model);
 
         if (provider == LlmProvider.Anthropic)
@@ -56,10 +57,10 @@ public sealed class ChatCompletionRouter(
 
     /// <summary>
     /// Deja la petición lista para el proveedor: el modelo de Mapache, las instrucciones generales en lugar
-    /// de las del agente, el directorio de transferencias y sin <c>elevenlabs_extra_body</c>, que los
-    /// proveedores rechazarían.
+    /// de las del agente, el contexto de Mapache (<see cref="BotContext"/>) y sin <c>elevenlabs_extra_body</c>,
+    /// que los proveedores rechazarían.
     /// </summary>
-    public static void Prepare(JsonObject request, LlmSelection selection, string? directory = null)
+    public static void Prepare(JsonObject request, LlmSelection selection, string? context = null)
     {
         request.Remove("elevenlabs_extra_body");
         request["model"] = selection.Model;
@@ -83,13 +84,13 @@ public sealed class ChatCompletionRouter(
         }
         else
         {
-            // Sin instrucciones propias quedan las del agente: el directorio va justo después de ellas.
+            // Sin instrucciones propias quedan las del agente: el contexto va justo después de ellas.
             insertAt = messages.TakeWhile(m => m?["role"]?.GetValue<string>() is "system" or "developer").Count();
         }
 
-        if (!string.IsNullOrWhiteSpace(directory))
+        if (!string.IsNullOrWhiteSpace(context))
         {
-            messages.Insert(insertAt, new JsonObject { ["role"] = "system", ["content"] = directory });
+            messages.Insert(insertAt, new JsonObject { ["role"] = "system", ["content"] = context });
         }
     }
 }

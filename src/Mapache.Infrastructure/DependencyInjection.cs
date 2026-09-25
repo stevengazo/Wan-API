@@ -1,6 +1,7 @@
 using Mapache.Domain.Entities;
 using Mapache.Infrastructure.Llm;
 using Mapache.Infrastructure.Persistence;
+using Mapache.Infrastructure.Recordings;
 using Mapache.Infrastructure.Security;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Identity;
@@ -34,6 +35,9 @@ public static class DependencyInjection
         services.AddHttpClient<OpenAiCompatibleChatClient>();
         services.AddSingleton<AnthropicChatClient>();
         services.AddScoped<ChatCompletionRouter>();
+
+        services.Configure<RecordingOptions>(configuration.GetSection(RecordingOptions.SectionName));
+        services.AddSingleton<RecordingStore>();
         return services;
     }
 }
