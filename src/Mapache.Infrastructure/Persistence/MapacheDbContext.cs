@@ -165,6 +165,7 @@ public class MapacheDbContext(DbContextOptions<MapacheDbContext> options) : DbCo
             e.Property(t => t.TokenHash).HasMaxLength(64);
             e.HasIndex(t => t.TokenHash).IsUnique();
             e.Property(t => t.Prefix).HasMaxLength(32);
+            e.Property(t => t.AllowedTools).HasColumnType("jsonb").HasConversion(Json<List<string>>());
         });
 
         modelBuilder.Entity<KnowledgeBase>(e =>

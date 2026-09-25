@@ -124,7 +124,9 @@ try
     // nginx y con varias instancias de la API.
     builder.Services.AddMcpServer()
         .WithHttpTransport(o => o.Stateless = true)
-        .WithTools<MapacheMcpTools>();
+        .WithTools<MapacheMcpTools>()
+        .WithTokenPermissions();
+    builder.Services.AddHttpContextAccessor();
 
     // Detrás de nginx la IP remota es la del proxy: sin esto el rate limit del login sería uno solo para todos.
     // Solo se habilita con ReverseProxy:Enabled porque confiar en X-Forwarded-For sin proxy permite falsear la IP.

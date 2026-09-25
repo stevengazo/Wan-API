@@ -25,6 +25,10 @@ public sealed class McpTokenAuthenticationHandler(
     public const string PolicyName = "Mcp";
     public const string TokenPrefix = "mapache_mcp_";
 
+    /// <summary>Claim con cada herramienta permitida; <see cref="AllToolsValue"/> permite todas.</summary>
+    public const string ToolClaim = "mcp_tool";
+    public const string AllToolsValue = "*";
+
     protected override async Task<AuthenticateResult> HandleAuthenticateAsync()
     {
         var header = Request.Headers.Authorization.ToString();
@@ -48,9 +52,17 @@ public sealed class McpTokenAuthenticationHandler(
             await db.SaveChangesAsync(Context.RequestAborted);
         }
 
-        var identity = new ClaimsIdentity([new Claim("sub", $"mcp:{token.Id}"), new Claim("name", token.Name)], SchemeName);
+        var claims = new List<Claim> { new("sub", $"mcp:{token.Id}"), new("name", token.Name) };
+        claims.AddRange(token.AllowAll
+            ? [new Claim(ToolClaim, AllToolsValue)]
+            : token.AllowedTools.Select(t => new Claim(ToolClaim, t)));
+        var identity = new ClaimsIdentity(claims, SchemeName);
         return AuthenticateResult.Success(new AuthenticationTicket(new ClaimsPrincipal(identity), SchemeName));
     }
+
+    /// <summary>Si el usuario del token puede usar la herramienta.</summary>
+    public static bool CanUse(ClaimsPrincipal? user, string tool) =>
+        user?.FindAll(ToolClaim).Any(c => c.Value == AllToolsValue || c.Value == tool) == true;
 
     public static string Hash(string token) => Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(token)));
 

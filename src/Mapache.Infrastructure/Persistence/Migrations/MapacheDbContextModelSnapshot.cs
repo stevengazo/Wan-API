@@ -695,6 +695,13 @@ namespace Mapache.Infrastructure.Persistence.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
+                    b.Property<bool>("AllowAll")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("AllowedTools")
+                        .IsRequired()
+                        .HasColumnType("jsonb");
+
                     b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 

@@ -17,6 +17,12 @@ public class McpAccessToken
     /// <summary>Primeros caracteres del token, para identificarlo sin revelarlo.</summary>
     public required string Prefix { get; set; }
 
+    /// <summary>Si puede usar todas las herramientas, incluidas las que se agreguen en el futuro.</summary>
+    public bool AllowAll { get; set; } = true;
+
+    /// <summary>Herramientas permitidas cuando <see cref="AllowAll"/> es false.</summary>
+    public List<string> AllowedTools { get; set; } = [];
+
     public DateTimeOffset CreatedAt { get; set; }
 
     public DateTimeOffset? LastUsedAt { get; set; }
