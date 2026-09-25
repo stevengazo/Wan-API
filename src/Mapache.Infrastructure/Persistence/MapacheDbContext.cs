@@ -11,6 +11,10 @@ public class MapacheDbContext(DbContextOptions<MapacheDbContext> options) : DbCo
 {
     public DbSet<User> Users => Set<User>();
 
+    public DbSet<ExternalLogin> ExternalLogins => Set<ExternalLogin>();
+
+    public DbSet<SsoSettings> SsoSettings => Set<SsoSettings>();
+
     public DbSet<Extension> Extensions => Set<Extension>();
 
     public DbSet<Call> Calls => Set<Call>();
@@ -77,6 +81,26 @@ public class MapacheDbContext(DbContextOptions<MapacheDbContext> options) : DbCo
             e.HasIndex(u => u.Email).IsUnique();
             e.Property(u => u.DisplayName).HasMaxLength(128);
             e.Property(u => u.Role).HasConversion<string>().HasMaxLength(32);
+            e.Property(u => u.MfaRecoveryCodeHashes).HasColumnType("jsonb").HasConversion(Json<List<string>>());
+            e.HasMany(u => u.ExternalLogins).WithOne().HasForeignKey(l => l.UserId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<ExternalLogin>(e =>
+        {
+            e.Property(l => l.Provider).HasConversion<string>().HasMaxLength(16);
+            e.Property(l => l.Subject).HasMaxLength(256);
+            e.Property(l => l.Email).HasMaxLength(256);
+            e.HasIndex(l => new { l.Provider, l.Subject }).IsUnique();
+            e.HasIndex(l => new { l.UserId, l.Provider }).IsUnique();
+        });
+
+        modelBuilder.Entity<SsoSettings>(e =>
+        {
+            e.Property(s => s.Id).ValueGeneratedNever();
+            e.Property(s => s.GoogleClientId).HasMaxLength(256);
+            e.Property(s => s.MicrosoftClientId).HasMaxLength(256);
+            e.Property(s => s.MicrosoftTenant).HasMaxLength(64);
+            e.Property(s => s.AllowedDomains).HasMaxLength(512);
         });
 
         modelBuilder.Entity<Extension>(e =>

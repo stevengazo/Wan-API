@@ -11,7 +11,15 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Mapache.Api.Controllers;
 
-public sealed record UserListItemDto(Guid Id, string Email, string DisplayName, UserRole Role, DateTimeOffset CreatedAt, bool IsCurrent);
+public sealed record UserListItemDto(
+    Guid Id,
+    string Email,
+    string DisplayName,
+    UserRole Role,
+    DateTimeOffset CreatedAt,
+    bool IsCurrent,
+    bool MfaEnabled,
+    IReadOnlyList<ExternalProvider> ExternalLogins);
 
 public sealed record CreateUserRequest(
     [Required(ErrorMessage = Messages.Required), StringLength(128, ErrorMessage = Messages.MaxLength)] string DisplayName,
@@ -35,8 +43,8 @@ public sealed class UsersController(MapacheDbContext db, IPasswordHasher<User> h
     public async Task<IReadOnlyList<UserListItemDto>> List(CancellationToken ct)
     {
         var current = CurrentUserId();
-        return (await db.Users.AsNoTracking().OrderBy(u => u.DisplayName).ToListAsync(ct))
-            .Select(u => new UserListItemDto(u.Id, u.Email, u.DisplayName, u.Role, u.CreatedAt, u.Id == current))
+        return (await db.Users.AsNoTracking().Include(u => u.ExternalLogins).OrderBy(u => u.DisplayName).ToListAsync(ct))
+            .Select(u => ToDto(u, current))
             .ToList();
     }
 
@@ -55,13 +63,13 @@ public sealed class UsersController(MapacheDbContext db, IPasswordHasher<User> h
         db.Users.Add(user);
         await db.SaveChangesAsync(ct);
         await audit.RecordAsync(AuditActions.UserCreated, user.Email, user.Id.ToString(), $"Rol: {user.Role}");
-        return new UserListItemDto(user.Id, user.Email, user.DisplayName, user.Role, user.CreatedAt, false);
+        return ToDto(user, CurrentUserId());
     }
 
     [HttpPut("api/users/{id:guid}")]
     public async Task<ActionResult<UserListItemDto>> Update(Guid id, UpdateUserRequest request, CancellationToken ct)
     {
-        var user = await db.Users.FindAsync([id], ct);
+        var user = await db.Users.Include(u => u.ExternalLogins).SingleOrDefaultAsync(u => u.Id == id, ct);
         if (user is null)
         {
             return NotFound();
@@ -78,7 +86,7 @@ public sealed class UsersController(MapacheDbContext db, IPasswordHasher<User> h
         await db.SaveChangesAsync(ct);
         await audit.RecordAsync(
             AuditActions.UserUpdated, user.Email, user.Id.ToString(), previousRole == user.Role ? null : $"Rol: {previousRole} → {user.Role}");
-        return new UserListItemDto(user.Id, user.Email, user.DisplayName, user.Role, user.CreatedAt, user.Id == CurrentUserId());
+        return ToDto(user, CurrentUserId());
     }
 
     /// <summary>Contraseña nueva elegida por un administrador (p. ej. si la persona la olvidó).</summary>
@@ -94,6 +102,22 @@ public sealed class UsersController(MapacheDbContext db, IPasswordHasher<User> h
         user.PasswordHash = hasher.HashPassword(user, request.Password);
         await db.SaveChangesAsync(ct);
         await audit.RecordAsync(AuditActions.UserPasswordReset, user.Email, user.Id.ToString());
+        return NoContent();
+    }
+
+    /// <summary>Para quien perdió el teléfono y los códigos de recuperación: vuelve a entrar solo con la contraseña.</summary>
+    [HttpDelete("api/users/{id:guid}/mfa")]
+    public async Task<IActionResult> ResetMfa(Guid id, CancellationToken ct)
+    {
+        var user = await db.Users.FindAsync([id], ct);
+        if (user is null)
+        {
+            return NotFound();
+        }
+
+        MfaService.Disable(user);
+        await db.SaveChangesAsync(ct);
+        await audit.RecordAsync(AuditActions.MfaDisabled, user.Email, user.Id.ToString(), "Quitado por un administrador");
         return NoContent();
     }
 
@@ -126,4 +150,7 @@ public sealed class UsersController(MapacheDbContext db, IPasswordHasher<User> h
         db.Users.AllAsync(u => u.Id == id || u.Role != UserRole.Admin, ct);
 
     private Guid? CurrentUserId() => Guid.TryParse(User.FindFirstValue("sub"), out var id) ? id : null;
+
+    private static UserListItemDto ToDto(User u, Guid? current) => new(
+        u.Id, u.Email, u.DisplayName, u.Role, u.CreatedAt, u.Id == current, u.MfaEnabled, u.ExternalLogins.Select(l => l.Provider).Order().ToList());
 }

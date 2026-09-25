@@ -557,6 +557,43 @@ namespace Mapache.Infrastructure.Persistence.Migrations
                     b.ToTable("Extensions");
                 });
 
+            modelBuilder.Entity("Mapache.Domain.Entities.ExternalLogin", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Email")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)");
+
+                    b.Property<string>("Provider")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)");
+
+                    b.Property<string>("Subject")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Provider", "Subject")
+                        .IsUnique();
+
+                    b.HasIndex("UserId", "Provider")
+                        .IsUnique();
+
+                    b.ToTable("ExternalLogins");
+                });
+
             modelBuilder.Entity("Mapache.Domain.Entities.FormAction", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1062,6 +1099,51 @@ namespace Mapache.Infrastructure.Persistence.Migrations
                     b.ToTable("SmtpSettings");
                 });
 
+            modelBuilder.Entity("Mapache.Domain.Entities.SsoSettings", b =>
+                {
+                    b.Property<int>("Id")
+                        .HasColumnType("integer");
+
+                    b.Property<bool>("AllowRegistration")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("AllowedDomains")
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)");
+
+                    b.Property<string>("GoogleClientId")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)");
+
+                    b.Property<string>("GoogleClientSecretEncrypted")
+                        .HasColumnType("text");
+
+                    b.Property<bool>("GoogleEnabled")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("MicrosoftClientId")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)");
+
+                    b.Property<string>("MicrosoftClientSecretEncrypted")
+                        .HasColumnType("text");
+
+                    b.Property<bool>("MicrosoftEnabled")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("MicrosoftTenant")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("SsoSettings");
+                });
+
             modelBuilder.Entity("Mapache.Domain.Entities.StorageSettings", b =>
                 {
                     b.Property<int>("Id")
@@ -1134,6 +1216,19 @@ namespace Mapache.Infrastructure.Persistence.Migrations
                         .IsRequired()
                         .HasMaxLength(256)
                         .HasColumnType("character varying(256)");
+
+                    b.Property<bool>("MfaEnabled")
+                        .HasColumnType("boolean");
+
+                    b.Property<long?>("MfaLastStep")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("MfaRecoveryCodeHashes")
+                        .IsRequired()
+                        .HasColumnType("jsonb");
+
+                    b.Property<string>("MfaSecretEncrypted")
+                        .HasColumnType("text");
 
                     b.Property<string>("PasswordHash")
                         .IsRequired()
@@ -1299,6 +1394,15 @@ namespace Mapache.Infrastructure.Persistence.Migrations
                     b.Navigation("Campaign");
                 });
 
+            modelBuilder.Entity("Mapache.Domain.Entities.ExternalLogin", b =>
+                {
+                    b.HasOne("Mapache.Domain.Entities.User", null)
+                        .WithMany("ExternalLogins")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("Mapache.Domain.Entities.FormAction", b =>
                 {
                     b.HasOne("Mapache.Domain.Entities.FormTemplate", "FormTemplate")
@@ -1344,6 +1448,11 @@ namespace Mapache.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("Mapache.Domain.Entities.Call", b =>
                 {
                     b.Navigation("Transcript");
+                });
+
+            modelBuilder.Entity("Mapache.Domain.Entities.User", b =>
+                {
+                    b.Navigation("ExternalLogins");
                 });
 #pragma warning restore 612, 618
         }

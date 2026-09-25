@@ -91,6 +91,8 @@ try
     builder.Services.Configure<AgentWebhookOptions>(builder.Configuration.GetSection(AgentWebhookOptions.SectionName));
     builder.Services.Configure<AppOptions>(builder.Configuration.GetSection(AppOptions.SectionName));
     builder.Services.AddSingleton<TokenService>();
+    builder.Services.AddSingleton<MfaService>();
+    builder.Services.AddSingleton<ExternalAuthService>();
     builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         .AddJwtBearer(o =>
         {
