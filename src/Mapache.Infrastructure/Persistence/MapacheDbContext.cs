@@ -47,6 +47,8 @@ public class MapacheDbContext(DbContextOptions<MapacheDbContext> options) : DbCo
 
     public DbSet<CallSettings> CallSettings => Set<CallSettings>();
 
+    public DbSet<SiteSettings> SiteSettings => Set<SiteSettings>();
+
     public DbSet<VoiceSettings> VoiceSettings => Set<VoiceSettings>();
 
     public DbSet<LlmProviderSettings> LlmProviderSettings => Set<LlmProviderSettings>();
@@ -223,6 +225,12 @@ public class MapacheDbContext(DbContextOptions<MapacheDbContext> options) : DbCo
         {
             e.Property(s => s.Id).ValueGeneratedNever();
             e.Property(s => s.RecordingNotice).HasMaxLength(1000);
+        });
+
+        modelBuilder.Entity<SiteSettings>(e =>
+        {
+            e.Property(s => s.Id).ValueGeneratedNever();
+            e.Property(s => s.PublicUrl).HasMaxLength(512);
         });
 
         modelBuilder.Entity<LlmSettings>(e =>

@@ -63,6 +63,12 @@ Las API keys y el modelo se cargan en el panel. Aquí solo van los valores por d
 | `Sip:RtpPortStart` | `0` | Primer puerto de audio. `0` = cualquiera libre. |
 | `Sip:RtpPortEnd` | `0` | Último puerto de audio. Fíjalos para publicarlos en Docker o en el firewall. |
 
+### Sitio
+
+| Clave | Por defecto | Descripción |
+|-------|-------------|-------------|
+| `App:PublicUrl` | vacío | URL con la que se llega a Mapache desde internet (`https://mapache.miempresa.com`). Se muestra en las URLs para ElevenLabs y los clientes MCP. La de Configuración → General tiene prioridad. |
+
 ### Otros
 
 | Clave | Por defecto | Descripción |
@@ -75,6 +81,7 @@ Las API keys y el modelo se cargan en el panel. Aquí solo van los valores por d
 
 | Pantalla | Qué se configura | Dónde se guarda |
 |----------|------------------|-----------------|
+| Configuración → General | URL pública (si está vacía, `App:PublicUrl`) | `SiteSettings` |
 | Configuración → IA | Proveedor activo, API key y modelo de cada proveedor, instrucciones del bot | `LlmSettings`, `LlmProviderSettings` (keys cifradas) |
 | Configuración → ElevenLabs | API key y ID del agente | `VoiceSettings` (key cifrada) |
 | Configuración → Llamadas | Grabar llamadas y aviso de grabación | `CallSettings` |

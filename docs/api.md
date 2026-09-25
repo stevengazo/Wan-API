@@ -58,6 +58,7 @@ Responde `409` si intentas borrarte a ti mismo o dejar el sistema sin administra
 | `GET` | `/calls`, `/calls/{id}` | usuario | Historial y detalle con transcripción |
 | `GET` / `PUT` | `/settings/voice` | usuario / admin | API key (cifrada) y agente de ElevenLabs |
 | `GET` / `PUT` | `/settings/calls` | usuario / admin | Grabación y aviso |
+| `GET` / `PUT` | `/settings/site` | usuario / admin | URL pública: `publicUrl` (panel), `environmentUrl` (`App:PublicUrl`) y `effectiveUrl` |
 
 ## IA
 

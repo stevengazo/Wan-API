@@ -804,6 +804,23 @@ namespace Mapache.Infrastructure.Persistence.Migrations
                     b.ToTable("Recordings");
                 });
 
+            modelBuilder.Entity("Mapache.Domain.Entities.SiteSettings", b =>
+                {
+                    b.Property<int>("Id")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("PublicUrl")
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("SiteSettings");
+                });
+
             modelBuilder.Entity("Mapache.Domain.Entities.SmtpSettings", b =>
                 {
                     b.Property<int>("Id")

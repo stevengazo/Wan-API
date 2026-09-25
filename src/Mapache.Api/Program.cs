@@ -1,3 +1,4 @@
+using Mapache.Api.Controllers;
 using Mapache.Api.Phone;
 using System.Text.Json.Serialization;
 using System.Threading.RateLimiting;
@@ -80,6 +81,7 @@ try
 
     builder.Services.Configure<JwtOptions>(builder.Configuration.GetSection(JwtOptions.SectionName));
     builder.Services.Configure<AgentWebhookOptions>(builder.Configuration.GetSection(AgentWebhookOptions.SectionName));
+    builder.Services.Configure<AppOptions>(builder.Configuration.GetSection(AppOptions.SectionName));
     builder.Services.AddSingleton<TokenService>();
     builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         .AddJwtBearer(o =>
