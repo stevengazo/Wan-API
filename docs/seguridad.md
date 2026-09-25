@@ -10,6 +10,8 @@
 | Headers de peticiones HTTP y servidores MCP | `HttpTools`, `McpServerConnections` | Cifrados |
 | Secretos de webhooks y contraseña SMTP | `FormActions`, `SmtpSettings` | Cifrados |
 | Tokens MCP | `McpAccessTokens` | Solo el SHA-256; el valor se muestra una vez |
+| Semilla del doble factor | `Users` | Cifrada; de los códigos de recuperación, solo el SHA-256 |
+| Secretos de cliente de Google y Microsoft | `SsoSettings` | Cifrados |
 | Contraseñas de usuarios | `Users` | `PasswordHasher` de ASP.NET Identity |
 | Grabaciones | Disco, S3 o Azure | AES-256-GCM con clave propia, protegida con Data Protection ([detalle](grabaciones.md#cifrado)) |
 
@@ -33,6 +35,8 @@ Las llaves se cifran en reposo con una **clave maestra** que vive fuera de la ba
 ## Autenticación
 
 - **Panel:** JWT firmado con HMAC-SHA256, 8 horas por defecto. Roles `Admin` y `Operator`.
+- **Doble factor:** TOTP opcional por usuario, con códigos de recuperación. Ver [inicio de sesión](inicio-de-sesion.md).
+- **Google y Microsoft:** OpenID Connect con PKCE; nunca se vincula una cuenta por coincidencia de correo.
 - **Login y registro:** 10 intentos por minuto por IP. Detrás de un proxy, activa `ReverseProxy:Enabled` para que la IP sea la real. Sin proxy déjalo apagado, porque el cliente podría falsear `X-Forwarded-For`.
 - **ElevenLabs → Mapache:** Custom LLM y server tools con un bearer token propio; webhook post-llamada con firma HMAC-SHA256 y una ventana de 30 minutos contra repeticiones.
 - **Clientes MCP:** tokens revocables con permisos por herramienta.
@@ -44,7 +48,7 @@ Las llaves se cifran en reposo con una **clave maestra** que vive fuera de la ba
 
 | Área | Acciones |
 |------|----------|
-| Sesión | Inicios de sesión correctos y fallidos, cambio de contraseña |
+| Sesión | Inicios de sesión correctos y fallidos (con el método: contraseña, doble factor, Google, Microsoft), cambio de contraseña, doble factor activado o quitado, cuentas vinculadas y desvinculadas |
 | Usuarios | Alta, cambios, restablecimiento de contraseña, baja |
 | Grabaciones | Escuchada o descargada, borrada |
 | Recados | Enlace público creado, abierto por un tercero, borrado |

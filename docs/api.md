@@ -31,10 +31,20 @@ En la columna *Acceso*: **anónimo**, **usuario** (cualquier rol), **admin**, **
 
 | Método | Ruta | Acceso | Descripción |
 |--------|------|--------|-------------|
-| `POST` | `/auth/login` | anónimo | Devuelve `{accessToken, expiresAt, user}`. 10 intentos por minuto por IP. |
+| `POST` | `/auth/login` | anónimo | Devuelve `{accessToken, expiresAt, user}`; con doble factor, `{mfaRequired: true, mfaToken}`. 10 intentos por minuto por IP. |
+| `POST` | `/auth/login/mfa` | anónimo | Canjea `mfaToken` + código de la app o de recuperación por la sesión (mismo límite) |
 | `POST` | `/auth/register` | anónimo | Crea un usuario `Admin` activo (mismo límite). Ciérralo o restríngelo antes de exponer el panel. |
 | `GET` / `PUT` | `/auth/me` | usuario | Perfil; el `PUT` cambia el nombre |
-| `POST` | `/auth/password` | usuario | Cambia la contraseña; pide la actual |
+| `POST` | `/auth/password` | usuario | Cambia la contraseña; pide la actual, salvo en cuentas creadas con Google o Microsoft que aún no tienen |
+| `GET` | `/auth/mfa` | usuario | Si el doble factor está activo y cuántos códigos de recuperación quedan |
+| `POST` | `/auth/mfa/setup` | usuario | Semilla nueva: `{secret, otpAuthUri}` para el QR |
+| `POST` | `/auth/mfa/enable` | usuario | Confirma con un código; devuelve los códigos de recuperación (una sola vez) |
+| `POST` | `/auth/mfa/disable` | usuario | Desactiva con un código de la app o de recuperación |
+| `POST` | `/auth/mfa/recovery-codes` | usuario | Reemplaza los códigos de recuperación |
+| `GET` | `/auth/external/providers` | anónimo | Proveedores habilitados (Google, Microsoft) |
+| `POST` | `/auth/external/{provider}/start` | anónimo / usuario | `{mode: Login\|Link}` → `{url}` del proveedor. `Link` exige sesión. |
+| `GET` | `/auth/external/{provider}/callback` | anónimo | Vuelta del proveedor; redirige al panel |
+| `GET` / `DELETE` | `/auth/external`, `/auth/external/{provider}` | usuario | Cuentas vinculadas; desvincular |
 
 ## Usuarios
 
@@ -44,6 +54,7 @@ En la columna *Acceso*: **anónimo**, **usuario** (cualquier rol), **admin**, **
 | `POST` | `/users` | admin | Alta con nombre, correo, contraseña inicial y rol |
 | `PUT` | `/users/{id}` | admin | Cambia nombre y rol |
 | `POST` | `/users/{id}/password` | admin | Pone una contraseña nueva |
+| `DELETE` | `/users/{id}/mfa` | admin | Quita el doble factor (teléfono perdido) |
 | `DELETE` | `/users/{id}` | admin | Baja |
 
 Responde `409` si intentas borrarte a ti mismo o dejar el sistema sin administradores.
