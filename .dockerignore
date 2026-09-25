@@ -2,3 +2,6 @@
 **/obj
 **/*.user
 tests
+docs
+.github
+.env*

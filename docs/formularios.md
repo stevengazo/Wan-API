@@ -1,0 +1,92 @@
+# 📋 Formularios, recados y grabaciones
+
+## Formularios
+
+Un formulario es lo que el bot debe preguntar y registrar durante la llamada: una solicitud de soporte, una cita, un pedido.
+
+| Tipo de campo | Normalización |
+|---------------|---------------|
+| Texto | Se guarda tal cual |
+| Número | Se valida; acepta coma o punto decimal |
+| Teléfono | Al menos 6 dígitos; se dejan solo dígitos y `+` |
+| Correo | Se valida el formato y se pasa a minúsculas |
+| Sí / no | Acepta "sí", "no", "verdadero", "falso"...; se guarda como `Sí` / `No` |
+| Fecha | Se guarda como la dijo quien llama ("el martes", "15 de octubre") |
+| Opciones | Debe coincidir con una opción, sin importar mayúsculas ni tildes |
+
+Cada campo tiene clave, etiqueta, tipo, si es obligatorio y una ayuda para el bot.
+
+### Cómo llega un formulario
+
+```mermaid
+sequenceDiagram
+    participant C as Quien llama
+    participant B as Bot
+    participant M as Mapache
+    participant H as Hangfire
+
+    C->>B: "Quiero reportar una falla"
+    B->>C: Pregunta los datos del formulario
+    B->>M: submit_form {form, values, conversation_id, caller_number}
+    alt Falta algo o no es válido
+        M-->>B: ok: false, problems: [...]
+        B->>C: Vuelve a preguntar lo que falta
+    else Todo bien
+        M-->>B: ok: true
+        M->>H: Una ActionExecution por acción activa
+    end
+```
+
+`submit_form` responde siempre 200: si falta algo, devuelve `ok: false` con `problems` para que el bot vuelva a preguntar en lugar de fallar.
+
+### Crear con IA
+
+El botón **Crear con IA** recibe una descripción ("formulario para agendar visitas técnicas con dirección y horario preferido") y devuelve un borrador que se revisa en el editor antes de guardar. Ver [llm.md](llm.md#formularios-generados-con-ia).
+
+### Acciones
+
+Cada respuesta nueva dispara las acciones activas del formulario:
+
+| Tipo | Destino | Qué se envía |
+|------|---------|--------------|
+| 🔗 **Webhook** | URL propia | `POST` JSON con `event: "form.submitted"`, formulario y respuesta (`values` por clave y `fields` con etiquetas). Con secreto: `X-Mapache-Signature: sha256=<HMAC-SHA256 del cuerpo>` |
+| 🟣 **Teams** | Flujo "Publicar en un canal cuando se reciba una solicitud de webhook" | Tarjeta adaptable |
+| 🟢 **Google Chat** | Webhook de un espacio | Texto con los datos |
+| 🟡 **Slack** | Incoming webhook | Texto con los datos |
+| ✉️ **Correo** | Destinatarios separados por coma | HTML y texto por el SMTP configurado (STARTTLS en 587, TLS en 465) |
+
+**Reintentos:** si el destino falla, Hangfire reintenta 5 veces (30 s, 2 min, 10 min, 30 min, 1 h). El panel muestra el estado, los intentos y el último error de cada acción, con un botón para reintentar. *Probar* envía una respuesta de ejemplo en el momento.
+
+**Verificar la firma del webhook** (Node.js):
+
+```js
+import crypto from 'node:crypto'
+
+const expected = 'sha256=' + crypto.createHmac('sha256', SECRET).update(rawBody).digest('hex')
+const ok = crypto.timingSafeEqual(Buffer.from(expected), Buffer.from(req.headers['x-mapache-signature']))
+```
+
+## Recados
+
+Cuando alguien no puede atender, el bot toma un recado con la tool `leave_message`:
+
+| Dato | Descripción |
+|------|-------------|
+| `recipient` | Para quién. Se enlaza con el directorio si hay una sola coincidencia clara. |
+| `message` | El recado |
+| `caller_name`, `callback_number` | Quién llamó y a dónde devolver la llamada |
+| `urgent` | Si es urgente |
+| `conversation_id` | Enlaza el recado con la grabación |
+
+En el panel, los recados pasan por los estados **Nuevo → Leído → Resuelto** y llegan en vivo.
+
+## Grabaciones
+
+Con **Grabar llamadas** activo (Configuración → Llamadas):
+
+- El webhook post-llamada guarda el MP3 de los eventos `post_call_audio` en `Recordings:Path`.
+- Una conversación se guarda una sola vez aunque ElevenLabs reintente el webhook.
+- El aviso de grabación se agrega a las instrucciones del bot. Conviene ponerlo también en el primer mensaje del agente.
+- El panel reproduce el audio con soporte de rangos (se puede adelantar).
+
+Informar que la llamada se graba suele ser obligatorio: revisa la normativa de tu país.
