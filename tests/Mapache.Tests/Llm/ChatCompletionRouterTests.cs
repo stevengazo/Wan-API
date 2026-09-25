@@ -40,4 +40,24 @@ public class ChatCompletionRouterTests
         Assert.Equal("Prompt de la cuenta", messages[0]!["content"]!.GetValue<string>());
         Assert.Equal("user", messages[1]!["role"]!.GetValue<string>());
     }
+
+    [Fact]
+    public void DirectoryGoesAfterTheAgentPrompt()
+    {
+        var request = Request();
+        ChatCompletionRouter.Prepare(request, new LlmSelection(LlmProvider.OpenAi, "gpt-4.1-mini", null), "Directorio");
+
+        var messages = request["messages"]!.AsArray();
+        Assert.Equal(["Prompt del agente", "Directorio", "Hola"], messages.Select(m => m!["content"]!.GetValue<string>()));
+    }
+
+    [Fact]
+    public void DirectoryGoesAfterTheAccountPrompt()
+    {
+        var request = Request();
+        ChatCompletionRouter.Prepare(request, new LlmSelection(LlmProvider.OpenAi, "gpt-4.1-mini", "Prompt general"), "Directorio");
+
+        var messages = request["messages"]!.AsArray();
+        Assert.Equal(["Prompt general", "Directorio", "Hola"], messages.Select(m => m!["content"]!.GetValue<string>()));
+    }
 }

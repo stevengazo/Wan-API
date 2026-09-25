@@ -80,6 +80,9 @@ dotnet ef migrations add <Nombre> --project src/Mapache.Infrastructure --startup
 | `GET` | `/health` | anónimo |
 | `POST` | `/api/agent-tools/ping` | token de tools del agente |
 | `POST` | `/api/llm/v1/chat/completions` | token de tools del agente (Custom LLM de ElevenLabs) |
+| `GET` | `/api/directory`, `/api/directory/{id}` | autenticado |
+| `POST`, `PUT`, `DELETE` | `/api/directory[/{id}]` | `Admin` |
+| `POST` | `/api/agent-tools/directory/search` | token de tools del agente (server tool `search_directory`) |
 | `GET` | `/api/llm/settings` | autenticado (sin API keys, solo si están cargadas) |
 | `PUT` | `/api/llm/settings` | `Admin` |
 | `POST` | `/api/webhooks/elevenlabs/post-call` | firma HMAC de ElevenLabs |
@@ -101,6 +104,14 @@ ElevenLabs sigue haciendo la voz (reconocimiento, síntesis, turnos e interrupci
 - **Configuración general** (igual para todas las cuentas), desde el panel en Configuración: proveedor activo, modelo e API key de cada proveedor e instrucciones del bot. Se guarda en `LlmSettings` / `LlmProviderSettings`; las API keys van cifradas con `ISecretProtector` y la API nunca las devuelve. Modelo vacío = `Llm:{Proveedor}:DefaultModel` de `appsettings.json`; instrucciones vacías = las del agente.
 - **OpenAI y Gemini** hablan el formato de chat completions: la petición se reenvía con el modelo y las instrucciones configuradas y la respuesta se copia tal cual (Gemini por su [API compatible con OpenAI](https://ai.google.dev/gemini-api/docs/openai)).
 - **Claude** va por la Messages API con el SDK oficial (`AnthropicChatClient`): se traducen mensajes, tools y resultados, y el streaming se reescribe al formato SSE de OpenAI. Usa esfuerzo bajo para responder rápido y, en `claude-opus-5` / `claude-fable-5-1`, el fallback del servidor ante rechazos (`fallbacks: "default"`); si igual declina, el bot dice una frase de cortesía.
+
+### Directorio de transferencias
+
+Destinos a los que el bot puede transferir (nombre, área, extensión/número/URI SIP y cuándo transferir), administrados en el panel.
+
+- **Siempre presente:** el Custom LLM agrega las entradas activas como un mensaje de sistema, después de las instrucciones. El bot las conoce sin configurar nada más.
+- **Server tool opcional:** `search_directory` en el agente, `POST /api/agent-tools/directory/search` con body `{"query": "..."}` y el mismo header `Authorization` de los demás tools. Busca sin mayúsculas ni tildes por nombre, área, destino y descripción.
+- La transferencia en sí (REFER) la hace el motor SIP (Fase 3); por ahora el bot sabe a dónde transferir.
 
 ### Tiempo real y trabajos en segundo plano
 

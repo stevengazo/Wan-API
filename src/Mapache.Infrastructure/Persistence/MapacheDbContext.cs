@@ -14,6 +14,8 @@ public class MapacheDbContext(DbContextOptions<MapacheDbContext> options) : DbCo
 
     public DbSet<LlmSettings> LlmSettings => Set<LlmSettings>();
 
+    public DbSet<DirectoryEntry> DirectoryEntries => Set<DirectoryEntry>();
+
     public DbSet<LlmProviderSettings> LlmProviderSettings => Set<LlmProviderSettings>();
 
     public DbSet<CallTranscript> CallTranscripts => Set<CallTranscript>();
@@ -53,6 +55,14 @@ public class MapacheDbContext(DbContextOptions<MapacheDbContext> options) : DbCo
             e.Property(x => x.StunServer).HasMaxLength(256);
             e.Property(x => x.AnswerMode).HasConversion<string>().HasMaxLength(32);
             e.HasIndex(x => new { x.SipServer, x.SipUsername }).IsUnique();
+        });
+
+        modelBuilder.Entity<DirectoryEntry>(e =>
+        {
+            e.Property(d => d.Name).HasMaxLength(128);
+            e.Property(d => d.Department).HasMaxLength(128);
+            e.Property(d => d.Target).HasMaxLength(256);
+            e.Property(d => d.Description).HasMaxLength(1000);
         });
 
         modelBuilder.Entity<LlmSettings>(e =>

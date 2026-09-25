@@ -2,6 +2,7 @@ using System.Text.Json.Nodes;
 using Mapache.Domain.Entities;
 using Mapache.Infrastructure.Persistence;
 using Mapache.Infrastructure.Security;
+using Mapache.Infrastructure.Transfers;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -39,7 +40,8 @@ public sealed class ChatCompletionRouter(
         var selection = new LlmSelection(provider, model, settings.SystemPrompt);
         var apiKey = protector.Unprotect(encryptedKey);
 
-        Prepare(request, selection);
+        var directory = await db.DirectoryEntries.AsNoTracking().Where(d => d.Enabled).ToListAsync(ct);
+        Prepare(request, selection, DirectoryPrompt.Build(directory));
         logger.LogInformation("Custom LLM: {Provider} {Model}", provider, model);
 
         if (provider == LlmProvider.Anthropic)
@@ -54,24 +56,40 @@ public sealed class ChatCompletionRouter(
 
     /// <summary>
     /// Deja la petición lista para el proveedor: el modelo de Mapache, las instrucciones generales en lugar
-    /// de las del agente y sin <c>elevenlabs_extra_body</c>, que los proveedores rechazarían.
+    /// de las del agente, el directorio de transferencias y sin <c>elevenlabs_extra_body</c>, que los
+    /// proveedores rechazarían.
     /// </summary>
-    public static void Prepare(JsonObject request, LlmSelection selection)
+    public static void Prepare(JsonObject request, LlmSelection selection, string? directory = null)
     {
         request.Remove("elevenlabs_extra_body");
         request["model"] = selection.Model;
         request["stream"] = true;
 
-        if (string.IsNullOrWhiteSpace(selection.SystemPrompt) || request["messages"] is not JsonArray messages)
+        if (request["messages"] is not JsonArray messages)
         {
             return;
         }
 
-        foreach (var system in messages.OfType<JsonObject>().Where(m => m["role"]?.GetValue<string>() is "system" or "developer").ToList())
+        int insertAt;
+        if (!string.IsNullOrWhiteSpace(selection.SystemPrompt))
         {
-            messages.Remove(system);
+            foreach (var system in messages.OfType<JsonObject>().Where(m => m["role"]?.GetValue<string>() is "system" or "developer").ToList())
+            {
+                messages.Remove(system);
+            }
+
+            messages.Insert(0, new JsonObject { ["role"] = "system", ["content"] = selection.SystemPrompt });
+            insertAt = 1;
+        }
+        else
+        {
+            // Sin instrucciones propias quedan las del agente: el directorio va justo después de ellas.
+            insertAt = messages.TakeWhile(m => m?["role"]?.GetValue<string>() is "system" or "developer").Count();
         }
 
-        messages.Insert(0, new JsonObject { ["role"] = "system", ["content"] = selection.SystemPrompt });
+        if (!string.IsNullOrWhiteSpace(directory))
+        {
+            messages.Insert(insertAt, new JsonObject { ["role"] = "system", ["content"] = directory });
+        }
     }
 }
