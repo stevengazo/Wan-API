@@ -6,6 +6,7 @@ using Mapache.Api.Webhooks;
 using Mapache.Domain.Entities;
 using Mapache.Infrastructure.Actions;
 using Mapache.Infrastructure.Forms;
+using Mapache.Infrastructure.Llm;
 using Mapache.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -54,6 +55,12 @@ public sealed record FormSubmissionDto(
     IReadOnlyList<ActionExecutionDto> Actions);
 
 public sealed record UpdateSubmissionRequest(SubmissionStatus Status);
+
+public sealed record GenerateFormRequest(
+    [Required(ErrorMessage = Messages.Required), StringLength(2000, MinimumLength = 10, ErrorMessage = "Entre {2} y {1} caracteres")] string Description);
+
+/// <summary>Borrador generado por la IA: el panel lo carga en el editor, no se guarda solo.</summary>
+public sealed record FormDraftDto(string Name, string? Description, IReadOnlyList<FormFieldDto> Fields);
 
 /// <summary>
 /// Server tool <c>submit_form</c>. <c>ConversationId</c> y <c>CallerNumber</c> se mapean en el agente a las
@@ -117,6 +124,24 @@ public sealed partial class FormsController(
         db.FormTemplates.Add(form);
         await db.SaveChangesAsync(ct);
         return CreatedAtAction(nameof(Get), new { id = form.Id }, ToDto(form, 0, 0));
+    }
+
+    [HttpPost("api/forms/generate")]
+    [Authorize(Roles = Roles.Admin)]
+    public async Task<ActionResult<FormDraftDto>> Generate(GenerateFormRequest request, [FromServices] FormGenerator generator, CancellationToken ct)
+    {
+        try
+        {
+            var draft = await generator.GenerateAsync(request.Description, ct);
+            return new FormDraftDto(
+                draft.Name,
+                draft.Description,
+                draft.Fields.Select(f => new FormFieldDto(f.Key, f.Label, f.Type, f.Required, f.Hint, f.Options)).ToList());
+        }
+        catch (LlmException ex)
+        {
+            return Problem(statusCode: StatusCodes.Status502BadGateway, title: ex.Message);
+        }
     }
 
     [HttpPut("api/forms/{id:guid}")]

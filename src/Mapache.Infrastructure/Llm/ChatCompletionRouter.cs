@@ -1,10 +1,8 @@
 using System.Text.Json.Nodes;
 using Mapache.Domain.Entities;
 using Mapache.Infrastructure.Persistence;
-using Mapache.Infrastructure.Security;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
 
 namespace Mapache.Infrastructure.Llm;
 
@@ -17,41 +15,29 @@ public sealed record LlmSelection(LlmProvider Provider, string Model, string? Sy
 /// </summary>
 public sealed class ChatCompletionRouter(
     MapacheDbContext db,
-    ISecretProtector protector,
-    IOptionsMonitor<LlmOptions> options,
+    LlmResolver resolver,
     OpenAiCompatibleChatClient openAiCompatible,
     AnthropicChatClient anthropic,
     ILogger<ChatCompletionRouter> logger)
 {
     public async Task StreamAsync(JsonObject request, Stream output, CancellationToken ct)
     {
-        var settings = await db.LlmSettings.AsNoTracking().SingleOrDefaultAsync(ct) ?? new LlmSettings();
-        var provider = settings.ActiveProvider;
-        var stored = await db.LlmProviderSettings.AsNoTracking().SingleOrDefaultAsync(p => p.Provider == provider, ct);
-        var defaults = options.CurrentValue.For(provider);
-
-        if (stored?.ApiKeyEncrypted is not { } encryptedKey)
-        {
-            throw new LlmException($"El proveedor {provider} no tiene API key configurada");
-        }
-
-        var model = string.IsNullOrWhiteSpace(stored.Model) ? defaults.DefaultModel : stored.Model;
-        var selection = new LlmSelection(provider, model, settings.SystemPrompt);
-        var apiKey = protector.Unprotect(encryptedKey);
+        var target = await resolver.ResolveAsync(ct);
+        var selection = new LlmSelection(target.Provider, target.Model, target.SystemPrompt);
 
         var directory = await db.DirectoryEntries.AsNoTracking().Where(d => d.Enabled).ToListAsync(ct);
         var forms = await db.FormTemplates.AsNoTracking().Where(f => f.Enabled).ToListAsync(ct);
         var callSettings = await db.CallSettings.AsNoTracking().SingleOrDefaultAsync(ct);
         Prepare(request, selection, BotContext.Build(request, directory, forms, callSettings));
-        logger.LogInformation("Custom LLM: {Provider} {Model}", provider, model);
+        logger.LogInformation("Custom LLM: {Provider} {Model}", target.Provider, target.Model);
 
-        if (provider == LlmProvider.Anthropic)
+        if (target.Provider == LlmProvider.Anthropic)
         {
-            await anthropic.StreamAsync(apiKey, model, request, output, ct);
+            await anthropic.StreamAsync(target.ApiKey, target.Model, request, output, ct);
         }
         else
         {
-            await openAiCompatible.StreamAsync(defaults.BaseUrl, apiKey, request, output, ct);
+            await openAiCompatible.StreamAsync(target.BaseUrl, target.ApiKey, request, output, ct);
         }
     }
 

@@ -90,6 +90,7 @@ dotnet ef migrations add <Nombre> --project src/Mapache.Infrastructure --startup
 | `GET` | `/api/recordings`, `/api/recordings/{id}/audio` | autenticado (audio con rangos) |
 | `DELETE` | `/api/recordings/{id}` | `Admin` |
 | `GET` / `PUT` | `/api/settings/calls` | autenticado / `Admin` |
+| `POST` | `/api/forms/generate` | `Admin`; devuelve un borrador armado por la IA, sin guardarlo |
 | `GET`, `POST` | `/api/forms/{id}/actions` | `Admin` |
 | `PUT`, `DELETE` | `/api/form-actions/{id}` | `Admin` |
 | `POST` | `/api/form-actions/{id}/test` | `Admin` (envía una respuesta de ejemplo en el momento) |
@@ -135,6 +136,10 @@ Las tools se crean en el agente de ElevenLabs como *server tools* (POST, JSON), 
 - **`leave_message`** → `/api/agent-tools/messages`. Body: `recipient`, `message`, `caller_name`, `callback_number`, `urgent`, `conversation_id`. El destinatario se enlaza con el directorio si hay una sola coincidencia clara.
 - **Contexto para el bot:** el Custom LLM agrega los formularios activos y las instrucciones de recados solo si el agente tiene la tool correspondiente (`BotContext`); pedirle usar una herramienta que no existe lo confunde.
 - **Grabaciones:** con "Grabar llamadas" activo en Configuración, el webhook post-llamada guarda el MP3 de los eventos `post_call_audio` (activar *Send audio data* en el webhook de ElevenLabs). Los archivos van a `Recordings:Path` (volumen `recordings` en Docker); una conversación se guarda una sola vez aunque ElevenLabs reintente. El aviso de grabación se agrega a las instrucciones del bot; conviene incluirlo también en el primer mensaje del agente, que ElevenLabs dice antes de consultar al LLM.
+
+### Formularios con IA
+
+`POST /api/forms/generate` con `{"description": "..."}` le pide al proveedor activo (Configuración → IA) un formulario en JSON estructurado: `response_format: json_schema` estricto en OpenAI y Gemini, `output_config.format` con el SDK oficial en Claude (`LlmJsonClient`). `FormGenerator.Sanitize` deja el borrador válido aunque el modelo se desvíe: claves en snake_case únicas, tipos conocidos, opciones solo en `Choice` y como máximo 25 campos. El panel lo carga en el editor para revisarlo antes de guardar.
 
 ### Acciones de formularios
 
