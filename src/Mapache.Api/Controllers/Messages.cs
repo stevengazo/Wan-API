@@ -6,4 +6,6 @@ internal static class Messages
     public const string Required = "Campo obligatorio";
 
     public const string MaxLength = "Máximo {1} caracteres";
+
+    public const string Range = "Debe estar entre {1} y {2}";
 }

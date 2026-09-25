@@ -12,7 +12,7 @@ Solución .NET 10 del bot telefónico: motor SIP, bridge de audio a ElevenLabs C
 | Proyecto | Responsabilidad |
 |----------|-----------------|
 | `src/Mapache.Api` | ASP.NET Core: controllers, SignalR, webhook de tools del agente, Hangfire |
-| `src/Mapache.Domain` | Entidades y contratos (`ISipProvider`, `ITicketingConnector`, ...). Sin dependencias externas |
+| `src/Mapache.Domain` | Entidades y contratos (`Extension` = cuenta SIP genérica, `ITicketingConnector`, ...). Sin dependencias externas |
 | `src/Mapache.Infrastructure` | EF Core + Postgres/pgvector, motor de acciones, integraciones |
 | `src/Mapache.Sip` | Motor SIP (SIPSorcery) y bridge RTP ↔ WebSocket de ElevenLabs |
 | `tests/Mapache.Tests` | Pruebas (xUnit) |
@@ -45,7 +45,7 @@ dotnet test
 dotnet run --project src/Mapache.Api
 ```
 
-La API queda en `http://localhost:5238`. Al arrancar aplica las migraciones pendientes, crea el proveedor Zadarma y, si la base no tiene usuarios, el admin de `Auth:BootstrapAdmin`. En Development el documento OpenAPI está en `/openapi/v1.json`; [Mapache.Api.http](src/Mapache.Api/Mapache.Api.http) tiene requests de ejemplo.
+La API queda en `http://localhost:5238`. Al arrancar aplica las migraciones pendientes y, si la base no tiene usuarios, el admin de `Auth:BootstrapAdmin`. En Development el documento OpenAPI está en `/openapi/v1.json`; [Mapache.Api.http](src/Mapache.Api/Mapache.Api.http) tiene requests de ejemplo.
 
 Para correr todo en Docker ver el [README de la raíz](../README.md). En Docker la API toma sus secretos de `backend/.env` (plantilla: [.env.example](.env.example)); `dotnet run` local usa user-secrets.
 
@@ -73,7 +73,6 @@ dotnet ef migrations add <Nombre> --project src/Mapache.Infrastructure --startup
 |--------|------|-----|
 | `POST` | `/api/auth/login` | anónimo (10 intentos/min por IP) |
 | `GET` | `/api/auth/me` | autenticado |
-| `GET` | `/api/providers` | autenticado |
 | `GET` | `/api/extensions`, `/api/extensions/{id}` | autenticado |
 | `POST`, `PUT`, `DELETE` | `/api/extensions[/{id}]` | `Admin` |
 | `GET` | `/health` | anónimo |
@@ -118,7 +117,7 @@ Código en `src/Mapache.Sip/Poc/`. Corre como `BackgroundService` dentro de la A
 
 ```bash
 dotnet user-secrets set "Sip:Poc:Enabled" "true" --project src/Mapache.Api
-dotnet user-secrets set "Sip:Poc:Sip:Server" "pbx.zadarma.com" --project src/Mapache.Api
+dotnet user-secrets set "Sip:Poc:Sip:Server" "<servidor SIP>" --project src/Mapache.Api
 dotnet user-secrets set "Sip:Poc:Sip:Username" "<extensión>" --project src/Mapache.Api
 dotnet user-secrets set "Sip:Poc:Sip:Password" "<contraseña>" --project src/Mapache.Api
 dotnet user-secrets set "Sip:Poc:ElevenLabs:ApiKey" "<api key>" --project src/Mapache.Api
@@ -137,8 +136,6 @@ Los valores no secretos por defecto (`ListenPort` 5060, `ExpirySeconds` 120, `Tr
 - `Latencia turno`: una línea por turno; al colgar, el resumen con p50/p90/máx. La meta es menos de ~1,5 s.
 - `REFER aceptado` o `rechazado`: al marcar `9` con `TransferTarget` configurado (**D2**).
 - Las demás teclas se envían al agente como `contextual_update`.
-
-**D1** (SIP trunk nativo de ElevenLabs) no requiere código: se configura el trunk de Zadarma en ElevenLabs y se comparan la latencia y la calidad percibida con este bridge.
 
 ## Red
 

@@ -13,5 +13,15 @@ Authorization: Bearer {{token}}
 
 ###
 
-GET {{host}}/api/providers
+POST {{host}}/api/extensions
 Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "name": "Recepción",
+  "sipServer": "sip.ejemplo.com",
+  "sipUsername": "100",
+  "sipPassword": "cambiar-esto",
+  "transport": "Udp",
+  "answerMode": "Bot"
+}

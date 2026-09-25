@@ -10,8 +10,7 @@ namespace Mapache.Infrastructure.Persistence;
 public static class DbInitializer
 {
     /// <summary>
-    /// Aplica migraciones y crea los datos mínimos: el proveedor Zadarma y, si no hay usuarios,
-    /// un admin inicial tomado de <c>Auth:BootstrapAdmin</c>.
+    /// Aplica migraciones y, si no hay usuarios, crea un admin inicial tomado de <c>Auth:BootstrapAdmin</c>.
     /// </summary>
     public static async Task InitializeAsync(IServiceProvider services, CancellationToken ct = default)
     {
@@ -21,11 +20,6 @@ public static class DbInitializer
         var logger = scope.ServiceProvider.GetRequiredService<ILoggerFactory>().CreateLogger(typeof(DbInitializer));
 
         await db.Database.MigrateAsync(ct);
-
-        if (!await db.Providers.AnyAsync(ct))
-        {
-            db.Providers.Add(new Provider { Name = "Zadarma", Type = ProviderType.Zadarma, SipServer = "pbx.zadarma.com" });
-        }
 
         if (!await db.Users.AnyAsync(ct))
         {

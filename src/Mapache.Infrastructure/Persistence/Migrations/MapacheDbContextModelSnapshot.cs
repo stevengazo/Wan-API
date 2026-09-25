@@ -95,64 +95,80 @@ namespace Mapache.Infrastructure.Persistence.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
+                    b.Property<string>("AnswerMode")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
+                    b.Property<string>("AuthUsername")
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)");
+
                     b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<string>("DisplayName")
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)");
+
                     b.Property<bool>("Enabled")
                         .HasColumnType("boolean");
+
+                    b.Property<int>("KeepAliveSeconds")
+                        .HasColumnType("integer");
 
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(128)
                         .HasColumnType("character varying(128)");
 
-                    b.Property<Guid>("ProviderId")
-                        .HasColumnType("uuid");
+                    b.Property<string>("PublicAddress")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)");
+
+                    b.Property<int>("RegisterExpirySeconds")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("SipDomain")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)");
 
                     b.Property<string>("SipPasswordEncrypted")
                         .IsRequired()
                         .HasColumnType("text");
 
-                    b.Property<string>("SipUsername")
-                        .IsRequired()
-                        .HasMaxLength(128)
-                        .HasColumnType("character varying(128)");
-
-                    b.Property<DateTimeOffset>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("ProviderId", "SipUsername")
-                        .IsUnique();
-
-                    b.ToTable("Extensions");
-                });
-
-            modelBuilder.Entity("Mapache.Domain.Entities.Provider", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasMaxLength(128)
-                        .HasColumnType("character varying(128)");
+                    b.Property<string>("SipProxy")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)");
 
                     b.Property<string>("SipServer")
                         .IsRequired()
                         .HasMaxLength(256)
                         .HasColumnType("character varying(256)");
 
-                    b.Property<string>("Type")
+                    b.Property<string>("SipUsername")
                         .IsRequired()
-                        .HasMaxLength(32)
-                        .HasColumnType("character varying(32)");
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)");
+
+                    b.Property<string>("StunServer")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)");
+
+                    b.Property<string>("Transport")
+                        .IsRequired()
+                        .HasMaxLength(8)
+                        .HasColumnType("character varying(8)");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
 
                     b.HasKey("Id");
 
-                    b.ToTable("Providers");
+                    b.HasIndex("SipServer", "SipUsername")
+                        .IsUnique();
+
+                    b.ToTable("Extensions");
                 });
 
             modelBuilder.Entity("Mapache.Domain.Entities.User", b =>
@@ -230,25 +246,9 @@ namespace Mapache.Infrastructure.Persistence.Migrations
                         .IsRequired();
                 });
 
-            modelBuilder.Entity("Mapache.Domain.Entities.Extension", b =>
-                {
-                    b.HasOne("Mapache.Domain.Entities.Provider", "Provider")
-                        .WithMany("Extensions")
-                        .HasForeignKey("ProviderId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("Provider");
-                });
-
             modelBuilder.Entity("Mapache.Domain.Entities.Call", b =>
                 {
                     b.Navigation("Transcript");
-                });
-
-            modelBuilder.Entity("Mapache.Domain.Entities.Provider", b =>
-                {
-                    b.Navigation("Extensions");
                 });
 #pragma warning restore 612, 618
         }

@@ -8,8 +8,6 @@ public class MapacheDbContext(DbContextOptions<MapacheDbContext> options) : DbCo
 {
     public DbSet<User> Users => Set<User>();
 
-    public DbSet<Provider> Providers => Set<Provider>();
-
     public DbSet<Extension> Extensions => Set<Extension>();
 
     public DbSet<Call> Calls => Set<Call>();
@@ -32,19 +30,20 @@ public class MapacheDbContext(DbContextOptions<MapacheDbContext> options) : DbCo
             e.Property(u => u.Role).HasConversion<string>().HasMaxLength(32);
         });
 
-        modelBuilder.Entity<Provider>(e =>
-        {
-            e.Property(p => p.Name).HasMaxLength(128);
-            e.Property(p => p.Type).HasConversion<string>().HasMaxLength(32);
-            e.Property(p => p.SipServer).HasMaxLength(256);
-        });
-
         modelBuilder.Entity<Extension>(e =>
         {
             e.Property(x => x.Name).HasMaxLength(128);
+            e.Property(x => x.SipServer).HasMaxLength(256);
+            e.Property(x => x.SipProxy).HasMaxLength(256);
             e.Property(x => x.SipUsername).HasMaxLength(128);
-            e.HasIndex(x => new { x.ProviderId, x.SipUsername }).IsUnique();
-            e.HasOne(x => x.Provider).WithMany(p => p.Extensions).OnDelete(DeleteBehavior.Restrict);
+            e.Property(x => x.SipDomain).HasMaxLength(256);
+            e.Property(x => x.AuthUsername).HasMaxLength(128);
+            e.Property(x => x.DisplayName).HasMaxLength(128);
+            e.Property(x => x.Transport).HasConversion<string>().HasMaxLength(8);
+            e.Property(x => x.PublicAddress).HasMaxLength(256);
+            e.Property(x => x.StunServer).HasMaxLength(256);
+            e.Property(x => x.AnswerMode).HasConversion<string>().HasMaxLength(32);
+            e.HasIndex(x => new { x.SipServer, x.SipUsername }).IsUnique();
         });
 
         modelBuilder.Entity<Call>(e =>
