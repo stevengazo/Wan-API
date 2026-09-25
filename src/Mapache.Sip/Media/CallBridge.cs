@@ -35,14 +35,17 @@ public sealed class CallBridge : IAsyncDisposable
     private readonly LatencyTracker _latency = new();
     private readonly TaskCompletionSource<string> _ended = new(TaskCreationOptions.RunContinuationsAsynchronously);
     private volatile bool _handedOff;
+    private readonly CallRecorder? _recorder;
 
     public CallBridge(
         SIPUserAgent ua,
         RTPSession rtp,
         IVoiceSession conversation,
         string transferDomain,
-        ILogger logger)
+        ILogger logger,
+        CallRecorder? recorder = null)
     {
+        _recorder = recorder;
         _ua = ua;
         _rtp = rtp;
         _conversation = conversation;
@@ -146,6 +149,7 @@ public sealed class CallBridge : IAsyncDisposable
                 {
                     lastAudio.Restart();
                     var pcm = AudioConverter.DecodeG711(g711, _codec);
+                    _recorder?.AddCaller(pcm);
                     if (AudioConverter.Rms(pcm) > VoiceRmsThreshold)
                     {
                         _latency.OnUserVoice();
@@ -239,6 +243,7 @@ public sealed class CallBridge : IAsyncDisposable
                     }
 
                     _rtp.SendAudio(FrameSamples, frame);
+                    _recorder?.AddOther(AudioConverter.DecodeG711(frame, _codec));
                 }
 
                 await Task.Delay(5, _cts.Token);

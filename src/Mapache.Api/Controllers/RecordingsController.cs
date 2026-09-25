@@ -11,7 +11,15 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Mapache.Api.Controllers;
 
-public sealed record RecordingDto(Guid Id, string ConversationId, long SizeBytes, DateTimeOffset CreatedAt);
+public sealed record RecordingDto(
+    Guid Id,
+    string ConversationId,
+    long SizeBytes,
+    DateTimeOffset CreatedAt,
+    StorageProvider Storage,
+    string ContentType,
+    Guid? CallId,
+    double? DurationSeconds);
 
 public sealed record CallSettingsDto(bool RecordCalls, string? RecordingNotice);
 
@@ -22,7 +30,7 @@ public sealed record SaveCallSettingsRequest(
 [ApiController]
 public sealed class RecordingsController(
     MapacheDbContext db,
-    RecordingStore store,
+    RecordingService recordings,
     TimeProvider time,
     IHubContext<EventsHub, IEventsClient> events) : ControllerBase
 {
@@ -32,18 +40,44 @@ public sealed class RecordingsController(
         await db.Recordings.AsNoTracking()
             .OrderByDescending(r => r.CreatedAt)
             .Take(500)
-            .Select(r => new RecordingDto(r.Id, r.ConversationId, r.SizeBytes, r.CreatedAt))
+            .Select(r => new RecordingDto(r.Id, r.ConversationId, r.SizeBytes, r.CreatedAt, r.Storage, r.ContentType, r.CallId, r.DurationSeconds))
             .ToListAsync(ct);
 
-    /// <summary>El MP3 con soporte de rangos, para que el reproductor pueda adelantar.</summary>
+    /// <summary>
+    /// El audio con soporte de rangos (para adelantar) si está en disco; en S3 o Azure, una redirección a un enlace
+    /// firmado de pocos minutos.
+    /// </summary>
     [HttpGet("api/recordings/{id:guid}/audio")]
     [Authorize]
     public async Task<IActionResult> Audio(Guid id, CancellationToken ct)
     {
         var recording = await db.Recordings.AsNoTracking().SingleOrDefaultAsync(r => r.Id == id, ct);
-        return recording is not null && store.PathFor(recording.FileName) is { } path
-            ? PhysicalFile(path, "audio/mpeg", $"grabacion-{recording.CreatedAt:yyyyMMdd-HHmm}.mp3", enableRangeProcessing: true)
-            : NotFound();
+        if (recording is null || await recordings.OpenAsync(recording, ct) is not { } location)
+        {
+            return NotFound();
+        }
+
+        var extension = recording.ContentType == "audio/wav" ? "wav" : "mp3";
+        return location.Url is { } url
+            ? Redirect(url.ToString())
+            : PhysicalFile(location.LocalPath!, location.ContentType, $"grabacion-{recording.CreatedAt:yyyyMMdd-HHmm}.{extension}", enableRangeProcessing: true);
+    }
+
+    /// <summary>
+    /// Enlace firmado para reproducir desde la nube sin token (el &lt;audio&gt; no manda headers); nulo si la
+    /// grabación está en disco y hay que pedirla a <c>/audio</c>.
+    /// </summary>
+    [HttpGet("api/recordings/{id:guid}/location")]
+    [Authorize]
+    public async Task<IActionResult> Location(Guid id, CancellationToken ct)
+    {
+        var recording = await db.Recordings.AsNoTracking().SingleOrDefaultAsync(r => r.Id == id, ct);
+        if (recording is null || await recordings.OpenAsync(recording, ct) is not { } location)
+        {
+            return NotFound();
+        }
+
+        return Ok(new { url = location.Url?.ToString() });
     }
 
     [HttpDelete("api/recordings/{id:guid}")]
@@ -56,9 +90,9 @@ public sealed class RecordingsController(
             return NotFound();
         }
 
+        await recordings.DeleteAsync(recording, ct);
         db.Recordings.Remove(recording);
         await db.SaveChangesAsync(ct);
-        store.Delete(recording.FileName);
         await events.Clients.All.RecordingsChanged();
         return NoContent();
     }

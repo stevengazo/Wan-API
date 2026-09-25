@@ -15,7 +15,7 @@ namespace Mapache.Api.Controllers;
 [ApiController]
 public sealed class AgentWebhooksController(
     MapacheDbContext db,
-    RecordingStore recordings,
+    RecordingService recordings,
     TimeProvider time,
     IHubContext<EventsHub, IEventsClient> events,
     ILogger<AgentWebhooksController> logger) : ControllerBase
@@ -65,17 +65,8 @@ public sealed class AgentWebhooksController(
         }
 
         var bytes = Convert.FromBase64String(base64);
-        var recording = new Recording
-        {
-            Id = Guid.CreateVersion7(),
-            ConversationId = conversationId,
-            FileName = "",
-            SizeBytes = bytes.LongLength,
-            CreatedAt = time.GetUtcNow(),
-        };
-        recording.FileName = await recordings.SaveAsync(recording.Id, bytes, ct);
-        db.Recordings.Add(recording);
-        await db.SaveChangesAsync(ct);
+        using var content = new MemoryStream(bytes);
+        await recordings.SaveAsync(conversationId, content, "audio/mpeg", null, null, ct);
         await events.Clients.All.RecordingsChanged();
         logger.LogInformation("Grabación guardada de {ConversationId} ({Bytes} bytes)", conversationId, bytes.LongLength);
     }

@@ -21,6 +21,7 @@ Documentación del motor SIP y la API de Mapache. Para una vista general, empiez
 | [Servidor MCP](servidor-mcp.md) | Que Claude, Cursor u otros agentes operen Mapache |
 | [Formularios y recados](formularios.md) | Capturar datos durante la llamada y avisar a otros sistemas |
 | [Campañas](campanas.md) | Llamadas salientes del bot a una lista de contactos |
+| [Grabaciones](grabaciones.md) | Grabar llamadas y guardarlas en disco, S3 o Azure |
 
 ## Referencia
 

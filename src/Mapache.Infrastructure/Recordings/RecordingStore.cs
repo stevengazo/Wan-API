@@ -6,7 +6,7 @@ public sealed class RecordingOptions
 {
     public const string SectionName = "Recordings";
 
-    /// <summary>Carpeta de los MP3. En Docker es un volumen para que sobrevivan a los redeploys.</summary>
+    /// <summary>Carpeta de las grabaciones locales. En Docker es un volumen para que sobrevivan a los redeploys.</summary>
     public string Path { get; set; } = "data/recordings";
 }
 
@@ -22,6 +22,14 @@ public sealed class RecordingStore(IOptions<RecordingOptions> options)
         var fileName = $"{recordingId:N}.mp3";
         await File.WriteAllBytesAsync(System.IO.Path.Combine(Root, fileName), audio, ct);
         return fileName;
+    }
+
+    /// <summary>Ruta donde escribir un archivo nuevo; crea la carpeta si hace falta.</summary>
+    public string FullPath(string fileName)
+    {
+        System.IO.Directory.CreateDirectory(Root);
+        var path = System.IO.Path.GetFullPath(System.IO.Path.Combine(Root, fileName));
+        return path.StartsWith(Root, StringComparison.Ordinal) ? path : throw new InvalidOperationException("Nombre de archivo inválido");
     }
 
     public string? PathFor(string fileName)

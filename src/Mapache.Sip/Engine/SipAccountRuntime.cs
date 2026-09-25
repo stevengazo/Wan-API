@@ -318,17 +318,54 @@ internal sealed class SipAccountRuntime : IAsyncDisposable
             return (CallStatus.Missed, "el llamante colgó antes de contestar");
         }
 
-        await _services.Events.CallAnsweredAsync(callId, conversation.ConversationId);
-        return await RunBotAsync(ua, rtp, conversation, callId);
+        var conversationId = ConversationIdFor(conversation, callId);
+        await _services.Events.CallAnsweredAsync(callId, conversationId);
+        return await RunBotAsync(ua, rtp, conversation, callId, conversationId, agent);
     }
+
+    /// <summary>
+    /// Id que enlaza la llamada con sus recados, formularios y grabación: el del proveedor o, si no da uno
+    /// (OpenAI Realtime), el de la llamada.
+    /// </summary>
+    private static string ConversationIdFor(IVoiceSession conversation, Guid callId) =>
+        conversation.ConversationId ?? callId.ToString("N");
 
     /// <summary>
     /// Corre el bot sobre una llamada ya contestada (entrante o de campaña) hasta que termina, se transfiere o
     /// la toma un operador del panel.
     /// </summary>
-    private async Task<(CallStatus Status, string Reason)> RunBotAsync(SIPUserAgent ua, RTPSession rtp, IVoiceSession conversation, Guid callId)
+    private async Task<(CallStatus Status, string Reason)> RunBotAsync(
+        SIPUserAgent ua, RTPSession rtp, IVoiceSession conversation, Guid callId, string conversationId, VoiceProviderOptions agent)
     {
-        var bridge = new CallBridge(ua, rtp, conversation, HostOf(CurrentServer), _logger);
+        // ElevenLabs manda su propia grabación por webhook al terminar; con los demás graba Mapache.
+        var recorder = agent is not ElevenLabsOptions && await _services.Events.RecordingEnabledAsync()
+            ? new CallRecorder(System.IO.Path.Combine(System.IO.Path.GetTempPath(), $"mapache-{callId:N}.wav"))
+            : null;
+        try
+        {
+            return await RunBotCoreAsync(ua, rtp, conversation, callId, recorder);
+        }
+        finally
+        {
+            if (recorder is not null)
+            {
+                var duration = await recorder.StopAsync();
+                try
+                {
+                    await _services.Events.RecordingCompletedAsync(callId, conversationId, recorder.Path, duration);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "No se pudo guardar la grabación de {CallId}", callId);
+                }
+            }
+        }
+    }
+
+    private async Task<(CallStatus Status, string Reason)> RunBotCoreAsync(
+        SIPUserAgent ua, RTPSession rtp, IVoiceSession conversation, Guid callId, CallRecorder? recorder)
+    {
+        var bridge = new CallBridge(ua, rtp, conversation, HostOf(CurrentServer), _logger, recorder);
         var botCall = new BotCall(bridge);
         string reason;
         try
@@ -353,7 +390,7 @@ internal sealed class SipAccountRuntime : IAsyncDisposable
                 return (CallStatus.Failed, await taker.Completion);
             }
 
-            taker.AttachFromBot(ua, rtp);
+            taker.AttachFromBot(ua, rtp, recorder);
             var humanReason = await taker.Completion;
             return (CallStatus.Completed, $"la tomó un operador; {humanReason}");
         }
@@ -449,8 +486,9 @@ internal sealed class SipAccountRuntime : IAsyncDisposable
 
             conversation.UserTranscript += text => _ = _services.Events.TranscriptAsync(callId, TranscriptSpeaker.Caller, text);
             conversation.AgentResponse += text => _ = _services.Events.TranscriptAsync(callId, TranscriptSpeaker.Agent, text);
-            await _services.Events.CallAnsweredAsync(callId, conversation.ConversationId);
-            (status, reason) = await RunBotAsync(ua, rtp, conversation, callId);
+            var conversationId = ConversationIdFor(conversation, callId);
+            await _services.Events.CallAnsweredAsync(callId, conversationId);
+            (status, reason) = await RunBotAsync(ua, rtp, conversation, callId, conversationId, agent);
             return new BotCallResult(callId, true, false, reason);
         }
         catch (Exception ex) when (ex is not OperationCanceledException)

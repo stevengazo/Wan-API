@@ -1,3 +1,4 @@
+using Mapache.Infrastructure.Recordings;
 using Microsoft.Extensions.Options;
 using Mapache.Infrastructure.Tools;
 using Mapache.Infrastructure.Llm;
@@ -194,6 +195,34 @@ public sealed class SipEventSink(
             }
         });
         await PublishAsync(callId);
+    }
+
+    public async Task<bool> RecordingEnabledAsync()
+    {
+        using var scope = scopes.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<MapacheDbContext>();
+        return await db.CallSettings.AsNoTracking().AnyAsync(s => s.RecordCalls);
+    }
+
+    public async Task RecordingCompletedAsync(Guid callId, string conversationId, string wavPath, TimeSpan duration)
+    {
+        try
+        {
+            // Llamadas de menos de un segundo (cortadas al contestar) no aportan nada.
+            if (duration >= TimeSpan.FromSeconds(1))
+            {
+                using var scope = scopes.CreateScope();
+                var service = scope.ServiceProvider.GetRequiredService<RecordingService>();
+                await using var file = File.OpenRead(wavPath);
+                await service.SaveAsync(conversationId, file, "audio/wav", callId, Math.Round(duration.TotalSeconds, 1), CancellationToken.None);
+                await events.Clients.All.RecordingsChanged();
+                logger.LogInformation("Grabación de {CallId} guardada ({Seconds} s)", callId, (int)duration.TotalSeconds);
+            }
+        }
+        finally
+        {
+            File.Delete(wavPath);
+        }
     }
 
     private async Task PublishAsync(Guid callId)

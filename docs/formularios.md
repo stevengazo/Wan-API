@@ -127,9 +127,9 @@ En el panel, los recados pasan por los estados **Nuevo → Leído → Resuelto**
 
 ## Grabaciones
 
-Con **Grabar llamadas** activo (Configuración → Llamadas):
+Con **Grabar llamadas** activo (Configuración → Llamadas) se graba cada llamada; con OpenAI y Deepgram graba Mapache y con ElevenLabs llega por webhook. Se guardan en disco, S3 o Azure: ver [grabaciones.md](grabaciones.md).
 
-- El webhook post-llamada guarda el MP3 de los eventos `post_call_audio` en `Recordings:Path`.
+- Con ElevenLabs, el webhook post-llamada guarda el MP3 de los eventos `post_call_audio`.
 - Una conversación se guarda una sola vez aunque ElevenLabs reintente el webhook.
 - El aviso de grabación se agrega a las instrucciones del bot. Conviene ponerlo también en el primer mensaje del agente.
 - El panel reproduce el audio con soporte de rangos (se puede adelantar).

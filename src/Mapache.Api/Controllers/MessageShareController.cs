@@ -30,7 +30,7 @@ public sealed record PublicMessageDto(
 /// el recado. Da acceso a ese recado y a su audio, nada más.
 /// </summary>
 [ApiController]
-public sealed class MessageShareController(MapacheDbContext db, RecordingStore store, IDataProtectionProvider protection, TimeProvider time)
+public sealed class MessageShareController(MapacheDbContext db, RecordingService recordings, IDataProtectionProvider protection, TimeProvider time)
     : ControllerBase
 {
     private ITimeLimitedDataProtector Protector => protection.CreateProtector("Mapache.MessageShare.v1").ToTimeLimitedDataProtector();
@@ -84,13 +84,15 @@ public sealed class MessageShareController(MapacheDbContext db, RecordingStore s
             .Where(m => m.Id == link.MessageId && m.ConversationId != null)
             .Join(db.Recordings, m => m.ConversationId, r => r.ConversationId, (_, r) => r)
             .FirstOrDefaultAsync(ct);
-        if (recording is null || store.PathFor(recording.FileName) is not { } path)
+        if (recording is null || await recordings.OpenAsync(recording, ct) is not { } location)
         {
             return NotFound();
         }
 
         NoStore();
-        return PhysicalFile(path, "audio/mpeg", enableRangeProcessing: true);
+        return location.Url is { } url
+            ? Redirect(url.ToString())
+            : PhysicalFile(location.LocalPath!, location.ContentType, enableRangeProcessing: true);
     }
 
     private (Guid MessageId, DateTimeOffset ExpiresAt)? Open(string token)

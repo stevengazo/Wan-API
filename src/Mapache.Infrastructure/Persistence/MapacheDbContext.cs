@@ -49,6 +49,8 @@ public class MapacheDbContext(DbContextOptions<MapacheDbContext> options) : DbCo
 
     public DbSet<SiteSettings> SiteSettings => Set<SiteSettings>();
 
+    public DbSet<StorageSettings> StorageSettings => Set<StorageSettings>();
+
     public DbSet<Campaign> Campaigns => Set<Campaign>();
 
     public DbSet<CampaignContact> CampaignContacts => Set<CampaignContact>();
@@ -219,7 +221,21 @@ public class MapacheDbContext(DbContextOptions<MapacheDbContext> options) : DbCo
             e.Property(r => r.ConversationId).HasMaxLength(128);
             e.HasIndex(r => r.ConversationId).IsUnique();
             e.Property(r => r.FileName).HasMaxLength(256);
+            e.Property(r => r.Storage).HasConversion<string>().HasMaxLength(16);
+            e.Property(r => r.ContentType).HasMaxLength(64);
             e.HasIndex(r => r.CreatedAt);
+        });
+
+        modelBuilder.Entity<StorageSettings>(e =>
+        {
+            e.Property(s => s.Id).ValueGeneratedNever();
+            e.Property(s => s.Provider).HasConversion<string>().HasMaxLength(16);
+            e.Property(s => s.S3Bucket).HasMaxLength(128);
+            e.Property(s => s.S3Region).HasMaxLength(64);
+            e.Property(s => s.S3ServiceUrl).HasMaxLength(256);
+            e.Property(s => s.S3AccessKeyId).HasMaxLength(128);
+            e.Property(s => s.AzureContainer).HasMaxLength(128);
+            e.Property(s => s.Prefix).HasMaxLength(256);
         });
 
         modelBuilder.Entity<VoiceSettings>(e =>

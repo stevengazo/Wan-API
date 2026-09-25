@@ -58,6 +58,7 @@ public static class DependencyInjection
 
         services.Configure<RecordingOptions>(configuration.GetSection(RecordingOptions.SectionName));
         services.AddSingleton<RecordingStore>();
+        services.AddScoped<RecordingService>();
 
         // Un destino lento no debe trabar la cola: si no responde se reintenta más tarde.
         services.AddHttpClient<FormActionSender>(c => c.Timeout = TimeSpan.FromSeconds(15));

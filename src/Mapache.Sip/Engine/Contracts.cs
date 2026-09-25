@@ -47,6 +47,15 @@ public interface ISipEventSink
     Task TranscriptAsync(Guid callId, TranscriptSpeaker speaker, string text);
 
     Task CallEndedAsync(Guid callId, CallStatus status, string reason);
+
+    /// <summary>Si hay que grabar las llamadas (Configuración → Llamadas).</summary>
+    Task<bool> RecordingEnabledAsync();
+
+    /// <summary>
+    /// Grabación de una llamada terminada: WAV PCM 16 bits 8 kHz mono en un archivo temporal que pasa a ser de
+    /// quien lo recibe (lo guarda donde corresponda y lo borra).
+    /// </summary>
+    Task RecordingCompletedAsync(Guid callId, string conversationId, string wavPath, TimeSpan duration);
 }
 
 /// <summary>Control del motor desde la API.</summary>

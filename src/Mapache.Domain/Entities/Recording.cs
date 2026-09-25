@@ -7,8 +7,19 @@ public class Recording
 
     public required string ConversationId { get; set; }
 
-    /// <summary>Nombre del archivo dentro de <c>Recordings:Path</c>.</summary>
+    /// <summary>Nombre del archivo (clave del objeto en S3 o Azure) dentro del almacenamiento.</summary>
     public required string FileName { get; set; }
+
+    /// <summary>Dónde quedó guardada: cambiar el almacenamiento no mueve las grabaciones anteriores.</summary>
+    public StorageProvider Storage { get; set; } = StorageProvider.Local;
+
+    /// <summary>audio/mpeg (ElevenLabs) o audio/wav (grabación de Mapache).</summary>
+    public string ContentType { get; set; } = "audio/mpeg";
+
+    /// <summary>Llamada de la que salió, si la grabó Mapache.</summary>
+    public Guid? CallId { get; set; }
+
+    public double? DurationSeconds { get; set; }
 
     public long SizeBytes { get; set; }
 

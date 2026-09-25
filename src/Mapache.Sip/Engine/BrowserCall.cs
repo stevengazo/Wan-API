@@ -24,6 +24,9 @@ internal abstract class BrowserCall : IPhoneCall
 
     protected bool Connected => _connected;
 
+    /// <summary>Grabación en curso de la llamada, si la hay (se hereda del bot al tomarla).</summary>
+    protected CallRecorder? Recorder { get; set; }
+
     public abstract Task<string> RunAsync(CancellationToken ct);
 
     public abstract void Hangup();
@@ -37,6 +40,7 @@ internal abstract class BrowserCall : IPhoneCall
 
         // La duración va en unidades del reloj RTP, que en G.711 es una por muestra.
         Rtp.SendAudio((uint)pcm.Length, AudioConverter.EncodeG711(pcm, _codec));
+        Recorder?.AddOther(pcm);
     }
 
     public void SendDtmf(char digit)
@@ -105,7 +109,9 @@ internal abstract class BrowserCall : IPhoneCall
         };
         if (codec is { } value)
         {
-            AudioReceived?.Invoke(AudioConverter.DecodeG711(packet.Payload, value));
+            var pcm = AudioConverter.DecodeG711(packet.Payload, value);
+            Recorder?.AddCaller(pcm);
+            AudioReceived?.Invoke(pcm);
         }
     }
 }

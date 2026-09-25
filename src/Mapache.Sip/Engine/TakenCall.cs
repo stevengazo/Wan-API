@@ -1,3 +1,4 @@
+using Mapache.Sip.Media;
 using Microsoft.Extensions.Logging;
 using SIPSorcery.Net;
 using SIPSorcery.SIP.App;
@@ -64,8 +65,9 @@ internal sealed class TakenCall : BrowserCall
     }
 
     /// <summary>Lo llama el motor cuando el puente ya soltó la llamada, sin colgar.</summary>
-    public void AttachFromBot(SIPUserAgent ua, RTPSession rtp)
+    public void AttachFromBot(SIPUserAgent ua, RTPSession rtp, CallRecorder? recorder)
     {
+        Recorder = recorder;
         Attach(ua, rtp);
         ua.OnCallHungup += _ => _ended.TrySetResult("el llamante colgó");
         _attached.TrySetResult();

@@ -26,7 +26,7 @@ flowchart LR
 
 ## ElevenLabs
 
-Ver [elevenlabs.md](elevenlabs.md). El agente se crea en ElevenLabs con LLM **Custom LLM** apuntando a `https://<host>/api/llm/v1`. Es el único que envía el audio de la llamada al terminar (webhook post-llamada), así que hoy es el único con **grabaciones**.
+Ver [elevenlabs.md](elevenlabs.md). El agente se crea en ElevenLabs con LLM **Custom LLM** apuntando a `https://<host>/api/llm/v1`. Graba ElevenLabs y manda el MP3 al terminar (webhook post-llamada); con OpenAI y Deepgram graba Mapache. Ver [grabaciones.md](grabaciones.md).
 
 ## OpenAI Realtime
 
