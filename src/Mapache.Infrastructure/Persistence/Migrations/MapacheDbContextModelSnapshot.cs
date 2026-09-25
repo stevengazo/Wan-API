@@ -117,6 +117,14 @@ namespace Mapache.Infrastructure.Persistence.Migrations
                     b.Property<int>("KeepAliveSeconds")
                         .HasColumnType("integer");
 
+                    b.Property<string>("LlmModel")
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)");
+
+                    b.Property<string>("LlmProvider")
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(128)
@@ -154,6 +162,9 @@ namespace Mapache.Infrastructure.Persistence.Migrations
                     b.Property<string>("StunServer")
                         .HasMaxLength(256)
                         .HasColumnType("character varying(256)");
+
+                    b.Property<string>("SystemPrompt")
+                        .HasColumnType("text");
 
                     b.Property<string>("Transport")
                         .IsRequired()

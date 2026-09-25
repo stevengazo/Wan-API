@@ -1,4 +1,5 @@
 using Mapache.Domain.Entities;
+using Mapache.Infrastructure.Llm;
 using Mapache.Infrastructure.Persistence;
 using Mapache.Infrastructure.Security;
 using Microsoft.AspNetCore.DataProtection;
@@ -28,6 +29,11 @@ public static class DependencyInjection
 
         services.AddSingleton<ISecretProtector, SecretProtector>();
         services.AddSingleton<IPasswordHasher<User>, PasswordHasher<User>>();
+
+        services.Configure<LlmOptions>(configuration.GetSection(LlmOptions.SectionName));
+        services.AddHttpClient<OpenAiCompatibleChatClient>();
+        services.AddSingleton<AnthropicChatClient>();
+        services.AddScoped<ChatCompletionRouter>();
         return services;
     }
 }

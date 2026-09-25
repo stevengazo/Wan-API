@@ -27,6 +27,9 @@ public sealed record ExtensionDto(
     int RegisterExpirySeconds,
     int KeepAliveSeconds,
     AnswerMode AnswerMode,
+    LlmProvider? LlmProvider,
+    string? LlmModel,
+    string? SystemPrompt,
     bool Enabled,
     DateTimeOffset CreatedAt,
     DateTimeOffset UpdatedAt);
@@ -50,6 +53,9 @@ public sealed record SaveExtensionRequest(
     [Range(60, 3600, ErrorMessage = Messages.Range)] int RegisterExpirySeconds = 300,
     [Range(0, 300, ErrorMessage = Messages.Range)] int KeepAliveSeconds = 15,
     AnswerMode AnswerMode = AnswerMode.Bot,
+    LlmProvider? LlmProvider = null,
+    [StringLength(128, ErrorMessage = Messages.MaxLength)] string? LlmModel = null,
+    [StringLength(8000, ErrorMessage = Messages.MaxLength)] string? SystemPrompt = null,
     bool Enabled = true);
 
 [ApiController]
@@ -153,7 +159,7 @@ public sealed class ExtensionsController(
         query.AsNoTracking().Select(e => new ExtensionDto(
             e.Id, e.Name, e.SipServer, e.SipProxy, e.SipUsername, e.SipDomain, e.AuthUsername, e.DisplayName,
             e.Transport, e.PublicAddress, e.StunServer, e.RegisterExpirySeconds, e.KeepAliveSeconds,
-            e.AnswerMode, e.Enabled, e.CreatedAt, e.UpdatedAt));
+            e.AnswerMode, e.LlmProvider, e.LlmModel, e.SystemPrompt, e.Enabled, e.CreatedAt, e.UpdatedAt));
 
     /// <summary>Copia todo salvo la contraseña, que crear y editar tratan distinto.</summary>
     private static void Apply(Extension extension, SaveExtensionRequest request, DateTimeOffset now)
@@ -171,6 +177,9 @@ public sealed class ExtensionsController(
         extension.RegisterExpirySeconds = request.RegisterExpirySeconds;
         extension.KeepAliveSeconds = request.KeepAliveSeconds;
         extension.AnswerMode = request.AnswerMode;
+        extension.LlmProvider = request.LlmProvider;
+        extension.LlmModel = Optional(request.LlmModel);
+        extension.SystemPrompt = Optional(request.SystemPrompt);
         extension.Enabled = request.Enabled;
         extension.UpdatedAt = now;
     }

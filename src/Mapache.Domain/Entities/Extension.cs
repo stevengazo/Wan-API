@@ -62,6 +62,15 @@ public class Extension
 
     public AnswerMode AnswerMode { get; set; } = AnswerMode.Bot;
 
+    /// <summary>Proveedor del LLM del bot; nulo = el de <c>Llm:DefaultProvider</c>.</summary>
+    public LlmProvider? LlmProvider { get; set; }
+
+    /// <summary>Modelo del proveedor; vacío = el modelo por defecto configurado para ese proveedor.</summary>
+    public string? LlmModel { get; set; }
+
+    /// <summary>Instrucciones del bot para esta cuenta; vacío = las del agente de ElevenLabs.</summary>
+    public string? SystemPrompt { get; set; }
+
     public bool Enabled { get; set; } = true;
 
     public DateTimeOffset CreatedAt { get; set; }

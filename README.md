@@ -77,6 +77,8 @@ dotnet ef migrations add <Nombre> --project src/Mapache.Infrastructure --startup
 | `POST`, `PUT`, `DELETE` | `/api/extensions[/{id}]` | `Admin` |
 | `GET` | `/health` | anónimo |
 | `POST` | `/api/agent-tools/ping` | token de tools del agente |
+| `POST` | `/api/llm/v1/chat/completions` | token de tools del agente (Custom LLM de ElevenLabs) |
+| `GET` | `/api/llm/providers` | autenticado |
 | `POST` | `/api/webhooks/elevenlabs/post-call` | firma HMAC de ElevenLabs |
 | WS | `/hubs/events` (SignalR) | autenticado (JWT por `access_token` en query string) |
 | `GET` | `/hangfire` | solo en Development y desde localhost |
@@ -87,6 +89,16 @@ JWT Bearer con roles `Admin` y `Operator`. Errores en formato ProblemDetails con
 
 - **Server tools:** en cada tool del agente, agregar el header `Authorization` de tipo *Secret* con el valor `Bearer <AgentWebhooks:ToolToken>`. `POST /api/agent-tools/ping` sirve para probar la configuración. Es un esquema aparte del JWT de usuarios: un token no sirve en el lugar del otro.
 - **Webhook post-llamada:** apuntarlo a `/api/webhooks/elevenlabs/post-call` y guardar el secreto que genera ElevenLabs en `AgentWebhooks:PostCallSecret`. Se valida el header `ElevenLabs-Signature` (HMAC-SHA256 de `"{t}.{body}"`) y se rechazan firmas de más de 30 minutos. Por ahora solo registra la recepción; la persistencia es de Fase 2.
+
+### LLM del bot (Custom LLM)
+
+ElevenLabs sigue haciendo la voz (reconocimiento, síntesis, turnos e interrupciones); las respuestas las genera Mapache con OpenAI, Gemini o Claude.
+
+- **En el agente de ElevenLabs:** LLM → *Custom LLM*, URL `https://<host>/api/llm/v1` (ElevenLabs agrega `/chat/completions`) y como API key un secreto con el mismo valor que `AgentWebhooks:ToolToken`. Activar el envío de *extra body*.
+- **Por cuenta:** en el panel cada cuenta elige proveedor, modelo e instrucciones. La cuenta se identifica por `elevenlabs_extra_body.extension_id`, que el motor SIP manda al abrir la conversación (`custom_llm_extra_body`). Sin cuenta, o con campos vacíos, se usan `Llm:DefaultProvider`, el `DefaultModel` del proveedor y las instrucciones del agente.
+- **Claves:** `Llm:OpenAi:ApiKey`, `Llm:Gemini:ApiKey`, `Llm:Anthropic:ApiKey` (user-secrets o `backend/.env`). Solo hace falta la de los proveedores que se usen; `GET /api/llm/providers` dice cuáles están configurados.
+- **OpenAI y Gemini** hablan el formato de chat completions: la petición se reenvía con el modelo y las instrucciones de la cuenta y la respuesta se copia tal cual (Gemini por su [API compatible con OpenAI](https://ai.google.dev/gemini-api/docs/openai)).
+- **Claude** va por la Messages API con el SDK oficial (`AnthropicChatClient`): se traducen mensajes, tools y resultados, y el streaming se reescribe al formato SSE de OpenAI. Usa esfuerzo bajo para responder rápido y, en `claude-opus-5` / `claude-fable-5-1`, el fallback del servidor ante rechazos (`fallbacks: "default"`); si igual declina, el bot dice una frase de cortesía.
 
 ### Tiempo real y trabajos en segundo plano
 
