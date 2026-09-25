@@ -3,6 +3,7 @@ using System.Text.Json.Serialization;
 using Mapache.Domain.Entities;
 using Microsoft.AspNetCore.DataProtection.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
+using NpgsqlTypes;
 
 namespace Mapache.Infrastructure.Persistence;
 
@@ -29,6 +30,12 @@ public class MapacheDbContext(DbContextOptions<MapacheDbContext> options) : DbCo
     public DbSet<SmtpSettings> SmtpSettings => Set<SmtpSettings>();
 
     public DbSet<CallMessage> CallMessages => Set<CallMessage>();
+
+    public DbSet<KnowledgeBase> KnowledgeBases => Set<KnowledgeBase>();
+
+    public DbSet<KnowledgeDocument> KnowledgeDocuments => Set<KnowledgeDocument>();
+
+    public DbSet<KnowledgeChunk> KnowledgeChunks => Set<KnowledgeChunk>();
 
     public DbSet<Recording> Recordings => Set<Recording>();
 
@@ -123,6 +130,30 @@ public class MapacheDbContext(DbContextOptions<MapacheDbContext> options) : DbCo
             e.Property(s => s.Host).HasMaxLength(256);
             e.Property(s => s.Username).HasMaxLength(256);
             e.Property(s => s.From).HasMaxLength(256);
+        });
+
+        modelBuilder.Entity<KnowledgeBase>(e =>
+        {
+            e.Property(b => b.Name).HasMaxLength(128);
+            e.Property(b => b.Description).HasMaxLength(1000);
+        });
+
+        modelBuilder.Entity<KnowledgeDocument>(e =>
+        {
+            e.Property(d => d.FileName).HasMaxLength(256);
+            e.Property(d => d.Status).HasConversion<string>().HasMaxLength(16);
+            e.Property(d => d.Error).HasMaxLength(1000);
+            e.HasOne<KnowledgeBase>().WithMany().HasForeignKey(d => d.KnowledgeBaseId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<KnowledgeChunk>(e =>
+        {
+            e.HasOne(c => c.Document).WithMany().HasForeignKey(c => c.DocumentId).OnDelete(DeleteBehavior.Cascade);
+            e.HasIndex(c => c.KnowledgeBaseId);
+            // Vector de búsqueda que calcula Postgres sobre el texto sin tildes; no existe en la entidad.
+            e.Property<NpgsqlTsVector>("SearchVector")
+                .HasComputedColumnSql("to_tsvector('spanish', \"SearchText\")", stored: true);
+            e.HasIndex("SearchVector").HasMethod("GIN");
         });
 
         modelBuilder.Entity<CallMessage>(e =>

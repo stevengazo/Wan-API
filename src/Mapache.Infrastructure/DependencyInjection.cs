@@ -1,6 +1,7 @@
 using Mapache.Domain.Entities;
 using Mapache.Infrastructure.Actions;
 using Mapache.Infrastructure.Forms;
+using Mapache.Infrastructure.Knowledge;
 using Mapache.Infrastructure.Llm;
 using Mapache.Infrastructure.Persistence;
 using Mapache.Infrastructure.Recordings;
@@ -40,6 +41,7 @@ public static class DependencyInjection
         services.AddScoped<ChatCompletionRouter>();
         services.AddHttpClient<LlmJsonClient>(c => c.Timeout = TimeSpan.FromSeconds(90));
         services.AddScoped<FormGenerator>();
+        services.AddScoped<KnowledgeService>();
 
         services.Configure<RecordingOptions>(configuration.GetSection(RecordingOptions.SectionName));
         services.AddSingleton<RecordingStore>();

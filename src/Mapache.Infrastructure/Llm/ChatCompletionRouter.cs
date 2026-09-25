@@ -1,5 +1,6 @@
 using System.Text.Json.Nodes;
 using Mapache.Domain.Entities;
+using Mapache.Infrastructure.Knowledge;
 using Mapache.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -16,6 +17,7 @@ public sealed record LlmSelection(LlmProvider Provider, string Model, string? Sy
 public sealed class ChatCompletionRouter(
     MapacheDbContext db,
     LlmResolver resolver,
+    KnowledgeService knowledge,
     OpenAiCompatibleChatClient openAiCompatible,
     AnthropicChatClient anthropic,
     ILogger<ChatCompletionRouter> logger)
@@ -28,7 +30,14 @@ public sealed class ChatCompletionRouter(
         var directory = await db.DirectoryEntries.AsNoTracking().Where(d => d.Enabled).ToListAsync(ct);
         var forms = await db.FormTemplates.AsNoTracking().Where(f => f.Enabled).ToListAsync(ct);
         var callSettings = await db.CallSettings.AsNoTracking().SingleOrDefaultAsync(ct);
-        Prepare(request, selection, BotContext.Build(request, directory, forms, callSettings));
+        // Búsqueda previa en la base con lo último que dijo quien llama: el texto completo responde en
+        // milisegundos, así que no se nota en la latencia del turno.
+        var hits = LastUserMessage(request) is { Length: > 2 } question
+            ? await knowledge.SearchAsync(question, limit: 3, ct: ct)
+            : [];
+        var context = string.Join("\n\n", new[] { BotContext.Build(request, directory, forms, callSettings), KnowledgeService.Format(hits) }
+            .Where(p => !string.IsNullOrWhiteSpace(p)));
+        Prepare(request, selection, context.Length == 0 ? null : context);
         logger.LogInformation("Custom LLM: {Provider} {Model}", target.Provider, target.Model);
 
         if (target.Provider == LlmProvider.Anthropic)
@@ -40,6 +49,17 @@ public sealed class ChatCompletionRouter(
             await openAiCompatible.StreamAsync(target.BaseUrl, target.ApiKey, request, output, ct);
         }
     }
+
+    /// <summary>Texto del último mensaje de quien llama, para buscar en la base de conocimiento.</summary>
+    public static string? LastUserMessage(JsonObject request) =>
+        (request["messages"] as JsonArray ?? [])
+            .OfType<JsonObject>()
+            .LastOrDefault(m => m["role"]?.GetValue<string>() == "user")?["content"] switch
+        {
+            JsonValue value when value.GetValueKind() == System.Text.Json.JsonValueKind.String => value.GetValue<string>(),
+            JsonArray parts => string.Concat(parts.Select(p => p?["text"]?.GetValue<string>())),
+            _ => null,
+        };
 
     /// <summary>
     /// Deja la petición lista para el proveedor: el modelo de Mapache, las instrucciones generales en lugar

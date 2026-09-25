@@ -6,6 +6,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
+using NpgsqlTypes;
 
 #nullable disable
 
@@ -478,6 +479,112 @@ namespace Mapache.Infrastructure.Persistence.Migrations
                     b.ToTable("FormTemplates");
                 });
 
+            modelBuilder.Entity("Mapache.Domain.Entities.KnowledgeBase", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<bool>("Enabled")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("KnowledgeBases");
+                });
+
+            modelBuilder.Entity("Mapache.Domain.Entities.KnowledgeChunk", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("DocumentId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("Index")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid>("KnowledgeBaseId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("SearchText")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<NpgsqlTsVector>("SearchVector")
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("tsvector")
+                        .HasComputedColumnSql("to_tsvector('spanish', \"SearchText\")", true);
+
+                    b.Property<string>("Text")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DocumentId");
+
+                    b.HasIndex("KnowledgeBaseId");
+
+                    b.HasIndex("SearchVector");
+
+                    NpgsqlIndexBuilderExtensions.HasMethod(b.HasIndex("SearchVector"), "GIN");
+
+                    b.ToTable("KnowledgeChunks");
+                });
+
+            modelBuilder.Entity("Mapache.Domain.Entities.KnowledgeDocument", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("ChunkCount")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Error")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<string>("FileName")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)");
+
+                    b.Property<Guid>("KnowledgeBaseId")
+                        .HasColumnType("uuid");
+
+                    b.Property<long>("SizeBytes")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("KnowledgeBaseId");
+
+                    b.ToTable("KnowledgeDocuments");
+                });
+
             modelBuilder.Entity("Mapache.Domain.Entities.LlmProviderSettings", b =>
                 {
                     b.Property<string>("Provider")
@@ -705,6 +812,26 @@ namespace Mapache.Infrastructure.Persistence.Migrations
                         .IsRequired();
 
                     b.Navigation("FormTemplate");
+                });
+
+            modelBuilder.Entity("Mapache.Domain.Entities.KnowledgeChunk", b =>
+                {
+                    b.HasOne("Mapache.Domain.Entities.KnowledgeDocument", "Document")
+                        .WithMany()
+                        .HasForeignKey("DocumentId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Document");
+                });
+
+            modelBuilder.Entity("Mapache.Domain.Entities.KnowledgeDocument", b =>
+                {
+                    b.HasOne("Mapache.Domain.Entities.KnowledgeBase", null)
+                        .WithMany()
+                        .HasForeignKey("KnowledgeBaseId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("Mapache.Domain.Entities.Call", b =>

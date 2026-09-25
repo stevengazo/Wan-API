@@ -90,6 +90,11 @@ dotnet ef migrations add <Nombre> --project src/Mapache.Infrastructure --startup
 | `GET` | `/api/recordings`, `/api/recordings/{id}/audio` | autenticado (audio con rangos) |
 | `DELETE` | `/api/recordings/{id}` | `Admin` |
 | `GET` / `PUT` | `/api/settings/calls` | autenticado / `Admin` |
+| `GET` | `/api/knowledge`, `/api/knowledge/{id}`, `/api/knowledge/{id}/documents` | autenticado |
+| `POST`, `PUT`, `DELETE` | `/api/knowledge[/{id}]` | `Admin` |
+| `POST` | `/api/knowledge/{id}/documents` | `Admin`; multipart `files`, hasta 20 MB por archivo |
+| `DELETE` | `/api/knowledge/documents/{id}` | `Admin` |
+| `POST` | `/api/knowledge/search` | autenticado; prueba de búsqueda |
 | `POST` | `/api/forms/generate` | `Admin`; devuelve un borrador armado por la IA, sin guardarlo |
 | `GET`, `POST` | `/api/forms/{id}/actions` | `Admin` |
 | `PUT`, `DELETE` | `/api/form-actions/{id}` | `Admin` |
@@ -136,6 +141,12 @@ Las tools se crean en el agente de ElevenLabs como *server tools* (POST, JSON), 
 - **`leave_message`** → `/api/agent-tools/messages`. Body: `recipient`, `message`, `caller_name`, `callback_number`, `urgent`, `conversation_id`. El destinatario se enlaza con el directorio si hay una sola coincidencia clara.
 - **Contexto para el bot:** el Custom LLM agrega los formularios activos y las instrucciones de recados solo si el agente tiene la tool correspondiente (`BotContext`); pedirle usar una herramienta que no existe lo confunde.
 - **Grabaciones:** con "Grabar llamadas" activo en Configuración, el webhook post-llamada guarda el MP3 de los eventos `post_call_audio` (activar *Send audio data* en el webhook de ElevenLabs). Los archivos van a `Recordings:Path` (volumen `recordings` en Docker); una conversación se guarda una sola vez aunque ElevenLabs reintente. El aviso de grabación se agrega a las instrucciones del bot; conviene incluirlo también en el primer mensaje del agente, que ElevenLabs dice antes de consultar al LLM.
+
+### Bases de conocimiento
+
+Se suben PDF, Word (.docx), TXT, Markdown, CSV o HTML. `DocumentText` extrae el texto (PdfPig para PDF; el .docx se lee como zip) y lo parte en fragmentos de ~900 caracteres con solapamiento; se guarda el texto, no el archivo. Cada fragmento tiene una columna `tsvector` calculada por Postgres (`to_tsvector('spanish', SearchText)`, índice GIN) sobre el texto en minúsculas y sin tildes.
+
+En cada turno, el Custom LLM busca con el último mensaje de quien llama (palabras unidas con OR, ranking `ts_rank_cd`) en las bases activas y agrega los 3 fragmentos más relevantes como mensaje de sistema. Es texto completo, no embeddings: responde en milisegundos y funciona con cualquier proveedor, incluido Claude, que no tiene API de embeddings.
 
 ### Formularios con IA
 
