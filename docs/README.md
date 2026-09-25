@@ -20,6 +20,7 @@ Documentación del motor SIP y la API de Mapache. Para una vista general, empiez
 | [Herramientas](herramientas.md) | Que el bot consulte sistemas externos por HTTP o MCP |
 | [Servidor MCP](servidor-mcp.md) | Que Claude, Cursor u otros agentes operen Mapache |
 | [Formularios y recados](formularios.md) | Capturar datos durante la llamada y avisar a otros sistemas |
+| [Campañas](campanas.md) | Llamadas salientes del bot a una lista de contactos |
 
 ## Referencia
 
