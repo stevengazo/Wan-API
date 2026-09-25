@@ -61,6 +61,7 @@ try
     builder.Services.AddSingleton<Mapache.Infrastructure.Transfers.ICallTransfer, SipCallTransfer>();
     builder.Services.AddScoped<Mapache.Api.Agent.AgentIntake>();
     builder.Services.AddScoped<PublicUrlResolver>();
+    builder.Services.AddSingleton<Mapache.Api.Audit.AuditLog>();
     builder.Services.AddHostedService<Mapache.Api.Campaigns.CampaignDialer>();
     builder.Services.AddSingleton<Mapache.Sip.Media.IBotBrain, BotBrain>();
     builder.Services.AddScoped<Mapache.Infrastructure.Tools.IBotToolSource, Mapache.Api.Agent.IntakeToolSource>();

@@ -1,3 +1,4 @@
+using Mapache.Api.Audit;
 using System.ComponentModel.DataAnnotations;
 using Mapache.Api.Auth;
 using Mapache.Api.Realtime;
@@ -32,7 +33,8 @@ public sealed class RecordingsController(
     MapacheDbContext db,
     RecordingService recordings,
     TimeProvider time,
-    IHubContext<EventsHub, IEventsClient> events) : ControllerBase
+    IHubContext<EventsHub, IEventsClient> events,
+    AuditLog audit) : ControllerBase
 {
     [HttpGet("api/recordings")]
     [Authorize]
@@ -57,6 +59,7 @@ public sealed class RecordingsController(
             return NotFound();
         }
 
+        await audit.RecordAsync(AuditActions.RecordingPlayed, $"Grabación del {recording.CreatedAt:dd/MM/yyyy HH:mm}", recording.Id.ToString());
         var extension = recording.ContentType == "audio/wav" ? "wav" : "mp3";
         return location.Url is { } url
             ? Redirect(url.ToString())
@@ -77,6 +80,12 @@ public sealed class RecordingsController(
             return NotFound();
         }
 
+        if (location.Url is not null)
+        {
+            // En disco se registra al pedir /audio; en la nube el audio no pasa por la API.
+            await audit.RecordAsync(AuditActions.RecordingPlayed, $"Grabación del {recording.CreatedAt:dd/MM/yyyy HH:mm}", recording.Id.ToString());
+        }
+
         return Ok(new { url = location.Url?.ToString() });
     }
 
@@ -93,6 +102,7 @@ public sealed class RecordingsController(
         await recordings.DeleteAsync(recording, ct);
         db.Recordings.Remove(recording);
         await db.SaveChangesAsync(ct);
+        await audit.RecordAsync(AuditActions.RecordingDeleted, $"Grabación del {recording.CreatedAt:dd/MM/yyyy HH:mm}", recording.Id.ToString());
         await events.Clients.All.RecordingsChanged();
         return NoContent();
     }
@@ -120,6 +130,7 @@ public sealed class RecordingsController(
         settings.RecordingNotice = string.IsNullOrWhiteSpace(request.RecordingNotice) ? null : request.RecordingNotice.Trim();
         settings.UpdatedAt = time.GetUtcNow();
         await db.SaveChangesAsync(ct);
+        await audit.RecordAsync(AuditActions.SettingsChanged, "Llamadas", details: settings.RecordCalls ? "Grabación activada" : "Grabación desactivada");
         return new CallSettingsDto(settings.RecordCalls, settings.RecordingNotice);
     }
 }

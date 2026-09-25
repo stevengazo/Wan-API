@@ -1,3 +1,4 @@
+using Mapache.Api.Audit;
 using System.ComponentModel.DataAnnotations;
 using System.Text.Json;
 using Mapache.Api.Auth;
@@ -57,7 +58,8 @@ public sealed partial class FormActionsController(
     ISecretProtector protector,
     FormActionSender sender,
     IFormActionQueue queue,
-    TimeProvider time) : ControllerBase
+    TimeProvider time,
+    AuditLog audit) : ControllerBase
 {
     [HttpGet("api/forms/{formId:guid}/actions")]
     public async Task<IReadOnlyList<FormActionDto>> List(Guid formId, CancellationToken ct) =>
@@ -189,6 +191,7 @@ public sealed partial class FormActionsController(
 
         smtp.UpdatedAt = time.GetUtcNow();
         await db.SaveChangesAsync(ct);
+        await audit.RecordAsync(AuditActions.SettingsChanged, "Correo saliente", details: smtp.Host);
         return ToDto(smtp);
     }
 

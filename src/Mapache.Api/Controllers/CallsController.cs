@@ -1,3 +1,4 @@
+using Mapache.Api.Audit;
 using System.ComponentModel.DataAnnotations;
 using Mapache.Api.Auth;
 using Mapache.Api.Sip;
@@ -61,7 +62,7 @@ public sealed record SaveVoiceSettingsRequest(
 
 [ApiController]
 [Authorize]
-public sealed class CallsController(MapacheDbContext db, ISipEngine engine, ISecretProtector protector, TimeProvider time) : ControllerBase
+public sealed class CallsController(MapacheDbContext db, ISipEngine engine, ISecretProtector protector, TimeProvider time, AuditLog audit) : ControllerBase
 {
     [HttpGet("api/calls")]
     public async Task<IReadOnlyList<CallDto>> List([FromQuery] int limit = 100, CancellationToken ct = default) =>
@@ -123,6 +124,7 @@ public sealed class CallsController(MapacheDbContext db, ISipEngine engine, ISec
         settings.Greeting = Optional(request.Greeting);
         settings.UpdatedAt = time.GetUtcNow();
         await db.SaveChangesAsync(ct);
+        await audit.RecordAsync(AuditActions.SettingsChanged, "Voz", details: $"Proveedor: {settings.Provider}");
         return ToDto(settings);
     }
 

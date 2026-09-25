@@ -1,3 +1,4 @@
+using Mapache.Api.Audit;
 using System.ComponentModel.DataAnnotations;
 using Mapache.Api.Auth;
 using Mapache.Api.Realtime;
@@ -71,7 +72,7 @@ public sealed record ImportContactsResult(int Imported, int Skipped, IReadOnlyLi
 
 [ApiController]
 [Authorize]
-public sealed class CampaignsController(MapacheDbContext db, TimeProvider time, IHubContext<EventsHub, IEventsClient> events) : ControllerBase
+public sealed class CampaignsController(MapacheDbContext db, TimeProvider time, IHubContext<EventsHub, IEventsClient> events, AuditLog audit) : ControllerBase
 {
     private static readonly string[] DefaultOutcomes = ["Interesado", "No interesado", "Volver a llamar"];
 
@@ -145,6 +146,7 @@ public sealed class CampaignsController(MapacheDbContext db, TimeProvider time, 
 
         db.Campaigns.Remove(campaign);
         await db.SaveChangesAsync(ct);
+        await audit.RecordAsync(AuditActions.CampaignDeleted, campaign.Name, id.ToString());
         await events.Clients.All.CampaignsChanged();
         return NoContent();
     }
@@ -169,6 +171,7 @@ public sealed class CampaignsController(MapacheDbContext db, TimeProvider time, 
         campaign.StartedAt ??= time.GetUtcNow();
         campaign.CompletedAt = null;
         await db.SaveChangesAsync(ct);
+        await audit.RecordAsync(AuditActions.CampaignStarted, campaign.Name, id.ToString());
         await events.Clients.All.CampaignsChanged();
         return await Get(id, ct);
     }
@@ -182,6 +185,8 @@ public sealed class CampaignsController(MapacheDbContext db, TimeProvider time, 
         {
             return NotFound();
         }
+
+        await audit.RecordAsync(AuditActions.CampaignPaused, await db.Campaigns.Where(c => c.Id == id).Select(c => c.Name).SingleAsync(ct), id.ToString());
 
         await events.Clients.All.CampaignsChanged();
         return await Get(id, ct);
@@ -228,6 +233,7 @@ public sealed class CampaignsController(MapacheDbContext db, TimeProvider time, 
         }
 
         await db.SaveChangesAsync(ct);
+        await audit.RecordAsync(AuditActions.ContactsImported, $"{added} contactos", id.ToString());
         await events.Clients.All.CampaignsChanged();
         return new ImportContactsResult(added, parsed.Contacts.Count - added, parsed.Problems.Take(50).ToList());
     }

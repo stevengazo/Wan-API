@@ -1,3 +1,4 @@
+using Mapache.Api.Audit;
 using System.ComponentModel.DataAnnotations;
 using System.Security.Claims;
 using Mapache.Api.Auth;
@@ -28,7 +29,7 @@ public sealed record ResetPasswordRequest(
 /// <summary>Usuarios del panel y sus roles. Siempre queda al menos un administrador.</summary>
 [ApiController]
 [Authorize(Roles = Roles.Admin)]
-public sealed class UsersController(MapacheDbContext db, IPasswordHasher<User> hasher, TimeProvider time) : ControllerBase
+public sealed class UsersController(MapacheDbContext db, IPasswordHasher<User> hasher, TimeProvider time, AuditLog audit) : ControllerBase
 {
     [HttpGet("api/users")]
     public async Task<IReadOnlyList<UserListItemDto>> List(CancellationToken ct)
@@ -53,6 +54,7 @@ public sealed class UsersController(MapacheDbContext db, IPasswordHasher<User> h
         user.PasswordHash = hasher.HashPassword(user, request.Password);
         db.Users.Add(user);
         await db.SaveChangesAsync(ct);
+        await audit.RecordAsync(AuditActions.UserCreated, user.Email, user.Id.ToString(), $"Rol: {user.Role}");
         return new UserListItemDto(user.Id, user.Email, user.DisplayName, user.Role, user.CreatedAt, false);
     }
 
@@ -70,9 +72,12 @@ public sealed class UsersController(MapacheDbContext db, IPasswordHasher<User> h
             return Problem(statusCode: StatusCodes.Status409Conflict, title: "Tiene que quedar al menos un administrador");
         }
 
+        var previousRole = user.Role;
         user.DisplayName = request.DisplayName.Trim();
         user.Role = request.Role;
         await db.SaveChangesAsync(ct);
+        await audit.RecordAsync(
+            AuditActions.UserUpdated, user.Email, user.Id.ToString(), previousRole == user.Role ? null : $"Rol: {previousRole} → {user.Role}");
         return new UserListItemDto(user.Id, user.Email, user.DisplayName, user.Role, user.CreatedAt, user.Id == CurrentUserId());
     }
 
@@ -88,6 +93,7 @@ public sealed class UsersController(MapacheDbContext db, IPasswordHasher<User> h
 
         user.PasswordHash = hasher.HashPassword(user, request.Password);
         await db.SaveChangesAsync(ct);
+        await audit.RecordAsync(AuditActions.UserPasswordReset, user.Email, user.Id.ToString());
         return NoContent();
     }
 
@@ -112,6 +118,7 @@ public sealed class UsersController(MapacheDbContext db, IPasswordHasher<User> h
 
         db.Users.Remove(user);
         await db.SaveChangesAsync(ct);
+        await audit.RecordAsync(AuditActions.UserDeleted, user.Email, user.Id.ToString());
         return NoContent();
     }
 

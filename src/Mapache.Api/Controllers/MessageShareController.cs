@@ -1,3 +1,4 @@
+using Mapache.Api.Audit;
 using System.ComponentModel.DataAnnotations;
 using System.Security.Cryptography;
 using Mapache.Infrastructure.Persistence;
@@ -30,7 +31,7 @@ public sealed record PublicMessageDto(
 /// el recado. Da acceso a ese recado y a su audio, nada más.
 /// </summary>
 [ApiController]
-public sealed class MessageShareController(MapacheDbContext db, RecordingService recordings, IDataProtectionProvider protection, TimeProvider time)
+public sealed class MessageShareController(MapacheDbContext db, RecordingService recordings, IDataProtectionProvider protection, TimeProvider time, AuditLog audit)
     : ControllerBase
 {
     private ITimeLimitedDataProtector Protector => protection.CreateProtector("Mapache.MessageShare.v1").ToTimeLimitedDataProtector();
@@ -45,6 +46,7 @@ public sealed class MessageShareController(MapacheDbContext db, RecordingService
         }
 
         var expiresAt = time.GetUtcNow().AddHours(request.ExpiresInHours);
+        await audit.RecordAsync(AuditActions.MessageShared, "Recado", id.ToString(), $"Enlace por {request.ExpiresInHours} h");
         return new MessageShareDto(Protector.Protect(id.ToString("N"), expiresAt), expiresAt);
     }
 
@@ -64,6 +66,7 @@ public sealed class MessageShareController(MapacheDbContext db, RecordingService
         }
 
         NoStore();
+        await audit.RecordAsync(AuditActions.MessagePublicViewed, $"Recado para {message.Recipient}", message.Id.ToString(), "Enlace público");
         var hasAudio = message.ConversationId is not null
             && await db.Recordings.AnyAsync(r => r.ConversationId == message.ConversationId, ct);
         return new PublicMessageDto(
@@ -90,6 +93,7 @@ public sealed class MessageShareController(MapacheDbContext db, RecordingService
         }
 
         NoStore();
+        await audit.RecordAsync(AuditActions.RecordingPlayed, $"Grabación del {recording.CreatedAt:dd/MM/yyyy HH:mm}", recording.Id.ToString(), "Desde el enlace público de un recado");
         return location.Url is { } url
             ? Redirect(url.ToString())
             : PhysicalFile(location.LocalPath!, location.ContentType, enableRangeProcessing: true);

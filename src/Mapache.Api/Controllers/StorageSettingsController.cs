@@ -1,3 +1,4 @@
+using Mapache.Api.Audit;
 using System.ComponentModel.DataAnnotations;
 using Mapache.Api.Auth;
 using Mapache.Domain.Entities;
@@ -36,7 +37,7 @@ public sealed record SaveStorageSettingsRequest(
 
 [ApiController]
 [Authorize(Roles = Roles.Admin)]
-public sealed class StorageSettingsController(MapacheDbContext db, RecordingService recordings, ISecretProtector protector, TimeProvider time)
+public sealed class StorageSettingsController(MapacheDbContext db, RecordingService recordings, ISecretProtector protector, TimeProvider time, AuditLog audit)
     : ControllerBase
 {
     [HttpGet("api/settings/storage")]
@@ -61,6 +62,7 @@ public sealed class StorageSettingsController(MapacheDbContext db, RecordingServ
 
         settings.UpdatedAt = time.GetUtcNow();
         await db.SaveChangesAsync(ct);
+        await audit.RecordAsync(AuditActions.SettingsChanged, "Almacenamiento de grabaciones", details: $"Destino: {settings.Provider}");
         return ToDto(settings);
     }
 

@@ -1,3 +1,4 @@
+using Mapache.Api.Audit;
 using System.ComponentModel.DataAnnotations;
 using Mapache.Api.Auth;
 using Mapache.Api.Mcp;
@@ -31,7 +32,7 @@ public sealed record UpdateMcpAccessTokenRequest(bool AllowAll, IReadOnlyList<st
 /// <summary>Tokens para el servidor MCP de Mapache.</summary>
 [ApiController]
 [Authorize(Roles = Roles.Admin)]
-public sealed class McpAccessController(MapacheDbContext db, TimeProvider time) : ControllerBase
+public sealed class McpAccessController(MapacheDbContext db, TimeProvider time, AuditLog audit) : ControllerBase
 {
     [HttpGet("api/mcp-tokens")]
     public async Task<IReadOnlyList<McpAccessTokenDto>> List(CancellationToken ct) =>
@@ -53,6 +54,7 @@ public sealed class McpAccessController(MapacheDbContext db, TimeProvider time) 
         token.AllowAll = request.AllowAll;
         token.AllowedTools = KnownTools(request.AllowedTools);
         await db.SaveChangesAsync(ct);
+        await audit.RecordAsync(AuditActions.McpTokenChanged, token.Name, token.Id.ToString(), token.AllowAll ? "Acceso total" : string.Join(", ", token.AllowedTools));
         return ToDto(token);
     }
 
@@ -71,6 +73,7 @@ public sealed class McpAccessController(MapacheDbContext db, TimeProvider time) 
         };
         db.McpAccessTokens.Add(token);
         await db.SaveChangesAsync(ct);
+        await audit.RecordAsync(AuditActions.McpTokenCreated, token.Name, token.Id.ToString(), token.AllowAll ? "Acceso total" : string.Join(", ", token.AllowedTools));
         return new CreatedMcpAccessTokenDto(ToDto(token), value);
     }
 
@@ -82,6 +85,16 @@ public sealed class McpAccessController(MapacheDbContext db, TimeProvider time) 
         new(t.Id, t.Name, t.Prefix, t.AllowAll, t.AllowedTools, t.CreatedAt, t.LastUsedAt);
 
     [HttpDelete("api/mcp-tokens/{id:guid}")]
-    public async Task<IActionResult> Revoke(Guid id, CancellationToken ct) =>
-        await db.McpAccessTokens.Where(t => t.Id == id).ExecuteDeleteAsync(ct) == 0 ? NotFound() : NoContent();
+    public async Task<IActionResult> Revoke(Guid id, CancellationToken ct)
+    {
+        var name = await db.McpAccessTokens.Where(t => t.Id == id).Select(t => t.Name).SingleOrDefaultAsync(ct);
+        if (name is null)
+        {
+            return NotFound();
+        }
+
+        await db.McpAccessTokens.Where(t => t.Id == id).ExecuteDeleteAsync(ct);
+        await audit.RecordAsync(AuditActions.McpTokenRevoked, name, id.ToString());
+        return NoContent();
+    }
 }

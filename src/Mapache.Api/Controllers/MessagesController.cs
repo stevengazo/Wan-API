@@ -1,3 +1,4 @@
+using Mapache.Api.Audit;
 using System.ComponentModel.DataAnnotations;
 using System.Text.Json.Serialization;
 using Mapache.Api.Agent;
@@ -45,7 +46,8 @@ public sealed record LeaveMessageToolRequest(
 public sealed class MessagesController(
     MapacheDbContext db,
     IHubContext<EventsHub, IEventsClient> events,
-    AgentIntake intake) : ControllerBase
+    AgentIntake intake,
+    AuditLog audit) : ControllerBase
 {
     [HttpGet("api/messages")]
     [Authorize]
@@ -75,11 +77,13 @@ public sealed class MessagesController(
     [Authorize(Roles = Roles.Admin)]
     public async Task<IActionResult> Delete(Guid id, CancellationToken ct)
     {
-        if (await db.CallMessages.Where(m => m.Id == id).ExecuteDeleteAsync(ct) == 0)
+        var recipient = await db.CallMessages.Where(m => m.Id == id).Select(m => m.Recipient).SingleOrDefaultAsync(ct);
+        if (recipient is null || await db.CallMessages.Where(m => m.Id == id).ExecuteDeleteAsync(ct) == 0)
         {
             return NotFound();
         }
 
+        await audit.RecordAsync(AuditActions.MessageDeleted, $"Recado para {recipient}", id.ToString());
         await events.Clients.All.MessagesChanged();
         return NoContent();
     }

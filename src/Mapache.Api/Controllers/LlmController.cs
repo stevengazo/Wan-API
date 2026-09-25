@@ -1,3 +1,4 @@
+using Mapache.Api.Audit;
 using System.ComponentModel.DataAnnotations;
 using System.Text.Json.Nodes;
 using Mapache.Api.Auth;
@@ -41,7 +42,8 @@ public sealed class LlmController(
     ISecretProtector protector,
     IOptionsMonitor<LlmOptions> options,
     TimeProvider time,
-    ILogger<LlmController> logger) : ControllerBase
+    ILogger<LlmController> logger,
+    AuditLog audit) : ControllerBase
 {
     /// <summary>
     /// Custom LLM del agente de voz. ElevenLabs lo usa como <c>https://&lt;host&gt;/api/llm/v1</c>; Deepgram arma la
@@ -135,6 +137,7 @@ public sealed class LlmController(
         }
 
         await db.SaveChangesAsync(ct);
+        await audit.RecordAsync(AuditActions.SettingsChanged, "Inteligencia artificial", details: $"Proveedor activo: {settings.ActiveProvider}");
         return ToDto(settings, stored);
     }
 

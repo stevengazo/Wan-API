@@ -1,3 +1,4 @@
+using Mapache.Api.Audit;
 using System.ComponentModel.DataAnnotations;
 using Mapache.Api.Auth;
 using Mapache.Domain.Entities;
@@ -27,7 +28,7 @@ public sealed record SaveSiteSettingsRequest(
     [MaxLength(512, ErrorMessage = Messages.MaxLength)] string? PublicUrl);
 
 [ApiController]
-public sealed class SiteSettingsController(MapacheDbContext db, IOptions<AppOptions> options, TimeProvider time) : ControllerBase
+public sealed class SiteSettingsController(MapacheDbContext db, IOptions<AppOptions> options, TimeProvider time, AuditLog audit) : ControllerBase
 {
     [HttpGet("api/settings/site")]
     [Authorize]
@@ -63,6 +64,7 @@ public sealed class SiteSettingsController(MapacheDbContext db, IOptions<AppOpti
         settings.PublicUrl = url;
         settings.UpdatedAt = time.GetUtcNow();
         await db.SaveChangesAsync(ct);
+        await audit.RecordAsync(AuditActions.SettingsChanged, "URL pública", details: settings.PublicUrl);
         return ToDto(settings.PublicUrl);
     }
 

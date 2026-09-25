@@ -1,3 +1,4 @@
+using Mapache.Api.Audit;
 using System.ComponentModel.DataAnnotations;
 using System.Security.Claims;
 using Mapache.Api.Auth;
@@ -33,7 +34,7 @@ public sealed record LoginResponse(string AccessToken, DateTimeOffset ExpiresAt,
 
 [ApiController]
 [Route("api/auth")]
-public sealed class AuthController(MapacheDbContext db, IPasswordHasher<User> hasher, TokenService tokens, TimeProvider time) : ControllerBase
+public sealed class AuthController(MapacheDbContext db, IPasswordHasher<User> hasher, TokenService tokens, TimeProvider time, AuditLog audit) : ControllerBase
 {
     /// <summary>
     /// Registro abierto: la cuenta queda activa al instante con rol <see cref="UserRole.Admin"/>.
@@ -77,10 +78,12 @@ public sealed class AuthController(MapacheDbContext db, IPasswordHasher<User> ha
         // Mismo error para usuario inexistente y contraseña incorrecta: no revelar qué correos existen.
         if (user is null || hasher.VerifyHashedPassword(user, user.PasswordHash, request.Password) == PasswordVerificationResult.Failed)
         {
+            await audit.RecordAsync(AuditActions.LoginFailed, email, user?.Id.ToString(), userEmail: email, userId: user?.Id);
             return Problem(statusCode: StatusCodes.Status401Unauthorized, title: "Correo o contraseña incorrectos");
         }
 
         var (token, expiresAt) = tokens.Create(user);
+        await audit.RecordAsync(AuditActions.LoginSucceeded, user.Email, user.Id.ToString(), userEmail: user.Email, userId: user.Id);
         return new LoginResponse(token, expiresAt, ToDto(user));
     }
 
@@ -129,6 +132,7 @@ public sealed class AuthController(MapacheDbContext db, IPasswordHasher<User> ha
 
         user.PasswordHash = hasher.HashPassword(user, request.NewPassword);
         await db.SaveChangesAsync(ct);
+        await audit.RecordAsync(AuditActions.PasswordChanged, user.Email, user.Id.ToString());
         return NoContent();
     }
 

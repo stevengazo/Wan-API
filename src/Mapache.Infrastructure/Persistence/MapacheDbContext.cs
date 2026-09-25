@@ -51,6 +51,8 @@ public class MapacheDbContext(DbContextOptions<MapacheDbContext> options) : DbCo
 
     public DbSet<StorageSettings> StorageSettings => Set<StorageSettings>();
 
+    public DbSet<AuditEvent> AuditEvents => Set<AuditEvent>();
+
     public DbSet<Campaign> Campaigns => Set<Campaign>();
 
     public DbSet<CampaignContact> CampaignContacts => Set<CampaignContact>();
@@ -224,6 +226,18 @@ public class MapacheDbContext(DbContextOptions<MapacheDbContext> options) : DbCo
             e.Property(r => r.Storage).HasConversion<string>().HasMaxLength(16);
             e.Property(r => r.ContentType).HasMaxLength(64);
             e.HasIndex(r => r.CreatedAt);
+        });
+
+        modelBuilder.Entity<AuditEvent>(e =>
+        {
+            e.Property(a => a.UserEmail).HasMaxLength(256);
+            e.Property(a => a.Action).HasMaxLength(64);
+            e.Property(a => a.Target).HasMaxLength(256);
+            e.Property(a => a.TargetId).HasMaxLength(64);
+            e.Property(a => a.IpAddress).HasMaxLength(64);
+            e.Property(a => a.Details).HasMaxLength(1000);
+            e.HasIndex(a => a.At);
+            e.HasIndex(a => new { a.Action, a.At });
         });
 
         modelBuilder.Entity<StorageSettings>(e =>
