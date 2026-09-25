@@ -386,6 +386,10 @@ namespace Mapache.Infrastructure.Persistence.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
+                    b.Property<string>("BodyTemplate")
+                        .HasMaxLength(8000)
+                        .HasColumnType("character varying(8000)");
+
                     b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -394,6 +398,13 @@ namespace Mapache.Infrastructure.Persistence.Migrations
 
                     b.Property<Guid>("FormTemplateId")
                         .HasColumnType("uuid");
+
+                    b.Property<string>("HeadersEncrypted")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Method")
+                        .HasMaxLength(8)
+                        .HasColumnType("character varying(8)");
 
                     b.Property<string>("Name")
                         .IsRequired()

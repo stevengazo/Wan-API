@@ -16,6 +16,12 @@ public enum FormActionType
 
     /// <summary>Correo por el SMTP de Configuración.</summary>
     Email,
+
+    /// <summary>
+    /// Petición a la API de otro sistema (CRM, ERP, service desk) con método, headers y cuerpo propios; los
+    /// datos van con marcadores <c>{{campo}}</c> para mapearlos al formato que espera el destino.
+    /// </summary>
+    HttpRequest,
 }
 
 /// <summary>Qué hacer cuando un formulario recibe una respuesta.</summary>
@@ -32,8 +38,17 @@ public class FormAction
     /// <summary>Nombre para reconocerla en el panel ("Canal de ventas").</summary>
     public required string Name { get; set; }
 
-    /// <summary>URL del webhook, o destinatarios separados por coma si es correo.</summary>
+    /// <summary>URL del webhook (con marcadores en peticiones HTTP), o destinatarios separados por coma si es correo.</summary>
     public required string Target { get; set; }
+
+    /// <summary>Método de la petición HTTP (POST, PUT, PATCH...). Solo <see cref="FormActionType.HttpRequest"/>.</summary>
+    public string? Method { get; set; }
+
+    /// <summary>Cuerpo JSON con marcadores; vacío = el JSON estándar del webhook. Solo peticiones HTTP.</summary>
+    public string? BodyTemplate { get; set; }
+
+    /// <summary>Headers (p. ej. Authorization o API key) serializados y cifrados. Solo peticiones HTTP.</summary>
+    public string? HeadersEncrypted { get; set; }
 
     /// <summary>Secreto HMAC del webhook propio, cifrado; nunca se expone por la API.</summary>
     public string? SecretEncrypted { get; set; }

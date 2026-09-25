@@ -65,7 +65,7 @@ public sealed partial class HttpToolRunner(HttpClient http, ISecretProtector pro
 
     /// <summary>Cada <c>{{nombre}}</c> del cuerpo se reemplaza por el valor en JSON: texto con comillas, números y booleanos sin ellas.</summary>
     public static string RenderBody(string template, JsonObject arguments) =>
-        Placeholder().Replace(template, m => arguments[m.Groups[1].Value]?.ToJsonString() ?? "null");
+        Placeholder().Replace(template, m => arguments[m.Groups[1].Value]?.ToJsonString(Compact) ?? "null");
 
     /// <summary>Estado y cuerpo para el bot; si es JSON se compacta.</summary>
     public static string Describe(int status, string body)

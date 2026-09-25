@@ -45,6 +45,32 @@ public static class FormActionPayloads
         },
     };
 
+    /// <summary>
+    /// Valores para los marcadores <c>{{nombre}}</c> de una petición HTTP: cada campo por su clave y además
+    /// <c>form_name</c>, <c>form_id</c>, <c>submission_id</c>, <c>created_at</c>, <c>caller_number</c>,
+    /// <c>conversation_id</c>, <c>summary</c> (texto "Etiqueta: valor" por línea) y <c>values</c> (objeto completo).
+    /// </summary>
+    public static JsonObject TemplateArguments(FormTemplate form, FormSubmission submission)
+    {
+        var fields = Fields(form, submission);
+        var arguments = new JsonObject();
+        foreach (var (key, _, value) in fields)
+        {
+            arguments[key] = value;
+        }
+
+        // Los del sistema van después: si un campo se llama igual, gana el dato del sistema documentado.
+        arguments["form_name"] = form.Name;
+        arguments["form_id"] = form.Id.ToString();
+        arguments["submission_id"] = submission.Id.ToString();
+        arguments["created_at"] = submission.CreatedAt.ToString("O");
+        arguments["caller_number"] = submission.CallerNumber;
+        arguments["conversation_id"] = submission.ConversationId;
+        arguments["summary"] = string.Join("\n", fields.Select(f => $"{f.Label}: {f.Value}"));
+        arguments["values"] = new JsonObject(submission.Values.Select(v => KeyValuePair.Create<string, JsonNode?>(v.Key, v.Value)));
+        return arguments;
+    }
+
     /// <summary><c>sha256=&lt;hex&gt;</c> del HMAC del cuerpo: el receptor lo recalcula con el mismo secreto.</summary>
     public static string Sign(string secret, string body) =>
         "sha256=" + Convert.ToHexStringLower(HMACSHA256.HashData(Encoding.UTF8.GetBytes(secret), Encoding.UTF8.GetBytes(body)));

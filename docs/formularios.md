@@ -54,6 +54,42 @@ Cada respuesta nueva dispara las acciones activas del formulario:
 | 🟢 **Google Chat** | Webhook de un espacio | Texto con los datos |
 | 🟡 **Slack** | Incoming webhook | Texto con los datos |
 | ✉️ **Correo** | Destinatarios separados por coma | HTML y texto por el SMTP configurado (STARTTLS en 587, TLS en 465) |
+| 🔌 **API (CRM, ERP…)** | Cualquier API: URL con marcadores, método, headers cifrados | El cuerpo que definas, con los datos mapeados por marcadores (ver abajo) |
+
+### Enviar a cualquier sistema (CRM, ERP, Service Desk)
+
+La acción **API** arma la petición que espera el sistema destino, sin código:
+
+| Parte | Ejemplo |
+|-------|---------|
+| Método | `POST`, `PUT`, `PATCH`, `GET` o `DELETE` |
+| URL | `https://desk.miempresa.com/api/tickets?origen=mapache`; admite marcadores (se codifican para URL) |
+| Headers | `Authorization: Bearer …`, `X-Api-Key: …`; se guardan **cifrados** |
+| Cuerpo | JSON con marcadores; vacío = el JSON estándar del webhook |
+
+**Marcadores:** cada campo del formulario por su clave (`{{nombre}}`, `{{problema}}`) y además:
+
+| Marcador | Valor |
+|----------|-------|
+| `{{caller_number}}` | Número de quien llamó |
+| `{{summary}}` | Texto con "Etiqueta: valor" por línea, ideal para descripciones |
+| `{{values}}` | Objeto JSON con todos los campos |
+| `{{form_name}}`, `{{form_id}}` | El formulario |
+| `{{submission_id}}`, `{{conversation_id}}`, `{{created_at}}` | La respuesta y la conversación |
+
+En el cuerpo cada marcador se inserta ya como valor JSON (el texto con comillas), así que se escriben sin comillas:
+
+```json
+{
+  "requester": {{nombre}},
+  "subject": {{problema}},
+  "phone": {{caller_number}},
+  "description": {{summary}},
+  "custom_fields": {{values}}
+}
+```
+
+Con secreto de firma, también lleva `X-Mapache-Signature`. Si el destino responde con error, se reintenta como las demás acciones y el error queda visible en la respuesta.
 
 **Reintentos:** si el destino falla, Hangfire reintenta 5 veces (30 s, 2 min, 10 min, 30 min, 1 h). El panel muestra el estado, los intentos y el último error de cada acción, con un botón para reintentar. *Probar* envía una respuesta de ejemplo en el momento.
 

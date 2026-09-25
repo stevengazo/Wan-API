@@ -1,9 +1,11 @@
 using System.Net.Http.Headers;
 using System.Text;
+using System.Text.Json;
 using System.Text.Json.Nodes;
 using Mapache.Domain.Entities;
 using Mapache.Infrastructure.Persistence;
 using Mapache.Infrastructure.Security;
+using Mapache.Infrastructure.Tools;
 using MailKit.Net.Smtp;
 using MailKit.Security;
 using Microsoft.EntityFrameworkCore;
@@ -38,21 +40,57 @@ public sealed class FormActionSender(HttpClient http, MapacheDbContext db, ISecr
             case FormActionType.Email:
                 await EmailAsync(action.Target, form, submission, ct);
                 break;
+            case FormActionType.HttpRequest:
+                await HttpRequestAsync(action, form, submission, ct);
+                break;
             default:
                 throw new FormActionException($"Tipo de acción desconocido: {action.Type}");
         }
     }
 
-    private async Task PostAsync(string url, string body, string? secret, CancellationToken ct)
+    /// <summary>Petición a otro sistema con los datos mapeados por marcadores; mismos reintentos que los webhooks.</summary>
+    private async Task HttpRequestAsync(FormAction action, FormTemplate form, FormSubmission submission, CancellationToken ct)
     {
-        using var request = new HttpRequestMessage(HttpMethod.Post, url)
+        var arguments = FormActionPayloads.TemplateArguments(form, submission);
+        var url = HttpToolRunner.RenderUrl(action.Target, arguments);
+        var method = new HttpMethod(string.IsNullOrWhiteSpace(action.Method) ? "POST" : action.Method);
+        string? body = null;
+        if (method != HttpMethod.Get && method != HttpMethod.Delete)
         {
-            Content = new StringContent(body, Encoding.UTF8, "application/json"),
-        };
+            body = string.IsNullOrWhiteSpace(action.BodyTemplate)
+                ? FormActionPayloads.Webhook(form, submission).ToJsonString()
+                : HttpToolRunner.RenderBody(action.BodyTemplate, arguments);
+        }
+
+        var secret = action.SecretEncrypted is null ? null : protector.Unprotect(action.SecretEncrypted);
+        await SendHttpAsync(method, url, body, Headers(action), secret, ct);
+    }
+
+    public Dictionary<string, string> Headers(FormAction action) =>
+        action.HeadersEncrypted is null
+            ? []
+            : JsonSerializer.Deserialize<Dictionary<string, string>>(protector.Unprotect(action.HeadersEncrypted)) ?? [];
+
+    private Task PostAsync(string url, string body, string? secret, CancellationToken ct) =>
+        SendHttpAsync(HttpMethod.Post, url, body, new Dictionary<string, string>(), secret, ct);
+
+    private async Task SendHttpAsync(
+        HttpMethod method, string url, string? body, IReadOnlyDictionary<string, string> headers, string? secret, CancellationToken ct)
+    {
+        using var request = new HttpRequestMessage(method, url);
+        if (body is not null)
+        {
+            request.Content = new StringContent(body, Encoding.UTF8, "application/json");
+        }
+
         request.Headers.Add(FormActionPayloads.EventHeader, FormActionPayloads.SubmittedEvent);
+        foreach (var (name, value) in headers)
+        {
+            request.Headers.TryAddWithoutValidation(name, value);
+        }
         if (!string.IsNullOrEmpty(secret))
         {
-            request.Headers.Add(FormActionPayloads.SignatureHeader, FormActionPayloads.Sign(secret, body));
+            request.Headers.Add(FormActionPayloads.SignatureHeader, FormActionPayloads.Sign(secret, body ?? ""));
         }
 
         HttpResponseMessage response;

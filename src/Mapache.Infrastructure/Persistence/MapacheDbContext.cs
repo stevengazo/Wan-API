@@ -122,6 +122,8 @@ public class MapacheDbContext(DbContextOptions<MapacheDbContext> options) : DbCo
             e.Property(a => a.Type).HasConversion<string>().HasMaxLength(16);
             e.Property(a => a.Name).HasMaxLength(128);
             e.Property(a => a.Target).HasMaxLength(2000);
+            e.Property(a => a.Method).HasMaxLength(8);
+            e.Property(a => a.BodyTemplate).HasMaxLength(8000);
             e.HasOne(a => a.FormTemplate).WithMany().OnDelete(DeleteBehavior.Cascade);
         });
 

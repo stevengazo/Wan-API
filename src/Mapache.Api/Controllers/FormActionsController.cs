@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using System.Text.Json;
 using Mapache.Api.Auth;
 using Mapache.Domain.Entities;
 using Mapache.Infrastructure.Actions;
@@ -11,16 +12,32 @@ using Microsoft.EntityFrameworkCore;
 namespace Mapache.Api.Controllers;
 
 /// <summary>El secreto del webhook nunca sale de la API; solo se informa si está cargado.</summary>
-public sealed record FormActionDto(Guid Id, Guid FormTemplateId, FormActionType Type, string Name, string Target, bool HasSecret, bool Enabled);
+public sealed record FormActionDto(
+    Guid Id,
+    Guid FormTemplateId,
+    FormActionType Type,
+    string Name,
+    string Target,
+    bool HasSecret,
+    bool Enabled,
+    string? Method,
+    string? BodyTemplate,
+    IReadOnlyList<string> HeaderNames);
 
-/// <summary><c>Secret</c> nulo o vacío conserva el guardado; <c>ClearSecret</c> lo borra.</summary>
+/// <summary>
+/// <c>Secret</c> nulo o vacío conserva el guardado; <c>ClearSecret</c> lo borra. <c>Headers</c> nulo conserva
+/// los guardados; un objeto (aunque vacío) los reemplaza.
+/// </summary>
 public sealed record SaveFormActionRequest(
     FormActionType Type,
     [Required(ErrorMessage = Messages.Required), StringLength(128, ErrorMessage = Messages.MaxLength)] string Name,
     [Required(ErrorMessage = Messages.Required), StringLength(2000, ErrorMessage = Messages.MaxLength)] string Target,
     [StringLength(256, ErrorMessage = Messages.MaxLength)] string? Secret = null,
     bool ClearSecret = false,
-    bool Enabled = true);
+    bool Enabled = true,
+    [RegularExpression("^(GET|POST|PUT|PATCH|DELETE)$", ErrorMessage = "Método no soportado")] string? Method = null,
+    [StringLength(8000, ErrorMessage = Messages.MaxLength)] string? BodyTemplate = null,
+    Dictionary<string, string>? Headers = null);
 
 public sealed record SmtpSettingsDto(string? Host, int Port, bool UseTls, string? Username, bool HasPassword, string? From);
 
@@ -35,7 +52,7 @@ public sealed record SaveSmtpSettingsRequest(
 
 [ApiController]
 [Authorize(Roles = Roles.Admin)]
-public sealed class FormActionsController(
+public sealed partial class FormActionsController(
     MapacheDbContext db,
     ISecretProtector protector,
     FormActionSender sender,
@@ -186,7 +203,9 @@ public sealed class FormActionsController(
                 ModelState.AddModelError(nameof(SaveFormActionRequest.Target), "Escribe correos válidos separados por coma");
             }
         }
-        else if (!Uri.TryCreate(target, UriKind.Absolute, out var uri) || uri.Scheme is not ("https" or "http"))
+        // En peticiones HTTP la URL puede llevar marcadores ({{id}}): se valida con valores de relleno.
+        else if (!Uri.TryCreate(request.Type == FormActionType.HttpRequest ? PlaceholderPattern().Replace(target, "x") : target, UriKind.Absolute, out var uri)
+            || uri.Scheme is not ("https" or "http"))
         {
             ModelState.AddModelError(nameof(SaveFormActionRequest.Target), "Debe ser una URL http(s)");
         }
@@ -200,7 +219,20 @@ public sealed class FormActionsController(
         action.Name = request.Name.Trim();
         action.Target = request.Target.Trim();
         action.Enabled = request.Enabled;
-        if (request.Type != FormActionType.Webhook || request.ClearSecret)
+        var isHttp = request.Type == FormActionType.HttpRequest;
+        action.Method = isHttp ? request.Method ?? "POST" : null;
+        action.BodyTemplate = isHttp && !string.IsNullOrWhiteSpace(request.BodyTemplate) ? request.BodyTemplate.Trim() : null;
+        if (!isHttp)
+        {
+            action.HeadersEncrypted = null;
+        }
+        else if (request.Headers is not null)
+        {
+            var headers = request.Headers.Where(h => !string.IsNullOrWhiteSpace(h.Key)).ToDictionary(h => h.Key.Trim(), h => h.Value);
+            action.HeadersEncrypted = headers.Count == 0 ? null : protector.Protect(JsonSerializer.Serialize(headers));
+        }
+
+        if (request.Type is not (FormActionType.Webhook or FormActionType.HttpRequest) || request.ClearSecret)
         {
             action.SecretEncrypted = null;
         }
@@ -221,8 +253,12 @@ public sealed class FormActionsController(
         _ => $"Ejemplo de {field.Label.ToLowerInvariant()}",
     };
 
-    private static FormActionDto ToDto(FormAction a) =>
-        new(a.Id, a.FormTemplateId, a.Type, a.Name, a.Target, a.SecretEncrypted is not null, a.Enabled);
+    private FormActionDto ToDto(FormAction a) =>
+        new(a.Id, a.FormTemplateId, a.Type, a.Name, a.Target, a.SecretEncrypted is not null, a.Enabled,
+            a.Method, a.BodyTemplate, sender.Headers(a).Keys.ToList());
+
+    [System.Text.RegularExpressions.GeneratedRegex(@"\{\{\s*[A-Za-z0-9_]+\s*\}\}")]
+    private static partial System.Text.RegularExpressions.Regex PlaceholderPattern();
 
     private static SmtpSettingsDto ToDto(SmtpSettings s) =>
         new(s.Host, s.Port, s.UseTls, s.Username, s.PasswordEncrypted is not null, s.From);
