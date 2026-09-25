@@ -47,6 +47,8 @@ public class MapacheDbContext(DbContextOptions<MapacheDbContext> options) : DbCo
 
     public DbSet<CallSettings> CallSettings => Set<CallSettings>();
 
+    public DbSet<VoiceSettings> VoiceSettings => Set<VoiceSettings>();
+
     public DbSet<LlmProviderSettings> LlmProviderSettings => Set<LlmProviderSettings>();
 
     public DbSet<CallTranscript> CallTranscripts => Set<CallTranscript>();
@@ -210,6 +212,12 @@ public class MapacheDbContext(DbContextOptions<MapacheDbContext> options) : DbCo
             e.HasIndex(r => r.CreatedAt);
         });
 
+        modelBuilder.Entity<VoiceSettings>(e =>
+        {
+            e.Property(s => s.Id).ValueGeneratedNever();
+            e.Property(s => s.AgentId).HasMaxLength(128);
+        });
+
         modelBuilder.Entity<CallSettings>(e =>
         {
             e.Property(s => s.Id).ValueGeneratedNever();
@@ -233,6 +241,8 @@ public class MapacheDbContext(DbContextOptions<MapacheDbContext> options) : DbCo
         {
             e.Property(c => c.CallerNumber).HasMaxLength(64);
             e.Property(c => c.Status).HasConversion<string>().HasMaxLength(32);
+            e.Property(c => c.Direction).HasConversion<string>().HasMaxLength(16);
+            e.Property(c => c.EndReason).HasMaxLength(256);
             e.Property(c => c.ElevenLabsConversationId).HasMaxLength(128);
             e.HasIndex(c => c.StartedAt);
             e.HasOne(c => c.Extension).WithMany().OnDelete(DeleteBehavior.Restrict);

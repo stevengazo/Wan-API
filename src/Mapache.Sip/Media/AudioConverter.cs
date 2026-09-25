@@ -1,6 +1,6 @@
 using SIPSorcery.Media;
 
-namespace Mapache.Sip.Poc;
+namespace Mapache.Sip.Media;
 
 public enum TelephonyCodec
 {

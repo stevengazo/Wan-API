@@ -6,7 +6,7 @@ using SIPSorcery.Net;
 using SIPSorcery.SIP;
 using SIPSorcery.SIP.App;
 
-namespace Mapache.Sip.Poc;
+namespace Mapache.Sip.Media;
 
 /// <summary>
 /// Puentea una llamada SIP ya contestada con una conversación de ElevenLabs.
@@ -24,7 +24,7 @@ public sealed class CallBridge : IAsyncDisposable
     private readonly RTPSession _rtp;
     private readonly ElevenLabsConversation _conversation;
     private readonly TelephonyCodec _codec;
-    private readonly PocOptions _options;
+    private readonly string _transferDomain;
     private readonly ILogger _logger;
     private readonly CancellationTokenSource _cts = new();
     private readonly Channel<byte[]> _inbound = Channel.CreateBounded<byte[]>(
@@ -39,13 +39,13 @@ public sealed class CallBridge : IAsyncDisposable
         SIPUserAgent ua,
         RTPSession rtp,
         ElevenLabsConversation conversation,
-        PocOptions options,
+        string transferDomain,
         ILogger logger)
     {
         _ua = ua;
         _rtp = rtp;
         _conversation = conversation;
-        _options = options;
+        _transferDomain = transferDomain;
         _logger = logger;
 
         var negotiated = rtp.AudioStream.NegotiatedFormat.ToAudioFormat().Codec;
@@ -230,12 +230,6 @@ public sealed class CallBridge : IAsyncDisposable
 
         try
         {
-            if (digit == _options.TransferDtmfDigit && !string.IsNullOrWhiteSpace(_options.TransferTarget))
-            {
-                await TransferAsync(_options.TransferTarget);
-                return;
-            }
-
             await _conversation.SendContextualUpdateAsync($"El usuario marcó la tecla {digit} en el teclado del teléfono.", _cts.Token);
         }
         catch (Exception ex)
@@ -244,12 +238,12 @@ public sealed class CallBridge : IAsyncDisposable
         }
     }
 
-    /// <summary>Transferencia ciega con REFER (prueba D2).</summary>
-    private async Task TransferAsync(string target)
+    /// <summary>Transferencia ciega con REFER. Una extensión suelta se completa con el dominio de la cuenta.</summary>
+    public async Task<bool> TransferAsync(string target)
     {
         var destination = target.Contains('@')
             ? SIPURI.ParseSIPURIRelaxed(target)
-            : SIPURI.ParseSIPURIRelaxed($"{target}@{_options.Sip.Server}");
+            : SIPURI.ParseSIPURIRelaxed($"{target}@{_transferDomain}");
 
         _logger.LogInformation("REFER hacia {Destination}", destination);
         var accepted = await _ua.BlindTransfer(destination, TimeSpan.FromSeconds(10), _cts.Token);
@@ -258,6 +252,8 @@ public sealed class CallBridge : IAsyncDisposable
         {
             _ended.TrySetResult($"transferida a {destination}");
         }
+
+        return accepted;
     }
 
     public async ValueTask DisposeAsync()

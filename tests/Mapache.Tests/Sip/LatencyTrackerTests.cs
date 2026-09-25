@@ -1,5 +1,5 @@
 using System.Diagnostics;
-using Mapache.Sip.Poc;
+using Mapache.Sip.Media;
 
 namespace Mapache.Tests.Sip;
 

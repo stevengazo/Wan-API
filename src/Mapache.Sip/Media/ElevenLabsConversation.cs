@@ -5,7 +5,10 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using Microsoft.Extensions.Logging;
 
-namespace Mapache.Sip.Poc;
+namespace Mapache.Sip.Media;
+
+/// <summary>Agente de ElevenLabs con el que se abre cada conversación.</summary>
+public sealed record ElevenLabsOptions(string ApiKey, string AgentId, string BaseUrl = "https://api.elevenlabs.io");
 
 /// <summary>
 /// Cliente del WebSocket de ElevenLabs Conversational AI (una conversación por llamada).
@@ -44,7 +47,8 @@ public sealed class ElevenLabsConversation : IAsyncDisposable
         ElevenLabsOptions options,
         IReadOnlyDictionary<string, string> dynamicVariables,
         ILogger logger,
-        CancellationToken ct)
+        CancellationToken ct,
+        JsonObject? customLlmExtraBody = null)
     {
         var conversation = new ElevenLabsConversation(logger);
         var url = await GetSignedUrlAsync(http, options, ct);
@@ -54,6 +58,8 @@ public sealed class ElevenLabsConversation : IAsyncDisposable
         {
             ["type"] = "conversation_initiation_client_data",
             ["dynamic_variables"] = JsonSerializer.SerializeToNode(dynamicVariables),
+            // Llega al Custom LLM de Mapache como elevenlabs_extra_body (p. ej. qué extensión atiende).
+            ["custom_llm_extra_body"] = customLlmExtraBody,
         }, ct);
 
         // El primer mensaje útil es la metadata con los formatos de audio negociados; sin ellos no se puede

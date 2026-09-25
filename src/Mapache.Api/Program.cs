@@ -10,7 +10,8 @@ using Mapache.Api.Webhooks;
 using Mapache.Infrastructure;
 using Mapache.Infrastructure.Actions;
 using Mapache.Infrastructure.Persistence;
-using Mapache.Sip.Poc;
+using Mapache.Api.Sip;
+using Mapache.Sip.Engine;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.HttpOverrides;
@@ -54,7 +55,10 @@ try
         .AddJsonProtocol(o => o.PayloadSerializerOptions.Converters.Add(new JsonStringEnumConverter()));
 
     builder.Services.AddInfrastructure(builder.Configuration);
-    builder.Services.AddSipPoc(builder.Configuration);
+    builder.Services.AddSingleton<ISipAccountSource, SipAccountSource>();
+    builder.Services.AddSingleton<IVoiceAgentSource, VoiceAgentSource>();
+    builder.Services.AddSingleton<ISipEventSink, SipEventSink>();
+    builder.Services.AddSipEngine(builder.Configuration);
 
     builder.Services.AddHangfire(config => config
         .SetDataCompatibilityLevel(CompatibilityLevel.Version_180)

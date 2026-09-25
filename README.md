@@ -202,43 +202,31 @@ Los secretos de webhook y la contraseña SMTP se guardan cifrados con `ISecretPr
 - **Contraseñas SIP:** cifradas con ASP.NET Data Protection (`ISecretProtector`); la API nunca las devuelve. Las llaves de Data Protection viven en la tabla `DataProtectionKeys`: si se pierden, las contraseñas guardadas quedan ilegibles. Hoy esas llaves no están cifradas en reposo (pendiente para Fase 8: certificado o KMS).
 - **Usuarios:** contraseñas con `PasswordHasher` de ASP.NET Identity.
 
-## POC Fase 0: bridge SIP ↔ ElevenLabs
+## Motor SIP
 
-Código en `src/Mapache.Sip/Poc/`. Corre como `BackgroundService` dentro de la API y solo se activa con `Sip:Poc:Enabled=true`.
+`SipEngine` (en `src/Mapache.Sip/Engine/`) corre dentro de la API y mantiene registrada cada extensión habilitada. Lee las cuentas de la base al arrancar, cuando se edita una extensión (`RequestReload`) y cada minuto; una cuenta cuya configuración cambió se des-registra y se vuelve a crear.
 
-| Clase | Qué hace |
+| Pieza | Qué hace |
 |-------|----------|
-| `SipPocWorker` | Registra la extensión, atiende INVITEs y abre una conversación de ElevenLabs por llamada mientras suena |
-| `CallBridge` | Puentea RTP ↔ WebSocket: uplink ordenado por jitter buffer; downlink en frames de 20 ms con silencio de relleno (mantiene el NAT); barge-in; DTMF; REFER |
-| `ElevenLabsConversation` | Cliente del WebSocket (signed URL, metadata de formatos, audio, interrupción, ping/pong) |
-| `AudioConverter` | G.711 ↔ formato de ElevenLabs. Con PCMU + `ulaw_8000` el audio pasa sin transcodificar |
-| `JitterBuffer` | Reordena paquetes RTP por secuencia y descarta los tardíos |
-| `LatencyTracker` | Mide fin de voz del llamante → primer audio del agente y resume p50/p90 al colgar |
+| `SipAccountRuntime` | Una cuenta: su transporte (UDP, TCP o TLS en el puerto local elegido), el REGISTER con proxy, dominio y usuario de autenticación, el paso al servidor secundario tras fallar, el keepalive de NAT (doble CRLF) y las llamadas entrantes |
+| `CallBridge` (`Media/`) | Puentea RTP ↔ WebSocket de ElevenLabs: jitter buffer, frames de 20 ms, barge-in, DTMF y REFER |
+| `ElevenLabsConversation` | Cliente del WebSocket; manda `custom_llm_extra_body.extension_id` para el Custom LLM |
+| `AudioConverter`, `JitterBuffer`, `LatencyTracker` | Audio G.711, orden de paquetes y latencia turno a turno |
 
-### Configurar
+La API le da al motor las cuentas (con la contraseña descifrada), el agente de ElevenLabs (Configuración → Voz) y recibe los eventos (`Sip/SipBindings.cs`): guarda cada llamada con su dirección, estado, motivo de fin y transcripción, y avisa al panel por SignalR (`ExtensionStatusChanged`, `CallsChanged`, `CallTranscript`).
 
-```bash
-dotnet user-secrets set "Sip:Poc:Enabled" "true" --project src/Mapache.Api
-dotnet user-secrets set "Sip:Poc:Sip:Server" "<servidor SIP>" --project src/Mapache.Api
-dotnet user-secrets set "Sip:Poc:Sip:Username" "<extensión>" --project src/Mapache.Api
-dotnet user-secrets set "Sip:Poc:Sip:Password" "<contraseña>" --project src/Mapache.Api
-dotnet user-secrets set "Sip:Poc:ElevenLabs:ApiKey" "<api key>" --project src/Mapache.Api
-dotnet user-secrets set "Sip:Poc:ElevenLabs:AgentId" "<agent id>" --project src/Mapache.Api
+Llamadas entrantes: modo bot o bot con paso a persona → contesta el agente de ElevenLabs; modo persona → se rechaza con 480 hasta que exista el softphone del panel. Con el límite de simultáneas alcanzado responde 486. Sin agente configurado responde 503 y la llamada queda como fallida con el motivo.
 
-# Opcionales
-dotnet user-secrets set "Sip:Poc:Sip:PublicIpAddress" "<ip pública>" --project src/Mapache.Api   # detrás de NAT
-dotnet user-secrets set "Sip:Poc:TransferTarget" "<extensión o sip:uri>" --project src/Mapache.Api # prueba REFER
-```
+Qué opciones de la cuenta se aplican hoy: servidores principal y secundario, proxy, dominio, login, contraseña, nombre para mostrar, transporte, puerto local, IP pública o STUN, expiración, reintento, keepalive, códecs (PCMU/PCMA para el bot), simultáneas y quién contesta. Quedan guardadas pero sin efecto todavía: SRTP, ICE, refresco de sesión, DTMF por SIP INFO o en banda, buzón, prefijo y número oculto (estos tres son de llamadas salientes).
 
-Los valores no secretos por defecto (`ListenPort` 5060, `ExpirySeconds` 120, `TransferDtmfDigit` 9) están en `appsettings.json`. El agente recibe la variable dinámica `caller_id`.
+`Sip:Enabled=false` apaga el motor (desarrollo sin red SIP). `Sip:RtpPortStart`/`RtpPortEnd` fijan el rango de puertos de audio para poder publicarlos en Docker.
 
 ### Qué mirar en los logs
 
+- `Registrando <usuario>@<servidor>` y el estado en el panel; un `401 Unauthorized` es usuario o contraseña incorrectos.
 - `Bridge iniciado`: códec negociado, formatos de ElevenLabs y si hay passthrough (**D3**). Para passthrough en ambos sentidos, configurar el agente con entrada y salida `μ-law 8000 Hz`.
 - `Latencia turno`: una línea por turno; al colgar, el resumen con p50/p90/máx. La meta es menos de ~1,5 s.
-- `REFER aceptado` o `rechazado`: al marcar `9` con `TransferTarget` configurado (**D2**).
-- Las demás teclas se envían al agente como `contextual_update`.
 
 ## Red
 
-El motor SIP necesita IP pública (o NAT resuelto) y puertos UDP abiertos: 5060 para SIP y un rango efímero para RTP (lo elige el sistema operativo). Ver decisión D4 en el plan.
+El motor SIP necesita que los servidores SIP puedan llegarle: IP pública (o NAT resuelto con IP pública o STUN y keepalive) y los puertos UDP de cada cuenta y del audio. En Docker sobre Linux lo más simple es `network_mode: host` para la API; con Docker Desktop (Windows/Mac) el NAT del contenedor sirve para registrar y recibir llamadas mientras el keepalive mantenga abierto el mapeo, pero no para producción. Ver decisión D4 en el plan.

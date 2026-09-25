@@ -7,6 +7,15 @@ public enum CallStatus
     Completed,
     Transferred,
     Failed,
+
+    /// <summary>Nadie contestó (colgaron mientras sonaba o se rechazó por estar ocupada).</summary>
+    Missed,
+}
+
+public enum CallDirection
+{
+    Inbound,
+    Outbound,
 }
 
 public class Call
@@ -20,6 +29,13 @@ public class Call
     public required string CallerNumber { get; set; }
 
     public CallStatus Status { get; set; }
+
+    public CallDirection Direction { get; set; }
+
+    /// <summary>Por qué terminó: "el llamante colgó", "transferida a 101", el error...</summary>
+    public string? EndReason { get; set; }
+
+    public DateTimeOffset? AnsweredAt { get; set; }
 
     public string? ElevenLabsConversationId { get; set; }
 

@@ -1,6 +1,6 @@
 using System.Diagnostics;
 
-namespace Mapache.Sip.Poc;
+namespace Mapache.Sip.Media;
 
 /// <summary>
 /// Mide la latencia turno a turno: desde el último frame con voz del llamante hasta el primer audio

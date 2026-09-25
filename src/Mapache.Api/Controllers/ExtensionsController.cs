@@ -4,6 +4,7 @@ using Mapache.Api.Realtime;
 using Mapache.Domain.Entities;
 using Mapache.Infrastructure.Persistence;
 using Mapache.Infrastructure.Security;
+using Mapache.Sip.Engine;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
@@ -85,6 +86,7 @@ public sealed class ExtensionsController(
     MapacheDbContext db,
     ISecretProtector protector,
     TimeProvider time,
+    ISipEngine engine,
     IHubContext<EventsHub, IEventsClient> events) : ControllerBase
 {
     [HttpGet]
@@ -122,6 +124,7 @@ public sealed class ExtensionsController(
         Apply(extension, request, now);
         db.Extensions.Add(extension);
         await db.SaveChangesAsync(ct);
+        engine.RequestReload();
         await events.Clients.All.ExtensionsChanged();
 
         var dto = await Project(db.Extensions.Where(e => e.Id == extension.Id)).SingleAsync(ct);
@@ -150,6 +153,7 @@ public sealed class ExtensionsController(
         }
 
         await db.SaveChangesAsync(ct);
+        engine.RequestReload();
         await events.Clients.All.ExtensionsChanged();
         return await Project(db.Extensions.Where(e => e.Id == id)).SingleAsync(ct);
     }
@@ -170,6 +174,7 @@ public sealed class ExtensionsController(
             return NotFound();
         }
 
+        engine.RequestReload();
         await events.Clients.All.ExtensionsChanged();
         return NoContent();
     }
