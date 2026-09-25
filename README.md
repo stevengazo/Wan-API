@@ -95,6 +95,12 @@ dotnet ef migrations add <Nombre> --project src/Mapache.Infrastructure --startup
 | `POST` | `/api/knowledge/{id}/documents` | `Admin`; multipart `files`, hasta 20 MB por archivo |
 | `DELETE` | `/api/knowledge/documents/{id}` | `Admin` |
 | `POST` | `/api/knowledge/search` | autenticado; prueba de búsqueda |
+| `GET`, `POST`, `PUT`, `DELETE` | `/api/http-tools[/{id}]` | `Admin` |
+| `POST` | `/api/http-tools/{id}/test` | `Admin`; ejecuta con valores de prueba |
+| `GET`, `POST`, `PUT`, `DELETE` | `/api/mcp-servers[/{id}]` | `Admin`; al guardar se conecta y lee las herramientas |
+| `POST` | `/api/mcp-servers/{id}/sync`, `/api/mcp-servers/{id}/tools/{tool}/test` | `Admin` |
+| `GET`, `POST`, `DELETE` | `/api/mcp-tokens[/{id}]` | `Admin`; el token completo solo viaja al crearlo |
+| MCP | `/api/mcp` | token MCP (`Authorization: Bearer mapache_mcp_…`) |
 | `POST` | `/api/forms/generate` | `Admin`; devuelve un borrador armado por la IA, sin guardarlo |
 | `GET`, `POST` | `/api/forms/{id}/actions` | `Admin` |
 | `PUT`, `DELETE` | `/api/form-actions/{id}` | `Admin` |
@@ -147,6 +153,24 @@ Las tools se crean en el agente de ElevenLabs como *server tools* (POST, JSON), 
 Se suben PDF, Word (.docx), TXT, Markdown, CSV o HTML. `DocumentText` extrae el texto (PdfPig para PDF; el .docx se lee como zip) y lo parte en fragmentos de ~900 caracteres con solapamiento; se guarda el texto, no el archivo. Cada fragmento tiene una columna `tsvector` calculada por Postgres (`to_tsvector('spanish', SearchText)`, índice GIN) sobre el texto en minúsculas y sin tildes.
 
 En cada turno, el Custom LLM busca con el último mensaje de quien llama (palabras unidas con OR, ranking `ts_rank_cd`) en las bases activas y agrega los 3 fragmentos más relevantes como mensaje de sistema. Es texto completo, no embeddings: responde en milisegundos y funciona con cualquier proveedor, incluido Claude, que no tiene API de embeddings.
+
+### Herramientas del bot
+
+El Custom LLM agrega a las tools que trae ElevenLabs las de Mapache (`BotToolRegistry`; si el agente tiene una con el mismo nombre, gana la del agente):
+
+- `search_knowledge_base`, si hay alguna base activa con contenido.
+- **Peticiones HTTP** (`HttpTool`): método, URL y cuerpo con `{{parametro}}` (en la URL se codifica; en el cuerpo se inserta como JSON), headers cifrados, parámetros tipados y timeout. La respuesta se compacta y se recorta a 4000 caracteres.
+- **Servidores MCP externos** (`McpServerConnection`, SDK oficial `ModelContextProtocol`): se leen sus herramientas al guardar o con "Volver a leer", y cada una se habilita por separado. El modelo las ve como `mcp_<servidor>_<herramienta>`.
+
+`SseToolInterceptor` se pone entre el proveedor y ElevenLabs: el texto sale en el momento (el "déjame revisar" se escucha mientras tanto) y las llamadas a herramientas, el `finish_reason` y el `[DONE]` se retienen. Si alguna es de Mapache, se ejecuta, se agrega el resultado y se vuelve a consultar al modelo (hasta 4 rondas); si todas son del agente, lo retenido se entrega tal cual.
+
+### Servidor MCP de Mapache
+
+`/api/mcp` (Streamable HTTP, sin estado) expone `search_knowledge_base`, `search_directory`, `list_messages`, `update_message_status`, `list_forms` y `list_form_submissions`. Se autentica con tokens creados en Configuración (se guarda el SHA-256; el valor se muestra una vez). nginx lo sirve sin buffer. Ejemplo con Claude Code:
+
+```bash
+claude mcp add --transport http mapache https://<host>/api/mcp --header "Authorization: Bearer mapache_mcp_..."
+```
 
 ### Formularios con IA
 
