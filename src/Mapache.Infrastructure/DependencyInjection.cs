@@ -29,9 +29,10 @@ public static class DependencyInjection
         services.AddDbContext<MapacheDbContext>(options => options.UseNpgsql(connectionString));
 
         // Llaves en la base para que sobrevivan a redeploys del contenedor y todas las instancias compartan las mismas.
-        services.AddDataProtection()
+        var dataProtection = services.AddDataProtection()
             .SetApplicationName("Mapache")
             .PersistKeysToDbContext<MapacheDbContext>();
+        KeyEncryption.Configure(dataProtection, configuration);
 
         services.AddSingleton<ISecretProtector, SecretProtector>();
         services.AddSingleton<IPasswordHasher<User>, PasswordHasher<User>>();

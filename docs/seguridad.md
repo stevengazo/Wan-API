@@ -19,7 +19,16 @@ La API **nunca devuelve** un secreto: solo dice si está cargado. Al editar, un 
 
 Viven en la tabla `DataProtectionKeys`. **Si se pierden, los secretos guardados quedan ilegibles** y hay que volver a cargarlos. Incluye esa tabla en tus respaldos.
 
-Hoy esas llaves no están cifradas en reposo. En producción conviene protegerlas con un certificado o un KMS.
+Las llaves se cifran en reposo con una **clave maestra** que vive fuera de la base, así un respaldo de la base por sí solo no permite leer los secretos:
+
+| Variable | Qué hace |
+|----------|----------|
+| `DataProtection__KeyEncryptionKey` | Clave AES-256 en base64 (`openssl rand -base64 32`). Recomendada. |
+| `DataProtection__CertificatePath` + `DataProtection__CertificatePassword` | Alternativa: un certificado `.pfx` montado en el contenedor. |
+
+- Al activarla en una instalación existente, la llave en uso estaba sin cifrar: al arrancar se crea una nueva cifrada para lo que se guarde en adelante. La anterior se conserva (sin cifrar) para leer lo ya guardado hasta que venza, a los 90 días.
+- **No cambies la clave maestra:** las llaves cifradas con la anterior quedan ilegibles, y el error dice qué clave esperaba (un identificador, nunca la clave).
+- Guárdala en un gestor de secretos y respáldala aparte de la base.
 
 ## Autenticación
 
@@ -52,6 +61,7 @@ El registro se escribe aparte de la operación: si falla, la operación no se ca
 - [ ] Servir todo por **HTTPS** (ElevenLabs lo exige, y los JWT viajan en headers).
 - [ ] Generar `Auth:Jwt:SigningKey` y `AgentWebhooks:ToolToken` aleatorios y largos.
 - [ ] Usar una contraseña fuerte para `POSTGRES_PASSWORD` y no publicar el puerto 5432 (el compose lo deja solo en `127.0.0.1`).
+- [ ] Definir `DataProtection__KeyEncryptionKey` y guardarla aparte de los respaldos.
 - [ ] Respaldar la base, incluida `DataProtectionKeys`, y el volumen de grabaciones.
 - [ ] Revisar la normativa de grabación de llamadas y de datos personales de tu país.
 - [ ] Limitar los puertos SIP y RTP del firewall a las IPs de tu central o proveedor.
