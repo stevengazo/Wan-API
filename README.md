@@ -90,6 +90,11 @@ dotnet ef migrations add <Nombre> --project src/Mapache.Infrastructure --startup
 | `GET` | `/api/recordings`, `/api/recordings/{id}/audio` | autenticado (audio con rangos) |
 | `DELETE` | `/api/recordings/{id}` | `Admin` |
 | `GET` / `PUT` | `/api/settings/calls` | autenticado / `Admin` |
+| `GET`, `POST` | `/api/forms/{id}/actions` | `Admin` |
+| `PUT`, `DELETE` | `/api/form-actions/{id}` | `Admin` |
+| `POST` | `/api/form-actions/{id}/test` | `Admin` (envía una respuesta de ejemplo en el momento) |
+| `POST` | `/api/action-executions/{id}/retry` | `Admin` |
+| `GET` / `PUT` | `/api/settings/smtp` | `Admin` |
 | `POST` | `/api/agent-tools/forms/submit` | token de tools (server tool `submit_form`) |
 | `POST` | `/api/agent-tools/messages` | token de tools (server tool `leave_message`) |
 | `GET` | `/api/llm/settings` | autenticado (sin API keys, solo si están cargadas) |
@@ -131,10 +136,24 @@ Las tools se crean en el agente de ElevenLabs como *server tools* (POST, JSON), 
 - **Contexto para el bot:** el Custom LLM agrega los formularios activos y las instrucciones de recados solo si el agente tiene la tool correspondiente (`BotContext`); pedirle usar una herramienta que no existe lo confunde.
 - **Grabaciones:** con "Grabar llamadas" activo en Configuración, el webhook post-llamada guarda el MP3 de los eventos `post_call_audio` (activar *Send audio data* en el webhook de ElevenLabs). Los archivos van a `Recordings:Path` (volumen `recordings` en Docker); una conversación se guarda una sola vez aunque ElevenLabs reintente. El aviso de grabación se agrega a las instrucciones del bot; conviene incluirlo también en el primer mensaje del agente, que ElevenLabs dice antes de consultar al LLM.
 
+### Acciones de formularios
+
+Cada respuesta nueva crea una `ActionExecution` por acción activa del formulario y la encola en Hangfire (`FormActionJob`). Si el destino falla, Hangfire reintenta 5 veces (30 s, 2 min, 10 min, 30 min, 1 h); cada intento actualiza estado, intentos y último error, que el panel muestra en la respuesta con opción de reintentar.
+
+| Tipo | Destino | Qué se envía |
+|------|---------|--------------|
+| Webhook | URL propia | `POST` JSON con `event: "form.submitted"`, formulario y respuesta (`values` por clave y `fields` con etiquetas). Con secreto: `X-Mapache-Signature: sha256=<HMAC-SHA256 del cuerpo>` |
+| Teams | URL de un flujo "Publicar en un canal cuando se reciba una solicitud de webhook" | Tarjeta adaptable con los datos |
+| Google Chat | Webhook de un espacio | Texto con los datos |
+| Slack | Incoming webhook | Texto con los datos |
+| Correo | Destinatarios separados por coma | HTML y texto por el SMTP de Configuración (MailKit; STARTTLS en 587, TLS en 465) |
+
+Los secretos de webhook y la contraseña SMTP se guardan cifrados con `ISecretProtector`.
+
 ### Tiempo real y trabajos en segundo plano
 
 - **SignalR** (`Realtime/EventsHub.cs`): avisa al panel cuando cambian las extensiones. En Fase 2 suma el estado del registro SIP y las llamadas en vivo.
-- **Hangfire**: guarda sus datos en Postgres (schema `hangfire`) y corre su servidor dentro de la API. Todavía no hay jobs; el motor de acciones de Fase 4 va sobre esto.
+- **Hangfire**: guarda sus datos en Postgres (schema `hangfire`) y corre su servidor dentro de la API. Ejecuta las acciones de formularios con reintentos.
 - **Serilog**: logs legibles en desarrollo y JSON compacto fuera de él, con una línea por request.
 
 ## Seguridad

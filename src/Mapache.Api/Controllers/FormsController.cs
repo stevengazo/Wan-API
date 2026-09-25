@@ -4,6 +4,7 @@ using Mapache.Api.Auth;
 using Mapache.Api.Realtime;
 using Mapache.Api.Webhooks;
 using Mapache.Domain.Entities;
+using Mapache.Infrastructure.Actions;
 using Mapache.Infrastructure.Forms;
 using Mapache.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Authorization;
@@ -32,6 +33,16 @@ public sealed record SaveFormTemplateRequest(
     [Required(ErrorMessage = Messages.Required)] IReadOnlyList<FormFieldDto> Fields,
     bool Enabled = true);
 
+public sealed record ActionExecutionDto(
+    Guid Id,
+    Guid FormActionId,
+    string ActionName,
+    FormActionType ActionType,
+    ActionExecutionStatus Status,
+    int Attempts,
+    string? LastError,
+    DateTimeOffset? CompletedAt);
+
 public sealed record FormSubmissionDto(
     Guid Id,
     Guid FormTemplateId,
@@ -39,7 +50,8 @@ public sealed record FormSubmissionDto(
     string? ConversationId,
     string? CallerNumber,
     SubmissionStatus Status,
-    DateTimeOffset CreatedAt);
+    DateTimeOffset CreatedAt,
+    IReadOnlyList<ActionExecutionDto> Actions);
 
 public sealed record UpdateSubmissionRequest(SubmissionStatus Status);
 
@@ -60,6 +72,7 @@ public sealed record ToolResult(bool Ok, string Message, IReadOnlyList<string>? 
 public sealed partial class FormsController(
     MapacheDbContext db,
     TimeProvider time,
+    IFormActionQueue actionQueue,
     IHubContext<EventsHub, IEventsClient> events) : ControllerBase
 {
     [HttpGet("api/forms")]
@@ -134,14 +147,23 @@ public sealed partial class FormsController(
 
     [HttpGet("api/forms/{id:guid}/submissions")]
     [Authorize]
-    public async Task<IReadOnlyList<FormSubmissionDto>> Submissions(Guid id, CancellationToken ct) =>
-        (await db.FormSubmissions.AsNoTracking()
+    public async Task<IReadOnlyList<FormSubmissionDto>> Submissions(Guid id, CancellationToken ct)
+    {
+        var submissions = await db.FormSubmissions.AsNoTracking()
             .Where(s => s.FormTemplateId == id)
             .OrderByDescending(s => s.CreatedAt)
             .Take(500)
-            .ToListAsync(ct))
-        .Select(ToDto)
-        .ToList();
+            .ToListAsync(ct);
+        var ids = submissions.Select(s => s.Id).ToList();
+        var executions = (await db.ActionExecutions.AsNoTracking()
+                .Where(x => ids.Contains(x.FormSubmissionId))
+                .OrderBy(x => x.CreatedAt)
+                .Select(x => new { x.FormSubmissionId, Dto = new ActionExecutionDto(
+                    x.Id, x.FormActionId, x.FormAction!.Name, x.FormAction.Type, x.Status, x.Attempts, x.LastError, x.CompletedAt) })
+                .ToListAsync(ct))
+            .ToLookup(x => x.FormSubmissionId, x => x.Dto);
+        return submissions.Select(s => ToDto(s, executions[s.Id].ToList())).ToList();
+    }
 
     [HttpPatch("api/form-submissions/{id:guid}")]
     [Authorize]
@@ -156,7 +178,7 @@ public sealed partial class FormsController(
         submission.Status = request.Status;
         await db.SaveChangesAsync(ct);
         await events.Clients.All.FormSubmissionsChanged();
-        return ToDto(submission);
+        return ToDto(submission, []);
     }
 
     [HttpDelete("api/form-submissions/{id:guid}")]
@@ -188,15 +210,18 @@ public sealed partial class FormsController(
             return new ToolResult(false, "No se guardó. Pide o corrige estos datos y vuelve a enviarlo.", validation.Problems);
         }
 
-        db.FormSubmissions.Add(new FormSubmission
+        var submission = new FormSubmission
         {
             FormTemplateId = form.Id,
             Values = validation.Values,
             ConversationId = Optional(request.ConversationId),
             CallerNumber = Optional(request.CallerNumber),
             CreatedAt = time.GetUtcNow(),
-        });
+        };
+        db.FormSubmissions.Add(submission);
         await db.SaveChangesAsync(ct);
+        // Las acciones (webhooks, Teams, correo...) van a la cola: el bot no espera a que terminen.
+        await FormActionRunner.DispatchAsync(db, actionQueue, submission, submission.CreatedAt, ct);
         await events.Clients.All.FormSubmissionsChanged();
         return new ToolResult(true, "Formulario guardado. Confírmale a quien llama que quedó registrado.");
     }
@@ -266,8 +291,8 @@ public sealed partial class FormsController(
         form.CreatedAt,
         form.UpdatedAt);
 
-    private static FormSubmissionDto ToDto(FormSubmission s) =>
-        new(s.Id, s.FormTemplateId, s.Values, s.ConversationId, s.CallerNumber, s.Status, s.CreatedAt);
+    private static FormSubmissionDto ToDto(FormSubmission s, IReadOnlyList<ActionExecutionDto> actions) =>
+        new(s.Id, s.FormTemplateId, s.Values, s.ConversationId, s.CallerNumber, s.Status, s.CreatedAt, actions);
 
     private static string? Optional(string? value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
 

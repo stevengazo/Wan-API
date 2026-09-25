@@ -24,6 +24,45 @@ namespace Mapache.Infrastructure.Persistence.Migrations
             NpgsqlModelBuilderExtensions.HasPostgresExtension(modelBuilder, "vector");
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
+            modelBuilder.Entity("Mapache.Domain.Entities.ActionExecution", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("Attempts")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTimeOffset?>("CompletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("FormActionId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("FormSubmissionId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("LastError")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("FormActionId");
+
+                    b.HasIndex("FormSubmissionId");
+
+                    b.ToTable("ActionExecutions");
+                });
+
             modelBuilder.Entity("Mapache.Domain.Entities.Call", b =>
                 {
                     b.Property<Guid>("Id")
@@ -328,6 +367,46 @@ namespace Mapache.Infrastructure.Persistence.Migrations
                     b.ToTable("Extensions");
                 });
 
+            modelBuilder.Entity("Mapache.Domain.Entities.FormAction", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("Enabled")
+                        .HasColumnType("boolean");
+
+                    b.Property<Guid>("FormTemplateId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)");
+
+                    b.Property<string>("SecretEncrypted")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Target")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("FormTemplateId");
+
+                    b.ToTable("FormActions");
+                });
+
             modelBuilder.Entity("Mapache.Domain.Entities.FormSubmission", b =>
                 {
                     b.Property<Guid>("Id")
@@ -470,6 +549,40 @@ namespace Mapache.Infrastructure.Persistence.Migrations
                     b.ToTable("Recordings");
                 });
 
+            modelBuilder.Entity("Mapache.Domain.Entities.SmtpSettings", b =>
+                {
+                    b.Property<int>("Id")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("From")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)");
+
+                    b.Property<string>("Host")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)");
+
+                    b.Property<string>("PasswordEncrypted")
+                        .HasColumnType("text");
+
+                    b.Property<int>("Port")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("UseTls")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Username")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("SmtpSettings");
+                });
+
             modelBuilder.Entity("Mapache.Domain.Entities.User", b =>
                 {
                     b.Property<Guid>("Id")
@@ -525,6 +638,23 @@ namespace Mapache.Infrastructure.Persistence.Migrations
                     b.ToTable("DataProtectionKeys");
                 });
 
+            modelBuilder.Entity("Mapache.Domain.Entities.ActionExecution", b =>
+                {
+                    b.HasOne("Mapache.Domain.Entities.FormAction", "FormAction")
+                        .WithMany()
+                        .HasForeignKey("FormActionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Mapache.Domain.Entities.FormSubmission", null)
+                        .WithMany()
+                        .HasForeignKey("FormSubmissionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("FormAction");
+                });
+
             modelBuilder.Entity("Mapache.Domain.Entities.Call", b =>
                 {
                     b.HasOne("Mapache.Domain.Entities.Extension", "Extension")
@@ -553,6 +683,17 @@ namespace Mapache.Infrastructure.Persistence.Migrations
                         .HasForeignKey("CallId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+                });
+
+            modelBuilder.Entity("Mapache.Domain.Entities.FormAction", b =>
+                {
+                    b.HasOne("Mapache.Domain.Entities.FormTemplate", "FormTemplate")
+                        .WithMany()
+                        .HasForeignKey("FormTemplateId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("FormTemplate");
                 });
 
             modelBuilder.Entity("Mapache.Domain.Entities.FormSubmission", b =>

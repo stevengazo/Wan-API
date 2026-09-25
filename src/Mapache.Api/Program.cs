@@ -3,9 +3,11 @@ using System.Threading.RateLimiting;
 using Hangfire;
 using Hangfire.PostgreSql;
 using Mapache.Api.Auth;
+using Mapache.Api.Jobs;
 using Mapache.Api.Realtime;
 using Mapache.Api.Webhooks;
 using Mapache.Infrastructure;
+using Mapache.Infrastructure.Actions;
 using Mapache.Infrastructure.Persistence;
 using Mapache.Sip.Poc;
 using Microsoft.AspNetCore.Authentication;
@@ -61,6 +63,8 @@ try
             o => o.UseNpgsqlConnection(builder.Configuration.GetConnectionString("Mapache")),
             new PostgreSqlStorageOptions { SchemaName = "hangfire" }));
     builder.Services.AddHangfireServer();
+    builder.Services.AddScoped<IFormActionQueue, HangfireFormActionQueue>();
+    builder.Services.AddScoped<IFormActionNotifier, SignalRFormActionNotifier>();
 
     var jwt = builder.Configuration.GetSection(JwtOptions.SectionName).Get<JwtOptions>() ?? new JwtOptions();
     if (jwt.SigningKey.Length < 32)

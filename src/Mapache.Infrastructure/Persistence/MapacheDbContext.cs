@@ -22,6 +22,12 @@ public class MapacheDbContext(DbContextOptions<MapacheDbContext> options) : DbCo
 
     public DbSet<FormSubmission> FormSubmissions => Set<FormSubmission>();
 
+    public DbSet<FormAction> FormActions => Set<FormAction>();
+
+    public DbSet<ActionExecution> ActionExecutions => Set<ActionExecution>();
+
+    public DbSet<SmtpSettings> SmtpSettings => Set<SmtpSettings>();
+
     public DbSet<CallMessage> CallMessages => Set<CallMessage>();
 
     public DbSet<Recording> Recordings => Set<Recording>();
@@ -92,6 +98,31 @@ public class MapacheDbContext(DbContextOptions<MapacheDbContext> options) : DbCo
             e.Property(s => s.CallerNumber).HasMaxLength(64);
             e.HasIndex(s => s.CreatedAt);
             e.HasOne(s => s.FormTemplate).WithMany().OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<FormAction>(e =>
+        {
+            e.Property(a => a.Type).HasConversion<string>().HasMaxLength(16);
+            e.Property(a => a.Name).HasMaxLength(128);
+            e.Property(a => a.Target).HasMaxLength(2000);
+            e.HasOne(a => a.FormTemplate).WithMany().OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<ActionExecution>(e =>
+        {
+            e.Property(x => x.Status).HasConversion<string>().HasMaxLength(16);
+            e.Property(x => x.LastError).HasMaxLength(1000);
+            e.HasIndex(x => x.FormSubmissionId);
+            e.HasOne(x => x.FormAction).WithMany().OnDelete(DeleteBehavior.Cascade);
+            e.HasOne<FormSubmission>().WithMany().HasForeignKey(x => x.FormSubmissionId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<SmtpSettings>(e =>
+        {
+            e.Property(s => s.Id).ValueGeneratedNever();
+            e.Property(s => s.Host).HasMaxLength(256);
+            e.Property(s => s.Username).HasMaxLength(256);
+            e.Property(s => s.From).HasMaxLength(256);
         });
 
         modelBuilder.Entity<CallMessage>(e =>

@@ -1,4 +1,5 @@
 using Mapache.Domain.Entities;
+using Mapache.Infrastructure.Actions;
 using Mapache.Infrastructure.Llm;
 using Mapache.Infrastructure.Persistence;
 using Mapache.Infrastructure.Recordings;
@@ -38,6 +39,10 @@ public static class DependencyInjection
 
         services.Configure<RecordingOptions>(configuration.GetSection(RecordingOptions.SectionName));
         services.AddSingleton<RecordingStore>();
+
+        // Un destino lento no debe trabar la cola: si no responde se reintenta más tarde.
+        services.AddHttpClient<FormActionSender>(c => c.Timeout = TimeSpan.FromSeconds(15));
+        services.AddScoped<FormActionRunner>();
         return services;
     }
 }
