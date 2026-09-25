@@ -35,6 +35,7 @@ Las llaves se cifran en reposo con una **clave maestra** que vive fuera de la ba
 ## Autenticación
 
 - **Panel:** JWT firmado con HMAC-SHA256, 8 horas por defecto. Roles `Admin` y `Operator`.
+- **Sesión en cookie:** el JWT viaja en la cookie `mapache_session` (`HttpOnly`, `SameSite=Strict`, `Secure` con HTTPS). JavaScript no la puede leer, así un XSS no puede robar la sesión. En `POST`, `PUT` y `DELETE` la cookie solo vale con el header `X-Mapache-Client` (anti-CSRF: otro sitio no puede agregarlo sin preflight CORS, y la API no habilita CORS). Cerrar sesión borra la cookie; el JWT no se revoca en el servidor y vence solo.
 - **Doble factor:** TOTP opcional por usuario, con códigos de recuperación. Ver [inicio de sesión](inicio-de-sesion.md).
 - **Google y Microsoft:** OpenID Connect con PKCE; nunca se vincula una cuenta por coincidencia de correo.
 - **Login y registro:** 10 intentos por minuto por IP. Detrás de un proxy, activa `ReverseProxy:Enabled` para que la IP sea la real. Sin proxy déjalo apagado, porque el cliente podría falsear `X-Forwarded-For`.

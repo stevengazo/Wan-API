@@ -22,7 +22,7 @@ public sealed record ExternalLoginDto(ExternalProvider Provider, string? Email, 
 
 /// <summary>
 /// Entrar, registrarse y vincular la cuenta con Google o Microsoft. La vuelta del proveedor termina en el panel:
-/// <c>/login/sso#token=…</c> si salió bien, o <c>/login?ssoError=…</c> (<c>/perfil?ssoError=…</c> al vincular).
+/// <c>/login/sso</c> con la cookie de sesión si salió bien, o <c>/login?ssoError=…</c> (<c>/perfil?ssoError=…</c> al vincular).
 /// </summary>
 [ApiController]
 [Route("api/auth/external")]
@@ -257,10 +257,9 @@ public sealed class ExternalAuthController(
 
         // El doble factor lo exige el proveedor (la política de la empresa en Google Workspace o Entra ID).
         var (token, expiresAt) = tokens.Create(user);
+        SessionCookie.Append(HttpContext, token, expiresAt);
         await audit.RecordAsync(AuditActions.LoginSucceeded, user.Email, user.Id.ToString(), name, user.Email, user.Id);
-        var fragment = QueryHelpers.AddQueryString("", new Dictionary<string, string?> { ["token"] = token, ["expiresAt"] = expiresAt.ToString("O") });
-        // En el fragmento (#) el token no llega a ningún servidor ni queda en logs de proxies.
-        return Redirect($"{panel}/login/sso#{fragment.TrimStart('?')}");
+        return Redirect($"{panel}/login/sso");
     }
 
     public static bool DomainAllowed(SsoSettings settings, string email)

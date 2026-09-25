@@ -109,17 +109,7 @@ try
             };
             o.Events = new JwtBearerEvents
             {
-                // WebSockets no permite headers en el navegador: el cliente de SignalR manda el token por query string.
-                OnMessageReceived = context =>
-                {
-                    var token = context.Request.Query["access_token"];
-                    if (!string.IsNullOrEmpty(token) && (context.HttpContext.Request.Path.StartsWithSegments(EventsHub.Path) || context.HttpContext.Request.Path.StartsWithSegments(WebPhoneEndpoint.Path)))
-                    {
-                        context.Token = token;
-                    }
-
-                    return Task.CompletedTask;
-                },
+                OnMessageReceived = SessionCookie.ReadToken,
             };
         })
         .AddScheme<AuthenticationSchemeOptions, AgentToolAuthenticationHandler>(AgentToolAuthenticationHandler.SchemeName, null)

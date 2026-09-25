@@ -31,8 +31,11 @@ public sealed record ChangePasswordRequest(
 
 public sealed record UserDto(Guid Id, string Email, string DisplayName, UserRole Role, bool MfaEnabled, bool HasPassword);
 
-/// <summary>Con doble factor, el primer paso solo devuelve <see cref="MfaToken"/> para canjearlo en <c>login/mfa</c>.</summary>
-public sealed record LoginResponse(string? AccessToken, DateTimeOffset? ExpiresAt, UserDto? User, bool MfaRequired = false, string? MfaToken = null);
+/// <summary>
+/// El JWT va en la cookie HttpOnly de sesión, nunca en el cuerpo. Con doble factor, el primer paso solo devuelve
+/// <see cref="MfaToken"/> para canjearlo en <c>login/mfa</c>.
+/// </summary>
+public sealed record LoginResponse(DateTimeOffset? ExpiresAt, UserDto? User, bool MfaRequired = false, string? MfaToken = null);
 
 public sealed record MfaLoginRequest(
     [Required(ErrorMessage = Messages.Required)] string MfaToken,
@@ -79,7 +82,8 @@ public sealed class AuthController(MapacheDbContext db, IPasswordHasher<User> ha
         await db.SaveChangesAsync(ct);
 
         var (token, expiresAt) = tokens.Create(user);
-        return new LoginResponse(token, expiresAt, ToDto(user));
+        SessionCookie.Append(HttpContext, token, expiresAt);
+        return new LoginResponse(expiresAt, ToDto(user));
     }
 
     [HttpPost("login")]
@@ -99,7 +103,7 @@ public sealed class AuthController(MapacheDbContext db, IPasswordHasher<User> ha
 
         if (user.MfaEnabled)
         {
-            return new LoginResponse(null, null, null, MfaRequired: true, MfaToken: mfa.CreateChallenge(user));
+            return new LoginResponse(null, null, MfaRequired: true, MfaToken: mfa.CreateChallenge(user));
         }
 
         return await CompleteLoginAsync(user, "Contraseña");
@@ -127,6 +131,28 @@ public sealed class AuthController(MapacheDbContext db, IPasswordHasher<User> ha
 
         await db.SaveChangesAsync(ct);
         return await CompleteLoginAsync(user, check == MfaCheck.RecoveryCode ? "Contraseña y código de recuperación" : "Contraseña y doble factor");
+    }
+
+    /// <summary>Borra la cookie de sesión. El JWT sigue siendo válido hasta vencer si alguien lo copió antes.</summary>
+    [HttpPost("logout")]
+    [AllowAnonymous]
+    public IActionResult Logout()
+    {
+        SessionCookie.Delete(HttpContext);
+        return NoContent();
+    }
+
+    /// <summary>Sesión actual (usuario y vencimiento del JWT de la cookie), p. ej. al volver de Google o Microsoft.</summary>
+    [HttpGet("session")]
+    [Authorize]
+    public async Task<ActionResult<LoginResponse>> Session(CancellationToken ct)
+    {
+        if (await CurrentUserAsync(ct) is not { } user || !long.TryParse(User.FindFirstValue("exp"), out var exp))
+        {
+            return Unauthorized();
+        }
+
+        return new LoginResponse(DateTimeOffset.FromUnixTimeSeconds(exp), ToDto(user));
     }
 
     [HttpGet("me")]
@@ -277,8 +303,9 @@ public sealed class AuthController(MapacheDbContext db, IPasswordHasher<User> ha
     private async Task<ActionResult<LoginResponse>> CompleteLoginAsync(User user, string method)
     {
         var (token, expiresAt) = tokens.Create(user);
+        SessionCookie.Append(HttpContext, token, expiresAt);
         await audit.RecordAsync(AuditActions.LoginSucceeded, user.Email, user.Id.ToString(), method, user.Email, user.Id);
-        return new LoginResponse(token, expiresAt, ToDto(user));
+        return new LoginResponse(expiresAt, ToDto(user));
     }
 
     // Las cuentas creadas con Google o Microsoft no tienen contraseña: nunca entran por aquí.

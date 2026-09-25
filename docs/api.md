@@ -8,7 +8,7 @@ Mapache tiene cuatro esquemas, separados a propósito: un token de un tipo no si
 
 | Esquema | Quién lo usa | Header |
 |---------|--------------|--------|
-| 🧑 **JWT** | El panel (usuarios) | `Authorization: Bearer <jwt>` |
+| 🧑 **JWT** | El panel (usuarios) | Cookie HttpOnly `mapache_session`; en `POST`/`PUT`/`DELETE` además el header `X-Mapache-Client: 1` (anti-CSRF). También acepta `Authorization: Bearer <jwt>`. |
 | 🗣️ **Token de tools del agente** | ElevenLabs (Custom LLM y server tools) | `Authorization: Bearer <AgentWebhooks:ToolToken>` |
 | ✍️ **Firma HMAC** | Webhook post-llamada de ElevenLabs | `ElevenLabs-Signature: t=…,v0=…` |
 | 🤖 **Token MCP** | Clientes MCP | `Authorization: Bearer mapache_mcp_…` |
@@ -31,7 +31,9 @@ En la columna *Acceso*: **anónimo**, **usuario** (cualquier rol), **admin**, **
 
 | Método | Ruta | Acceso | Descripción |
 |--------|------|--------|-------------|
-| `POST` | `/auth/login` | anónimo | Devuelve `{accessToken, expiresAt, user}`; con doble factor, `{mfaRequired: true, mfaToken}`. 10 intentos por minuto por IP. |
+| `POST` | `/auth/login` | anónimo | Deja la cookie de sesión y devuelve `{expiresAt, user}`; con doble factor, `{mfaRequired: true, mfaToken}`. 10 intentos por minuto por IP. |
+| `POST` | `/auth/logout` | anónimo | Borra la cookie de sesión |
+| `GET` | `/auth/session` | usuario | `{expiresAt, user}` de la sesión actual |
 | `POST` | `/auth/login/mfa` | anónimo | Canjea `mfaToken` + código de la app o de recuperación por la sesión (mismo límite) |
 | `POST` | `/auth/register` | anónimo | Crea un usuario `Admin` activo (mismo límite). Ciérralo o restríngelo antes de exponer el panel. |
 | `GET` / `PUT` | `/auth/me` | usuario | Perfil; el `PUT` cambia el nombre |
@@ -174,8 +176,8 @@ Responde `409` si intentas borrarte a ti mismo o dejar el sistema sin administra
 | Ruta | Acceso | Descripción |
 |------|--------|-------------|
 | `GET /health` | anónimo | Chequeo de vida |
-| `WS /hubs/phone?extensionId=…&to=…` | usuario (JWT en `access_token`) | Teléfono web: audio PCM 16 bits 8 kHz en binario; JSON `state` / `hangup` / `dtmf` en texto |
-| `WS /hubs/events` | usuario (JWT en `access_token` del query string) | SignalR |
+| `WS /hubs/phone?extensionId=…&to=…` | usuario (cookie de sesión) | Teléfono web: audio PCM 16 bits 8 kHz en binario; JSON `state` / `hangup` / `dtmf` en texto |
+| `WS /hubs/events` | usuario (cookie de sesión) | SignalR |
 | `/hangfire` | solo Development y desde localhost | Panel de trabajos |
 
 ## Eventos en tiempo real (SignalR)
@@ -195,9 +197,14 @@ Hub `/hubs/events`. El panel escucha:
 ## Ejemplo con curl
 
 ```bash
-TOKEN=$(curl -s -X POST http://localhost:8080/api/auth/login \
+# La sesión queda en el archivo de cookies.
+curl -s -c sesion.txt -X POST http://localhost:8080/api/auth/login \
   -H "Content-Type: application/json" \
-  -d '{"email":"admin@mapache.local","password":"..."}' | jq -r .accessToken)
+  -d '{"email":"admin@mapache.local","password":"..."}' > /dev/null
 
-curl -s http://localhost:8080/api/extensions/status -H "Authorization: Bearer $TOKEN" | jq
+curl -s -b sesion.txt http://localhost:8080/api/extensions/status | jq
+
+# Para escribir, sumar el header anti-CSRF.
+curl -s -b sesion.txt -X PUT http://localhost:8080/api/auth/me \
+  -H "X-Mapache-Client: 1" -H "Content-Type: application/json" -d '{"displayName":"Admin"}' 
 ```
