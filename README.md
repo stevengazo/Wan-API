@@ -72,7 +72,7 @@ dotnet ef migrations add <Nombre> --project src/Mapache.Infrastructure --startup
 | Método | Ruta | Rol |
 |--------|------|-----|
 | `POST` | `/api/auth/login` | anónimo (10 intentos/min por IP) |
-| `POST` | `/api/auth/register` | anónimo (mismo límite que el login); crea un `Operator` activo |
+| `POST` | `/api/auth/register` | anónimo (mismo límite que el login); crea un `Admin` activo (cerrar o restringir antes de exponer el panel) |
 | `GET`, `PUT` | `/api/auth/me` | autenticado (el `PUT` cambia el nombre) |
 | `POST` | `/api/auth/password` | autenticado; pide la contraseña actual |
 | `GET` | `/api/extensions`, `/api/extensions/{id}` | autenticado |

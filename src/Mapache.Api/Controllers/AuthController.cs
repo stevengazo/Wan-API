@@ -36,8 +36,8 @@ public sealed record LoginResponse(string AccessToken, DateTimeOffset ExpiresAt,
 public sealed class AuthController(MapacheDbContext db, IPasswordHasher<User> hasher, TokenService tokens, TimeProvider time) : ControllerBase
 {
     /// <summary>
-    /// Registro abierto: la cuenta queda activa al instante con rol <see cref="UserRole.Operator"/>
-    /// (puede ver el panel, no modificar la configuración).
+    /// Registro abierto: la cuenta queda activa al instante con rol <see cref="UserRole.Admin"/>.
+    /// Cualquiera con acceso a la URL obtiene control total; cerrar o restringir antes de exponer el panel.
     /// </summary>
     [HttpPost("register")]
     [AllowAnonymous]
@@ -55,7 +55,7 @@ public sealed class AuthController(MapacheDbContext db, IPasswordHasher<User> ha
         {
             Email = email,
             DisplayName = request.DisplayName.Trim(),
-            Role = UserRole.Operator,
+            Role = UserRole.Admin,
             CreatedAt = time.GetUtcNow(),
         };
         user.PasswordHash = hasher.HashPassword(user, request.Password);
