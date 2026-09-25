@@ -35,6 +35,9 @@ public interface IEventsClient
     /// <summary>Estado de una llamada al entrar, contestarse o terminar: el panel abre el modal de las entrantes.</summary>
     Task LiveCall(LiveCallDto call);
 
+    /// <summary>Cambió una campaña o el estado de sus contactos (llamadas, resultados).</summary>
+    Task CampaignsChanged();
+
     /// <summary>Algo nuevo para avisar en el dispositivo (recado, formulario): el panel lo muestra como notificación.</summary>
     Task Notify(PanelNotification notification);
 }

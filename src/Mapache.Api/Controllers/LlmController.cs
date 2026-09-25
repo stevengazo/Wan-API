@@ -60,6 +60,8 @@ public sealed class LlmController(
             {
                 ["extension_id"] = extensionId,
                 ["call_id"] = Request.Headers["x-mapache-call"].ToString(),
+                ["campaign_id"] = Request.Headers["x-mapache-campaign"].ToString(),
+                ["contact_id"] = Request.Headers["x-mapache-contact"].ToString(),
             };
         }
 

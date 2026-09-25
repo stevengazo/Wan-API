@@ -94,9 +94,9 @@ public sealed class VoiceAgentSource(IServiceScopeFactory scopes, IOptions<Agent
 /// </summary>
 public sealed class BotBrain(IServiceScopeFactory scopes) : IBotBrain
 {
-    public async Task<BotBrainSession> StartAsync(Guid extensionId, Guid callId, CancellationToken ct)
+    public async Task<BotBrainSession> StartAsync(VoiceCallContext voiceCall, CancellationToken ct)
     {
-        var call = new BotCallContext(extensionId, callId);
+        var call = new BotCallContext(voiceCall.ExtensionId, voiceCall.CallId, voiceCall.CampaignId, voiceCall.ContactId);
         BotSession session;
         using (var scope = scopes.CreateScope())
         {

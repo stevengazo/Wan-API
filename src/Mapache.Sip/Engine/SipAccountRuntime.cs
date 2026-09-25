@@ -36,6 +36,9 @@ internal sealed class SipAccountRuntime : IAsyncDisposable
     private SipRegistrationStatus _status;
     private Task? _keepAlive;
 
+    // En campañas se deja sonar un poco menos que un teléfono: más allá suele atender el buzón de voz.
+    private const int CampaignRingSeconds = 35;
+
     // Llamadas que atiende el bot ahora mismo, por si un operador las toma desde el panel.
     private readonly ConcurrentDictionary<Guid, BotCall> _botCalls = new();
 
@@ -316,6 +319,15 @@ internal sealed class SipAccountRuntime : IAsyncDisposable
         }
 
         await _services.Events.CallAnsweredAsync(callId, conversation.ConversationId);
+        return await RunBotAsync(ua, rtp, conversation, callId);
+    }
+
+    /// <summary>
+    /// Corre el bot sobre una llamada ya contestada (entrante o de campaña) hasta que termina, se transfiere o
+    /// la toma un operador del panel.
+    /// </summary>
+    private async Task<(CallStatus Status, string Reason)> RunBotAsync(SIPUserAgent ua, RTPSession rtp, IVoiceSession conversation, Guid callId)
+    {
         var bridge = new CallBridge(ua, rtp, conversation, HostOf(CurrentServer), _logger);
         var botCall = new BotCall(bridge);
         string reason;
@@ -327,7 +339,7 @@ internal sealed class SipAccountRuntime : IAsyncDisposable
         finally
         {
             _botCalls.TryRemove(callId, out _);
-            // Con traspaso, el puente cierra la conversación de ElevenLabs pero deja viva la llamada.
+            // Con traspaso, el puente cierra la conversación de voz pero deja viva la llamada.
             await bridge.DisposeAsync();
         }
 
@@ -351,6 +363,13 @@ internal sealed class SipAccountRuntime : IAsyncDisposable
 
     /// <summary>Prepara una llamada saliente del teléfono web con las credenciales de la cuenta.</summary>
     public IPhoneCall CreateOutboundCall(string destination)
+    {
+        var (ua, descriptor) = PrepareOutbound(destination);
+        return new OutboundCall(this, ua, CreateRtpSession(), descriptor, destination.Trim(), _logger);
+    }
+
+    /// <summary>Agente y descriptor de una llamada saliente con las credenciales, el proxy y el prefijo de la cuenta.</summary>
+    private (SIPUserAgent Ua, SIPCallDescriptor Descriptor) PrepareOutbound(string destination)
     {
         if (_transport is null)
         {
@@ -376,7 +395,74 @@ internal sealed class SipAccountRuntime : IAsyncDisposable
             AuthUser, _account.Password, uri, from, uri, null, null, AuthUser,
             SIPCallDirection.Out, SDP.SDP_MIME_CONTENTTYPE, null, _publicIp);
 
-        return new OutboundCall(this, new SIPUserAgent(_transport, outboundProxy), CreateRtpSession(), descriptor, target, _logger);
+        return (new SIPUserAgent(_transport, outboundProxy), descriptor);
+    }
+
+    /// <summary>
+    /// Llamada saliente atendida por el bot (campañas): marca, espera que contesten y hace hablar al bot con el
+    /// guion de la campaña. Devuelve cómo terminó para que el marcador decida si reintentar.
+    /// </summary>
+    public async Task<BotCallResult> DialBotAsync(BotCallRequest request, CancellationToken ct)
+    {
+        var agent = await _services.VoiceAgent.GetAsync(ct)
+            ?? throw new InvalidOperationException("Falta configurar el proveedor de voz (Configuración → Voz).");
+        var (ua, descriptor) = PrepareOutbound(request.Destination);
+        var rtp = CreateRtpSession();
+        var callId = await OutboundCallStartedAsync(request.Destination.Trim());
+        using var scope = _logger.BeginScope("Llamada de campaña {CallId} a {Number}", callId, request.Destination);
+        SIPResponseStatusCodesEnum? failure = null;
+        ua.ClientCallFailed += (_, _, response) => failure = response?.Status;
+        var status = CallStatus.Failed;
+        var reason = "error";
+
+        try
+        {
+            _logger.LogInformation("Marcando {Uri} para la campaña", descriptor.Uri);
+            if (!await ua.Call(descriptor, rtp, CampaignRingSeconds))
+            {
+                rtp.Close("sin respuesta");
+                var busy = failure is SIPResponseStatusCodesEnum.BusyHere or SIPResponseStatusCodesEnum.BusyEverywhere;
+                (status, reason) = (CallStatus.Missed, busy ? "ocupado" : failure is { } code ? $"no contestó ({(int)code})" : "no contestó");
+                return new BotCallResult(callId, false, busy, reason);
+            }
+
+            // El proveedor de voz se abre al contestar: en salientes no hay tono durante el cual prepararlo.
+            IVoiceSession conversation;
+            try
+            {
+                conversation = await VoiceSessionFactory.StartAsync(
+                    agent,
+                    new VoiceCallContext(_ext.Id, callId, request.Destination, _ext.Name, request.CampaignId, request.ContactId, request.OpeningLine),
+                    _services.Http.CreateClient("voice"),
+                    _services.Brain,
+                    _logger,
+                    ct);
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException)
+            {
+                _logger.LogError(ex, "No se pudo abrir la conversación con {Provider}", agent.DisplayName);
+                ua.Hangup();
+                rtp.Close("voz no disponible");
+                (status, reason) = (CallStatus.Failed, $"{agent.DisplayName} no respondió: {ex.Message}");
+                return new BotCallResult(callId, false, false, reason);
+            }
+
+            conversation.UserTranscript += text => _ = _services.Events.TranscriptAsync(callId, TranscriptSpeaker.Caller, text);
+            conversation.AgentResponse += text => _ = _services.Events.TranscriptAsync(callId, TranscriptSpeaker.Agent, text);
+            await _services.Events.CallAnsweredAsync(callId, conversation.ConversationId);
+            (status, reason) = await RunBotAsync(ua, rtp, conversation, callId);
+            return new BotCallResult(callId, true, false, reason);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            _logger.LogError(ex, "Error en la llamada de campaña");
+            reason = ex.Message;
+            return new BotCallResult(callId, false, false, reason);
+        }
+        finally
+        {
+            await CallFinishedAsync(callId, status, reason);
+        }
     }
 
     internal async Task<Guid> OutboundCallStartedAsync(string number)

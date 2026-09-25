@@ -24,19 +24,31 @@ public sealed class ElevenLabsConversation : WebSocketVoiceSession
         IReadOnlyDictionary<string, string> dynamicVariables,
         ILogger logger,
         CancellationToken ct,
-        JsonObject? customLlmExtraBody = null)
+        JsonObject? customLlmExtraBody = null,
+        string? firstMessage = null)
     {
         var conversation = new ElevenLabsConversation(logger);
         var url = await GetSignedUrlAsync(http, options, ct);
         await conversation.Socket.ConnectAsync(new Uri(url), ct);
 
-        await conversation.SendJsonAsync(new JsonObject
+        var initiation = new JsonObject
         {
             ["type"] = "conversation_initiation_client_data",
             ["dynamic_variables"] = JsonSerializer.SerializeToNode(dynamicVariables),
             // Llega al Custom LLM de Mapache como elevenlabs_extra_body (p. ej. qué extensión atiende).
             ["custom_llm_extra_body"] = customLlmExtraBody,
-        }, ct);
+        };
+        if (!string.IsNullOrWhiteSpace(firstMessage))
+        {
+            // Campañas: la primera frase es la de la campaña. El agente debe permitir sobrescribir el primer
+            // mensaje (Security → Overrides en ElevenLabs); si no, ElevenLabs rechaza la conversación.
+            initiation["conversation_config_override"] = new JsonObject
+            {
+                ["agent"] = new JsonObject { ["first_message"] = firstMessage },
+            };
+        }
+
+        await conversation.SendJsonAsync(initiation, ct);
 
         // El primer mensaje útil es la metadata con los formatos de audio negociados; sin ellos no se puede
         // convertir el audio, así que se espera antes de empezar a puentear.

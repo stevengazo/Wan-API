@@ -60,11 +60,24 @@ public sealed record BotBrainSession(
 /// </summary>
 public interface IBotBrain
 {
-    Task<BotBrainSession> StartAsync(Guid extensionId, Guid callId, CancellationToken ct);
+    Task<BotBrainSession> StartAsync(VoiceCallContext call, CancellationToken ct);
 }
 
-/// <summary>Datos de la llamada que necesita el proveedor de voz.</summary>
-public sealed record VoiceCallContext(Guid ExtensionId, Guid CallId, string CallerNumber, string ExtensionName);
+/// <summary>
+/// Datos de la llamada que necesita el proveedor de voz. En campañas llevan la campaña, el contacto y la frase
+/// con la que abre el bot (en lugar del saludo de las entrantes).
+/// </summary>
+public sealed record VoiceCallContext(
+    Guid ExtensionId,
+    Guid CallId,
+    string CallerNumber,
+    string ExtensionName,
+    Guid? CampaignId = null,
+    Guid? ContactId = null,
+    string? OpeningLine = null)
+{
+    public bool IsCampaign => CampaignId is not null;
+}
 
 /// <summary>Abre la conversación con el proveedor configurado.</summary>
 public static class VoiceSessionFactory
@@ -75,16 +88,24 @@ public static class VoiceSessionFactory
         switch (options)
         {
             case ElevenLabsOptions elevenLabs:
+                var extra = new JsonObject { ["extension_id"] = call.ExtensionId.ToString(), ["call_id"] = call.CallId.ToString() };
+                if (call.IsCampaign)
+                {
+                    extra["campaign_id"] = call.CampaignId.ToString();
+                    extra["contact_id"] = call.ContactId.ToString();
+                }
+
                 return await ElevenLabsConversation.StartAsync(
                     http,
                     elevenLabs,
                     new Dictionary<string, string> { ["caller_id"] = call.CallerNumber, ["extension_name"] = call.ExtensionName },
                     logger,
                     ct,
-                    new JsonObject { ["extension_id"] = call.ExtensionId.ToString(), ["call_id"] = call.CallId.ToString() });
+                    extra,
+                    call.OpeningLine);
 
             case OpenAiRealtimeOptions openAi:
-                var session = await brain.StartAsync(call.ExtensionId, call.CallId, ct);
+                var session = await brain.StartAsync(call, ct);
                 return await OpenAiRealtimeSession.StartAsync(openAi, session, call, logger, ct);
 
             case DeepgramAgentOptions deepgram:

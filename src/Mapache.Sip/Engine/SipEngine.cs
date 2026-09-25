@@ -101,6 +101,19 @@ public sealed class SipEngine : BackgroundService, ISipEngine
         return "No se encontró la llamada en curso: no se pudo transferir.";
     }
 
+    public Task<BotCallResult> DialBotAsync(BotCallRequest request, CancellationToken ct)
+    {
+        SipAccountRuntime? runtime;
+        lock (_runtimesLock)
+        {
+            _runtimes.TryGetValue(request.ExtensionId, out runtime);
+        }
+
+        return runtime is null
+            ? throw new InvalidOperationException("La extensión de la campaña no está activa: habilítala y espera a que se registre.")
+            : runtime.DialBotAsync(request, ct);
+    }
+
     public IReadOnlyList<SipRegistrationStatus> GetStatuses()
     {
         lock (_runtimesLock)

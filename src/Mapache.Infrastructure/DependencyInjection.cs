@@ -52,6 +52,7 @@ public static class DependencyInjection
         services.AddSingleton<McpConnector>();
         services.AddScoped<IBotToolSource, McpToolSource>();
         services.AddScoped<IBotToolSource, TransferToolSource>();
+        services.AddScoped<IBotToolSource, Mapache.Infrastructure.Campaigns.CampaignToolSource>();
         services.AddScoped<BotToolRegistry>();
         services.AddScoped<BotSessionBuilder>();
 

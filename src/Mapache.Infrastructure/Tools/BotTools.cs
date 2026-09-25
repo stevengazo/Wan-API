@@ -25,8 +25,10 @@ public sealed record BotTool(
     };
 }
 
-/// <summary>Qué extensión atiende y qué llamada es; nulos fuera de una llamada (pruebas, panel).</summary>
-public sealed record BotCallContext(Guid? ExtensionId, Guid? CallId)
+/// <summary>
+/// Qué extensión atiende y qué llamada es, y en campañas la campaña y el contacto; nulos fuera de una llamada.
+/// </summary>
+public sealed record BotCallContext(Guid? ExtensionId, Guid? CallId, Guid? CampaignId = null, Guid? ContactId = null)
 {
     public static readonly BotCallContext None = new(null, null);
 }

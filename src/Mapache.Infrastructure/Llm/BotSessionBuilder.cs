@@ -1,4 +1,5 @@
 using Mapache.Domain.Entities;
+using Mapache.Infrastructure.Campaigns;
 using Mapache.Infrastructure.Knowledge;
 using Mapache.Infrastructure.Persistence;
 using Mapache.Infrastructure.Tools;
@@ -43,9 +44,15 @@ public sealed class BotSessionBuilder(
         // que no se nota en la latencia del turno.
         var hits = lastUserMessage is { Length: > 2 } question ? await knowledge.SearchAsync(question, limit: 3, ct: ct) : [];
 
+        // En campañas el guion va primero: define para qué es la llamada.
+        var contact = call.ContactId is { } contactId
+            ? await db.CampaignContacts.AsNoTracking().Include(c => c.Campaign).SingleOrDefaultAsync(c => c.Id == contactId, ct)
+            : null;
+
         var toolNames = agentTools.Concat(tools.Keys).ToHashSet(StringComparer.Ordinal);
         var context = string.Join("\n\n", new[]
             {
+                contact?.Campaign is { } campaign ? CampaignPrompt.Build(campaign, contact) : null,
                 BotContext.Build(toolNames, directory, forms, callSettings, hours, extension?.BusinessHours.MessageFor(hours)),
                 KnowledgeService.Format(hits),
             }

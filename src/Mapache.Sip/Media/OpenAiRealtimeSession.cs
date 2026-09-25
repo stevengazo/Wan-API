@@ -24,12 +24,16 @@ public sealed class OpenAiRealtimeSession : WebSocketVoiceSession
         await session.Socket.ConnectAsync(new Uri($"{options.BaseUrl}?model={Uri.EscapeDataString(options.Model)}"), ct);
 
         var instructions = brain.Instructions;
-        if (!string.IsNullOrWhiteSpace(options.Greeting))
+        // En campañas abre la frase de la campaña; en entrantes, el saludo de la recepción.
+        var greeting = call.IsCampaign ? call.OpeningLine : options.Greeting;
+        if (!string.IsNullOrWhiteSpace(greeting))
         {
-            instructions += $"\n\nAl empezar la llamada saluda con estas palabras: \"{options.Greeting.Trim()}\"";
+            instructions += $"\n\nAl empezar la llamada di estas palabras: \"{greeting.Trim()}\"";
         }
 
-        instructions += $"\n\nNúmero de quien llama: {call.CallerNumber}. Extensión que atiende: {call.ExtensionName}.";
+        instructions += call.IsCampaign
+            ? $"\n\nEsta llamada la haces tú: llamas al número {call.CallerNumber} desde {call.ExtensionName}."
+            : $"\n\nNúmero de quien llama: {call.CallerNumber}. Extensión que atiende: {call.ExtensionName}.";
 
         var input = new JsonObject
         {

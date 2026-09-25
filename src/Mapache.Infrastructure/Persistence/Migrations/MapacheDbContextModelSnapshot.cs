@@ -213,6 +213,127 @@ namespace Mapache.Infrastructure.Persistence.Migrations
                     b.ToTable("CallTranscripts");
                 });
 
+            modelBuilder.Entity("Mapache.Domain.Entities.Campaign", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("CompletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("ExtensionId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Instructions")
+                        .IsRequired()
+                        .HasMaxLength(8000)
+                        .HasColumnType("character varying(8000)");
+
+                    b.Property<int>("MaxAttempts")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("MaxConcurrentCalls")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)");
+
+                    b.Property<string>("OpeningLine")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<string>("Outcomes")
+                        .IsRequired()
+                        .HasColumnType("jsonb");
+
+                    b.Property<bool>("RespectBusinessHours")
+                        .HasColumnType("boolean");
+
+                    b.Property<int>("RetryMinutes")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTimeOffset?>("StartedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ExtensionId");
+
+                    b.ToTable("Campaigns");
+                });
+
+            modelBuilder.Entity("Mapache.Domain.Entities.CampaignContact", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("Attempts")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid>("CampaignId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("LastCallId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("LastResult")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)");
+
+                    b.Property<string>("Name")
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)");
+
+                    b.Property<DateTimeOffset?>("NextAttemptAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<string>("Outcome")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<string>("PhoneNumber")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)");
+
+                    b.Property<DateTimeOffset?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Variables")
+                        .IsRequired()
+                        .HasColumnType("jsonb");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CampaignId", "Status", "NextAttemptAt");
+
+                    b.ToTable("CampaignContacts");
+                });
+
             modelBuilder.Entity("Mapache.Domain.Entities.DirectoryEntry", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1029,6 +1150,28 @@ namespace Mapache.Infrastructure.Persistence.Migrations
                         .HasForeignKey("CallId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+                });
+
+            modelBuilder.Entity("Mapache.Domain.Entities.Campaign", b =>
+                {
+                    b.HasOne("Mapache.Domain.Entities.Extension", "Extension")
+                        .WithMany()
+                        .HasForeignKey("ExtensionId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Extension");
+                });
+
+            modelBuilder.Entity("Mapache.Domain.Entities.CampaignContact", b =>
+                {
+                    b.HasOne("Mapache.Domain.Entities.Campaign", "Campaign")
+                        .WithMany()
+                        .HasForeignKey("CampaignId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Campaign");
                 });
 
             modelBuilder.Entity("Mapache.Domain.Entities.FormAction", b =>

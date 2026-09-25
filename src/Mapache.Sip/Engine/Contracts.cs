@@ -73,7 +73,17 @@ public interface ISipEngine
     /// fuera del horario de atención de la extensión.
     /// </summary>
     Task<string> TransferAsync(Guid callId, string target);
+
+    /// <summary>Llamada saliente atendida por el bot, para campañas. Corre hasta que la llamada termina.</summary>
+    /// <exception cref="InvalidOperationException">La extensión no está activa, no admite más llamadas o falta la voz.</exception>
+    Task<BotCallResult> DialBotAsync(BotCallRequest request, CancellationToken ct);
 }
+
+/// <summary>Contacto de una campaña a llamar; <paramref name="OpeningLine"/> ya con las variables reemplazadas.</summary>
+public sealed record BotCallRequest(Guid ExtensionId, string Destination, Guid CampaignId, Guid ContactId, string? OpeningLine);
+
+/// <summary>Cómo terminó una llamada de campaña: si contestó, si daba ocupado y el motivo.</summary>
+public sealed record BotCallResult(Guid? CallId, bool Answered, bool Busy, string Reason);
 
 public enum PhoneCallState
 {

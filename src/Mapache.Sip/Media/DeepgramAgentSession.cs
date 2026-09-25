@@ -42,6 +42,8 @@ public sealed class DeepgramAgentSession : WebSocketVoiceSession
                         ["authorization"] = $"Bearer {options.LlmToken}",
                         ["x-mapache-extension"] = call.ExtensionId.ToString(),
                         ["x-mapache-call"] = call.CallId.ToString(),
+                        ["x-mapache-campaign"] = call.CampaignId?.ToString() ?? "",
+                        ["x-mapache-contact"] = call.ContactId?.ToString() ?? "",
                     },
                 },
             },
@@ -50,9 +52,10 @@ public sealed class DeepgramAgentSession : WebSocketVoiceSession
                 ["provider"] = new JsonObject { ["type"] = "deepgram", ["model"] = options.SpeakModel },
             },
         };
-        if (!string.IsNullOrWhiteSpace(options.Greeting))
+        var greeting = call.IsCampaign ? call.OpeningLine : options.Greeting;
+        if (!string.IsNullOrWhiteSpace(greeting))
         {
-            agent["greeting"] = options.Greeting.Trim();
+            agent["greeting"] = greeting.Trim();
         }
 
         await session.SendJsonAsync(new JsonObject

@@ -49,6 +49,10 @@ public class MapacheDbContext(DbContextOptions<MapacheDbContext> options) : DbCo
 
     public DbSet<SiteSettings> SiteSettings => Set<SiteSettings>();
 
+    public DbSet<Campaign> Campaigns => Set<Campaign>();
+
+    public DbSet<CampaignContact> CampaignContacts => Set<CampaignContact>();
+
     public DbSet<VoiceSettings> VoiceSettings => Set<VoiceSettings>();
 
     public DbSet<LlmProviderSettings> LlmProviderSettings => Set<LlmProviderSettings>();
@@ -236,6 +240,30 @@ public class MapacheDbContext(DbContextOptions<MapacheDbContext> options) : DbCo
         {
             e.Property(s => s.Id).ValueGeneratedNever();
             e.Property(s => s.RecordingNotice).HasMaxLength(1000);
+        });
+
+        modelBuilder.Entity<Campaign>(e =>
+        {
+            e.Property(c => c.Name).HasMaxLength(128);
+            e.Property(c => c.Instructions).HasMaxLength(8000);
+            e.Property(c => c.OpeningLine).HasMaxLength(500);
+            e.Property(c => c.Outcomes).HasColumnType("jsonb").HasConversion(Json<List<string>>());
+            e.Property(c => c.Status).HasConversion<string>().HasMaxLength(16);
+            e.HasOne(c => c.Extension).WithMany().OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<CampaignContact>(e =>
+        {
+            e.Property(c => c.PhoneNumber).HasMaxLength(64);
+            e.Property(c => c.Name).HasMaxLength(128);
+            e.Property(c => c.Variables).HasColumnType("jsonb").HasConversion(Json<Dictionary<string, string>>());
+            e.Property(c => c.Status).HasConversion<string>().HasMaxLength(16);
+            e.Property(c => c.LastResult).HasMaxLength(256);
+            e.Property(c => c.Outcome).HasMaxLength(64);
+            e.Property(c => c.Notes).HasMaxLength(2000);
+            e.HasOne(c => c.Campaign).WithMany().OnDelete(DeleteBehavior.Cascade);
+            // El marcador busca los pendientes de cada campaña por fecha de reintento.
+            e.HasIndex(c => new { c.CampaignId, c.Status, c.NextAttemptAt });
         });
 
         modelBuilder.Entity<SiteSettings>(e =>

@@ -25,9 +25,7 @@ public sealed class ChatCompletionRouter(
     public async Task StreamAsync(JsonObject request, Stream output, CancellationToken ct)
     {
         // El motor SIP manda qué extensión atiende y qué llamada es (custom_llm_extra_body o headers).
-        var (extensionId, callId) = CallIdentity(request);
-        var session = await sessionBuilder.BuildAsync(
-            new BotCallContext(extensionId, callId), BotContext.ToolNames(request), LastUserMessage(request), ct);
+        var session = await sessionBuilder.BuildAsync(CallIdentity(request), BotContext.ToolNames(request), LastUserMessage(request), ct);
         var target = session.Target;
         var selection = new LlmSelection(target.Provider, target.Model, target.SystemPrompt);
         Prepare(request, selection, session.Context);
@@ -127,13 +125,15 @@ public sealed class ChatCompletionRouter(
             _ => null,
         };
 
-    /// <summary>Extensión y llamada que manda el motor SIP en <c>elevenlabs_extra_body</c>; nulos si no vienen.</summary>
-    public static (Guid? ExtensionId, Guid? CallId) CallIdentity(JsonObject request)
+    /// <summary>
+    /// Extensión, llamada y, en campañas, campaña y contacto que manda el motor SIP en <c>elevenlabs_extra_body</c>.
+    /// </summary>
+    public static BotCallContext CallIdentity(JsonObject request)
     {
         var extra = request["elevenlabs_extra_body"] as JsonObject;
         static Guid? Read(JsonNode? node) =>
             node is JsonValue value && value.TryGetValue<string>(out var text) && Guid.TryParse(text, out var id) ? id : null;
-        return (Read(extra?["extension_id"]), Read(extra?["call_id"]));
+        return new BotCallContext(Read(extra?["extension_id"]), Read(extra?["call_id"]), Read(extra?["campaign_id"]), Read(extra?["contact_id"]));
     }
 
     /// <summary>
