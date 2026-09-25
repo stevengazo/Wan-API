@@ -56,6 +56,42 @@ public interface ISipEngine
     void RequestReload();
 
     IReadOnlyList<SipRegistrationStatus> GetStatuses();
+
+    /// <summary>
+    /// Prepara una llamada saliente desde una extensión activa (el teléfono web del panel). No marca hasta
+    /// <see cref="IPhoneCall.RunAsync"/>, para que quien la usa se suscriba antes a los eventos.
+    /// </summary>
+    /// <exception cref="InvalidOperationException">La extensión no está activa o no admite más llamadas.</exception>
+    IPhoneCall PlaceCall(Guid extensionId, string destination);
+}
+
+public enum PhoneCallState
+{
+    Calling,
+    Ringing,
+    Answered,
+    Ended,
+}
+
+/// <summary>Llamada saliente atendida por una persona desde el navegador. El audio va en PCM de 16 bits a 8 kHz.</summary>
+public interface IPhoneCall
+{
+    /// <summary>Estado y, al terminar, el motivo.</summary>
+    event Action<PhoneCallState, string?>? StateChanged;
+
+    /// <summary>Audio del otro lado (también el audio temprano: tono o mensajes de la central).</summary>
+    event Action<short[]>? AudioReceived;
+
+    /// <summary>Marca y espera a que termine. Devuelve el motivo del fin.</summary>
+    Task<string> RunAsync(CancellationToken ct);
+
+    void SendAudio(ReadOnlySpan<short> pcm);
+
+    /// <summary>Tono DTMF por RFC 2833: 0-9, * o #.</summary>
+    void SendDtmf(char digit);
+
+    /// <summary>Cuelga, o cancela si todavía está sonando.</summary>
+    void Hangup();
 }
 
 public sealed class SipEngineOptions

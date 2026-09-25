@@ -88,12 +88,17 @@ internal sealed class SipAccountRuntime : IAsyncDisposable
 
     private string CurrentServer => _usingSecondary && !string.IsNullOrWhiteSpace(_ext.SecondarySipServer) ? _ext.SecondarySipServer! : _ext.SipServer;
 
+    private string Domain => string.IsNullOrWhiteSpace(_ext.SipDomain) ? HostOf(CurrentServer) : _ext.SipDomain!;
+
+    private string AuthUser => string.IsNullOrWhiteSpace(_ext.AuthUsername) ? _ext.SipUsername : _ext.AuthUsername!;
+
+    internal ISipEventSink Events => _services.Events;
+
     private void StartRegistration()
     {
         var server = CurrentServer;
-        var domain = string.IsNullOrWhiteSpace(_ext.SipDomain) ? HostOf(server) : _ext.SipDomain!;
-        var aor = SIPURI.ParseSIPURIRelaxed($"{_ext.SipUsername}@{domain}");
-        var authUser = string.IsNullOrWhiteSpace(_ext.AuthUsername) ? _ext.SipUsername : _ext.AuthUsername!;
+        var aor = SIPURI.ParseSIPURIRelaxed($"{_ext.SipUsername}@{Domain}");
+        var authUser = AuthUser;
 
         // En TCP/TLS, o con proxy, se envía a un destino explícito con el protocolo de la cuenta.
         var proxy = !string.IsNullOrWhiteSpace(_ext.SipProxy) ? ResolveEndPoint(_ext.SipProxy!)
@@ -297,6 +302,51 @@ internal sealed class SipAccountRuntime : IAsyncDisposable
         await using var bridge = new CallBridge(ua, rtp, conversation, HostOf(CurrentServer), _logger);
         var reason = await bridge.RunAsync();
         return (reason.StartsWith("transferida", StringComparison.Ordinal) ? CallStatus.Transferred : CallStatus.Completed, reason);
+    }
+
+    /// <summary>Prepara una llamada saliente del teléfono web con las credenciales de la cuenta.</summary>
+    public IPhoneCall CreateOutboundCall(string destination)
+    {
+        if (_transport is null)
+        {
+            throw new InvalidOperationException("La extensión todavía no está lista.");
+        }
+
+        if (_ext.MaxConcurrentCalls > 0 && Volatile.Read(ref _activeCalls) >= _ext.MaxConcurrentCalls)
+        {
+            throw new InvalidOperationException($"La extensión ya tiene {_ext.MaxConcurrentCalls} llamadas en curso, su límite.");
+        }
+
+        var target = destination.Trim();
+        var uri = target.StartsWith("sip:", StringComparison.OrdinalIgnoreCase) ? target
+            : target.Contains('@') ? $"sip:{target}"
+            : $"sip:{_ext.DialPrefix}{target}@{Domain}";
+        var from = string.IsNullOrWhiteSpace(_ext.DisplayName)
+            ? $"<sip:{_ext.SipUsername}@{Domain}>"
+            : $"\"{_ext.DisplayName}\" <sip:{_ext.SipUsername}@{Domain}>";
+
+        // Siempre por el proxy o el servidor de la cuenta, aunque el dominio del URI sea otro: así marca un softphone.
+        var outboundProxy = ResolveEndPoint(string.IsNullOrWhiteSpace(_ext.SipProxy) ? CurrentServer : _ext.SipProxy!);
+        var descriptor = new SIPCallDescriptor(
+            AuthUser, _account.Password, uri, from, uri, null, null, AuthUser,
+            SIPCallDirection.Out, SDP.SDP_MIME_CONTENTTYPE, null, _publicIp);
+
+        return new OutboundCall(this, new SIPUserAgent(_transport, outboundProxy), CreateRtpSession(), descriptor, target, _logger);
+    }
+
+    internal async Task<Guid> OutboundCallStartedAsync(string number)
+    {
+        Interlocked.Increment(ref _activeCalls);
+        var callId = await _services.Events.CallStartedAsync(_ext.Id, number, CallDirection.Outbound);
+        await PublishStatusAsync();
+        return callId;
+    }
+
+    internal async Task OutboundCallEndedAsync(Guid callId, CallStatus status, string reason)
+    {
+        Interlocked.Decrement(ref _activeCalls);
+        await _services.Events.CallEndedAsync(callId, status, reason);
+        await PublishStatusAsync();
     }
 
     /// <summary>

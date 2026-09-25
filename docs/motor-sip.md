@@ -47,7 +47,8 @@ Una cuenta cuya configuración cambió se des-registra y se vuelve a crear. Cada
 | Llamadas | Llamadas simultáneas y quién contesta (bot, bot con paso a persona, persona) | ✅ |
 | Seguridad | SRTP, ICE | 🕓 se guarda, pendiente |
 | Avanzado | Refresco de sesión, DTMF por SIP INFO o en banda | 🕓 se guarda, pendiente |
-| Salientes | Buzón, prefijo de marcado, número oculto | 🕓 se guarda, pendiente |
+| Salientes | Prefijo de marcado | ✅ |
+| Salientes | Buzón, número oculto | 🕓 se guarda, pendiente |
 
 ## Llamadas entrantes
 
@@ -60,6 +61,37 @@ Una cuenta cuya configuración cambió se des-registra y se vuelve a crear. Cada
 Con el límite de simultáneas alcanzado responde `486 Busy Here`. Una misma extensión puede atender varias llamadas a la vez; cada una tiene su propio puente y su propia conversación en ElevenLabs. El límite real lo pone también la central o el proveedor.
 
 Cada llamada queda guardada con dirección, estado, motivo de fin y transcripción, y el panel la ve en vivo (`CallsChanged`, `CallTranscript`).
+
+## Llamadas salientes (teléfono web)
+
+La página **Teléfono** del panel marca desde cualquier extensión activa, para probarla sin un softphone:
+
+```mermaid
+sequenceDiagram
+    participant N as 🖥️ Navegador
+    participant A as 🦝 API /hubs/phone
+    participant M as Motor SIP
+    participant P as ☎️ Central
+
+    N->>A: WebSocket (extensionId, to, JWT)
+    A->>M: PlaceCall
+    M->>P: INVITE (credenciales de la cuenta)
+    P-->>M: 180 Ringing
+    M-->>N: state: ringing
+    P-->>M: 200 OK
+    M-->>N: state: answered
+    loop Cada 20 ms
+        N->>M: PCM 16 bits 8 kHz
+        M->>P: RTP G.711
+        P->>M: RTP G.711
+        M->>N: PCM 16 bits 8 kHz
+    end
+```
+
+- Sale siempre por el proxy o el servidor de la cuenta, con su usuario de autenticación, su nombre para mostrar y su **prefijo de marcado**.
+- El destino puede ser un número, una extensión, un código de servicio (`*43`, `#`) o un URI SIP completo.
+- Cuenta para el límite de llamadas simultáneas y queda en el historial como saliente, con su motivo de fin ("colgaste", "ocupado", "no contestó"…).
+- DTMF por RFC 2833 desde el teclado de la página.
 
 ## Red y NAT
 

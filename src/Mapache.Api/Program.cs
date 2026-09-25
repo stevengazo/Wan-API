@@ -1,3 +1,4 @@
+using Mapache.Api.Phone;
 using System.Text.Json.Serialization;
 using System.Threading.RateLimiting;
 using Hangfire;
@@ -100,7 +101,7 @@ try
                 OnMessageReceived = context =>
                 {
                     var token = context.Request.Query["access_token"];
-                    if (!string.IsNullOrEmpty(token) && context.HttpContext.Request.Path.StartsWithSegments(EventsHub.Path))
+                    if (!string.IsNullOrEmpty(token) && (context.HttpContext.Request.Path.StartsWithSegments(EventsHub.Path) || context.HttpContext.Request.Path.StartsWithSegments(WebPhoneEndpoint.Path)))
                     {
                         context.Token = token;
                     }
@@ -169,12 +170,14 @@ try
         app.UseHangfireDashboard("/hangfire");
     }
 
+    app.UseWebSockets();
     app.UseAuthentication();
     app.UseRateLimiter();
     app.UseAuthorization();
 
     app.MapControllers();
     app.MapHub<EventsHub>(EventsHub.Path);
+    app.MapWebPhone();
     app.MapMcp("/api/mcp").RequireAuthorization(McpTokenAuthenticationHandler.PolicyName);
     app.MapGet("/health", () => Results.Ok(new { status = "ok" })).AllowAnonymous();
 

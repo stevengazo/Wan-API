@@ -144,6 +144,7 @@ Responde `409` si intentas borrarte a ti mismo o dejar el sistema sin administra
 | Ruta | Acceso | Descripción |
 |------|--------|-------------|
 | `GET /health` | anónimo | Chequeo de vida |
+| `WS /hubs/phone?extensionId=…&to=…` | usuario (JWT en `access_token`) | Teléfono web: audio PCM 16 bits 8 kHz en binario; JSON `state` / `hangup` / `dtmf` en texto |
 | `WS /hubs/events` | usuario (JWT en `access_token` del query string) | SignalR |
 | `/hangfire` | solo Development y desde localhost | Panel de trabajos |
 

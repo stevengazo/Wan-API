@@ -54,6 +54,19 @@ public sealed class SipEngine : BackgroundService, ISipEngine
         }
     }
 
+    public IPhoneCall PlaceCall(Guid extensionId, string destination)
+    {
+        SipAccountRuntime? runtime;
+        lock (_runtimesLock)
+        {
+            _runtimes.TryGetValue(extensionId, out runtime);
+        }
+
+        return runtime is null
+            ? throw new InvalidOperationException("La extensión no está activa: habilítala y espera a que se registre.")
+            : runtime.CreateOutboundCall(destination);
+    }
+
     public IReadOnlyList<SipRegistrationStatus> GetStatuses()
     {
         lock (_runtimesLock)
