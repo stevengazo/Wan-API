@@ -34,6 +34,14 @@ Mapache se configura en dos lugares:
 | `Auth:BootstrapAdmin:Email` | vacío | Admin que se crea en el primer arranque si no hay usuarios. |
 | `Auth:BootstrapAdmin:Password` | vacío | |
 
+### Cifrado de llaves
+
+| Clave | Descripción |
+|-------|-------------|
+| `DataProtection:KeyEncryptionKey` | Clave maestra (base64, 32 bytes) que cifra las llaves de Data Protection. `openssl rand -base64 32`. Ver [seguridad](seguridad.md#llaves-de-data-protection). |
+| `DataProtection:CertificatePath` | Alternativa: ruta a un certificado `.pfx`. |
+| `DataProtection:CertificatePassword` | Contraseña del `.pfx`. |
+
 ### Agente de ElevenLabs
 
 | Clave | Descripción |
