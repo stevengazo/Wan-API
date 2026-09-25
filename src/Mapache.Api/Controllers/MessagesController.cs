@@ -100,6 +100,12 @@ public sealed class MessagesController(
         });
         await db.SaveChangesAsync(ct);
         await events.Clients.All.MessagesChanged();
+        var body = request.Message.Trim();
+        await events.Clients.All.Notify(new PanelNotification(
+            "message",
+            request.Urgent ? $"Recado urgente para {request.Recipient.Trim()}" : $"Recado para {request.Recipient.Trim()}",
+            body.Length > 140 ? body[..140] + "…" : body,
+            "/recados"));
         return new ToolResult(true, "Recado guardado. Dile a quien llama que se lo harán llegar.");
     }
 

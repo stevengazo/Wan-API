@@ -63,6 +63,10 @@ public interface ISipEngine
     /// </summary>
     /// <exception cref="InvalidOperationException">La extensión no está activa o no admite más llamadas.</exception>
     IPhoneCall PlaceCall(Guid extensionId, string destination);
+
+    /// <summary>Prepara la toma de una llamada entrante que atiende el bot; el bot la suelta al correr la llamada.</summary>
+    /// <exception cref="InvalidOperationException">La llamada ya terminó o no la atiende el bot.</exception>
+    IPhoneCall TakeCall(Guid callId);
 }
 
 public enum PhoneCallState

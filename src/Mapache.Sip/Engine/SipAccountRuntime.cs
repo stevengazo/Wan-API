@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
@@ -34,6 +35,16 @@ internal sealed class SipAccountRuntime : IAsyncDisposable
     private int _activeCalls;
     private SipRegistrationStatus _status;
     private Task? _keepAlive;
+
+    // Llamadas que atiende el bot ahora mismo, por si un operador las toma desde el panel.
+    private readonly ConcurrentDictionary<Guid, BotCall> _botCalls = new();
+
+    private sealed class BotCall(CallBridge bridge)
+    {
+        public CallBridge Bridge { get; } = bridge;
+
+        public TakenCall? Taker { get; set; }
+    }
 
     public SipAccountRuntime(SipAccount account, SipRuntimeServices services)
     {
@@ -299,8 +310,36 @@ internal sealed class SipAccountRuntime : IAsyncDisposable
         }
 
         await _services.Events.CallAnsweredAsync(callId, conversation.ConversationId);
-        await using var bridge = new CallBridge(ua, rtp, conversation, HostOf(CurrentServer), _logger);
-        var reason = await bridge.RunAsync();
+        var bridge = new CallBridge(ua, rtp, conversation, HostOf(CurrentServer), _logger);
+        var botCall = new BotCall(bridge);
+        string reason;
+        try
+        {
+            _botCalls[callId] = botCall;
+            reason = await bridge.RunAsync();
+        }
+        finally
+        {
+            _botCalls.TryRemove(callId, out _);
+            // Con traspaso, el puente cierra la conversación de ElevenLabs pero deja viva la llamada.
+            await bridge.DisposeAsync();
+        }
+
+        if (botCall.Taker is { } taker)
+        {
+            if (taker.Completion.IsCompleted)
+            {
+                // El operador desistió mientras el puente soltaba la llamada: nadie la atiende.
+                ua.Hangup();
+                rtp.Close("toma fallida");
+                return (CallStatus.Failed, await taker.Completion);
+            }
+
+            taker.AttachFromBot(ua, rtp);
+            var humanReason = await taker.Completion;
+            return (CallStatus.Completed, $"la tomó un operador; {humanReason}");
+        }
+
         return (reason.StartsWith("transferida", StringComparison.Ordinal) ? CallStatus.Transferred : CallStatus.Completed, reason);
     }
 
@@ -342,11 +381,28 @@ internal sealed class SipAccountRuntime : IAsyncDisposable
         return callId;
     }
 
-    internal async Task OutboundCallEndedAsync(Guid callId, CallStatus status, string reason)
+    internal async Task CallFinishedAsync(Guid callId, CallStatus status, string reason)
     {
         Interlocked.Decrement(ref _activeCalls);
         await _services.Events.CallEndedAsync(callId, status, reason);
         await PublishStatusAsync();
+    }
+
+    /// <summary>Prepara la toma de una llamada que atiende el bot; null si no es de esta cuenta.</summary>
+    public IPhoneCall? CreateTakeOver(Guid callId) =>
+        _botCalls.ContainsKey(callId) ? new TakenCall(this, callId, _logger) : null;
+
+    /// <summary>Pide al puente que suelte la llamada; false si ya terminó o la tomó otra persona.</summary>
+    internal bool RequestHandOff(Guid callId, TakenCall taker)
+    {
+        if (!_botCalls.TryRemove(callId, out var call))
+        {
+            return false;
+        }
+
+        call.Taker = taker;
+        call.Bridge.HandOff();
+        return true;
     }
 
     /// <summary>

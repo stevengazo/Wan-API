@@ -67,6 +67,18 @@ public sealed class SipEngine : BackgroundService, ISipEngine
             : runtime.CreateOutboundCall(destination);
     }
 
+    public IPhoneCall TakeCall(Guid callId)
+    {
+        List<SipAccountRuntime> runtimes;
+        lock (_runtimesLock)
+        {
+            runtimes = [.. _runtimes.Values];
+        }
+
+        return runtimes.Select(r => r.CreateTakeOver(callId)).FirstOrDefault(c => c is not null)
+            ?? throw new InvalidOperationException("La llamada ya terminó, la tomó otra persona o todavía no la atiende el bot.");
+    }
+
     public IReadOnlyList<SipRegistrationStatus> GetStatuses()
     {
         lock (_runtimesLock)

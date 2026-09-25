@@ -248,6 +248,11 @@ public sealed partial class FormsController(
         // Las acciones (webhooks, Teams, correo...) van a la cola: el bot no espera a que terminen.
         await FormActionRunner.DispatchAsync(db, actionQueue, submission, submission.CreatedAt, ct);
         await events.Clients.All.FormSubmissionsChanged();
+        await events.Clients.All.Notify(new PanelNotification(
+            "form",
+            $"Nuevo formulario: {form.Name}",
+            string.Join(" · ", validation.Values.Take(3).Select(v => v.Value)),
+            $"/formularios/{form.Id}"));
         return new ToolResult(true, "Formulario guardado. Confírmale a quien llama que quedó registrado.");
     }
 

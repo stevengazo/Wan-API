@@ -64,7 +64,7 @@ public sealed class SipEventSink(
             StartedAt = time.GetUtcNow(),
         };
         await WithDbAsync(db => db.Calls.Add(call));
-        await events.Clients.All.CallsChanged();
+        await PublishAsync(call.Id);
         return call.Id;
     }
 
@@ -79,7 +79,7 @@ public sealed class SipEventSink(
                 call.ElevenLabsConversationId = conversationId;
             }
         });
-        await events.Clients.All.CallsChanged();
+        await PublishAsync(callId);
     }
 
     public async Task TranscriptAsync(Guid callId, TranscriptSpeaker speaker, string text)
@@ -113,7 +113,30 @@ public sealed class SipEventSink(
                 call.EndedAt = time.GetUtcNow();
             }
         });
+        await PublishAsync(callId);
+    }
+
+    private async Task PublishAsync(Guid callId)
+    {
         await events.Clients.All.CallsChanged();
+        try
+        {
+            using var scope = scopes.CreateScope();
+            var db = scope.ServiceProvider.GetRequiredService<MapacheDbContext>();
+            var live = await db.Calls.AsNoTracking()
+                .Where(c => c.Id == callId)
+                .Select(c => new LiveCallDto(
+                    c.Id, c.ExtensionId, c.Extension!.Name, c.CallerNumber, c.Direction, c.Status, c.EndReason, c.StartedAt, c.AnsweredAt))
+                .SingleOrDefaultAsync();
+            if (live is not null)
+            {
+                await events.Clients.All.LiveCall(live);
+            }
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "No se pudo publicar la llamada {CallId}", callId);
+        }
     }
 
     private Task WithDbAsync(Action<MapacheDbContext> action) => WithDbAsync(db =>

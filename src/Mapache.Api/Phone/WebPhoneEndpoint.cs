@@ -9,7 +9,7 @@ using Mapache.Sip.Engine;
 namespace Mapache.Api.Phone;
 
 /// <summary>
-/// Teléfono web del panel: un WebSocket por llamada. Binario = audio PCM de 16 bits a 8 kHz en ambos
+/// Teléfono web del panel: un WebSocket por llamada, saliente o tomada del bot. Binario = audio PCM de 16 bits a 8 kHz en ambos
 /// sentidos; texto = JSON de control (<c>hangup</c>, <c>dtmf</c>) y de estado (<c>state</c>).
 /// Va bajo /hubs para usar el mismo proxy WebSocket y el mismo token por query string que SignalR.
 /// </summary>
@@ -35,25 +35,34 @@ public static partial class WebPhoneEndpoint
         var ct = http.RequestAborted;
 
         // El motivo va por el propio socket: si se rechazara el handshake, el navegador no mostraría el cuerpo.
-        var to = http.Request.Query["to"].ToString().Trim();
-        if (!Guid.TryParse(http.Request.Query["extensionId"], out var extensionId) || !DestinationPattern().IsMatch(to))
-        {
-            await EndAsync(socket, "Número o extensión inválidos.", ct);
-            return;
-        }
-
+        // Dos usos: marcar (extensionId + to) o tomar una llamada que atiende el bot (takeCallId).
+        var query = http.Request.Query;
         IPhoneCall call;
         try
         {
-            call = engine.PlaceCall(extensionId, to);
+            if (Guid.TryParse(query["takeCallId"], out var takeCallId))
+            {
+                call = engine.TakeCall(takeCallId);
+                logger.LogInformation("{User} toma la llamada {CallId}", http.User.Identity?.Name, takeCallId);
+            }
+            else
+            {
+                var to = query["to"].ToString().Trim();
+                if (!Guid.TryParse(query["extensionId"], out var extensionId) || !DestinationPattern().IsMatch(to))
+                {
+                    await EndAsync(socket, "Número o extensión inválidos.", ct);
+                    return;
+                }
+
+                call = engine.PlaceCall(extensionId, to);
+                logger.LogInformation("{User} llama a {To} desde el teléfono web", http.User.Identity?.Name, to);
+            }
         }
         catch (InvalidOperationException ex)
         {
             await EndAsync(socket, ex.Message, ct);
             return;
         }
-
-        logger.LogInformation("{User} llama a {To} desde el teléfono web", http.User.Identity?.Name, to);
 
         // Los eventos llegan desde hilos de SIPSorcery; un solo escritor ordena los envíos al socket.
         var outbox = Channel.CreateBounded<(byte[] Data, WebSocketMessageType Type)>(

@@ -34,6 +34,7 @@ public sealed class CallBridge : IAsyncDisposable
     private readonly Queue<byte> _outbound = new();
     private readonly LatencyTracker _latency = new();
     private readonly TaskCompletionSource<string> _ended = new(TaskCreationOptions.RunContinuationsAsynchronously);
+    private volatile bool _handedOff;
 
     public CallBridge(
         SIPUserAgent ua,
@@ -256,17 +257,31 @@ public sealed class CallBridge : IAsyncDisposable
         return accepted;
     }
 
+    /// <summary>
+    /// Suelta la llamada para que la atienda una persona: termina la conversación con ElevenLabs pero no
+    /// cuelga ni cierra el RTP, que pasan al operador.
+    /// </summary>
+    public void HandOff()
+    {
+        _handedOff = true;
+        _ended.TrySetResult("la tomó un operador");
+    }
+
     public async ValueTask DisposeAsync()
     {
         _rtp.OnRtpPacketReceived -= OnRtpPacketReceived;
         _ua.OnDtmfTone -= OnDtmfTone;
-        if (_ua.IsCallActive)
+        if (!_handedOff && _ua.IsCallActive)
         {
             _ua.Hangup();
         }
 
         await _conversation.DisposeAsync();
-        _rtp.Close("llamada terminada");
+        if (!_handedOff)
+        {
+            _rtp.Close("llamada terminada");
+        }
+
         _cts.Dispose();
     }
 }
