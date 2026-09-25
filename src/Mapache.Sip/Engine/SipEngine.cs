@@ -79,6 +79,25 @@ public sealed class SipEngine : BackgroundService, ISipEngine
             ?? throw new InvalidOperationException("La llamada ya terminó, la tomó otra persona o todavía no la atiende el bot.");
     }
 
+    public async Task<string> TransferAsync(Guid callId, string target)
+    {
+        List<SipAccountRuntime> runtimes;
+        lock (_runtimesLock)
+        {
+            runtimes = [.. _runtimes.Values];
+        }
+
+        foreach (var runtime in runtimes)
+        {
+            if (await runtime.TransferAsync(callId, target) is { } result)
+            {
+                return result;
+            }
+        }
+
+        return "No se encontró la llamada en curso: no se pudo transferir.";
+    }
+
     public IReadOnlyList<SipRegistrationStatus> GetStatuses()
     {
         lock (_runtimesLock)

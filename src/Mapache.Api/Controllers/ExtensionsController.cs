@@ -42,8 +42,19 @@ public sealed record ExtensionDto(
     bool HideCallerId,
     AnswerMode AnswerMode,
     bool Enabled,
+    BusinessHoursDto BusinessHours,
     DateTimeOffset CreatedAt,
     DateTimeOffset UpdatedAt);
+
+public sealed record BusinessDayDto(DayOfWeek Day, TimeOnly Opens, TimeOnly Closes, TimeOnly? BreakStarts = null, TimeOnly? BreakEnds = null);
+
+/// <summary>Horario de atención; desactivado = siempre abierto.</summary>
+public sealed record BusinessHoursDto(
+    bool Enabled,
+    [StringLength(64, ErrorMessage = Messages.MaxLength)] string TimeZone,
+    IReadOnlyList<BusinessDayDto> Days,
+    [StringLength(500, ErrorMessage = Messages.MaxLength)] string? ClosedMessage = null,
+    [StringLength(500, ErrorMessage = Messages.MaxLength)] string? BreakMessage = null);
 
 /// <summary>
 /// Los mismos campos que la cuenta de MicroSIP. <c>SipPassword</c> es obligatoria al crear;
@@ -77,7 +88,8 @@ public sealed record SaveExtensionRequest(
     [StringLength(32, ErrorMessage = Messages.MaxLength)] string? DialPrefix = null,
     bool HideCallerId = false,
     AnswerMode AnswerMode = AnswerMode.Bot,
-    bool Enabled = true);
+    bool Enabled = true,
+    BusinessHoursDto? BusinessHours = null);
 
 [ApiController]
 [Route("api/extensions")]
@@ -186,7 +198,14 @@ public sealed class ExtensionsController(
             e.DisplayName, e.Transport, e.PublicAddress, e.StunServer, e.RegisterExpirySeconds, e.RegisterRetrySeconds,
             e.KeepAliveSeconds, e.LocalPort, e.AllowIpRewrite, e.UseIce, e.MediaEncryption, e.Codecs, e.DtmfMode,
             e.SessionTimerSeconds, e.MaxConcurrentCalls, e.VoicemailNumber, e.DialPrefix, e.HideCallerId,
-            e.AnswerMode, e.Enabled, e.CreatedAt, e.UpdatedAt));
+            e.AnswerMode, e.Enabled, ToDto(e.BusinessHours), e.CreatedAt, e.UpdatedAt));
+
+    private static BusinessHoursDto ToDto(BusinessHours h) => new(
+        h.Enabled,
+        h.TimeZone,
+        h.Days.OrderBy(d => ((int)d.Day + 6) % 7).Select(d => new BusinessDayDto(d.Day, d.Opens, d.Closes, d.BreakStarts, d.BreakEnds)).ToList(),
+        h.ClosedMessage,
+        h.BreakMessage);
 
     /// <summary>Copia todo salvo la contraseña, que crear y editar tratan distinto.</summary>
     private static void Apply(Extension extension, SaveExtensionRequest request, DateTimeOffset now)
@@ -218,7 +237,60 @@ public sealed class ExtensionsController(
         extension.HideCallerId = request.HideCallerId;
         extension.AnswerMode = request.AnswerMode;
         extension.Enabled = request.Enabled;
+        if (request.BusinessHours is { } hours)
+        {
+            // Objeto nuevo: EF compara la columna jsonb por referencia.
+            extension.BusinessHours = new BusinessHours
+            {
+                Enabled = hours.Enabled,
+                TimeZone = hours.TimeZone.Trim(),
+                Days = hours.Days.Select(d => new BusinessDay
+                {
+                    Day = d.Day,
+                    Opens = d.Opens,
+                    Closes = d.Closes,
+                    BreakStarts = d.BreakStarts,
+                    BreakEnds = d.BreakEnds,
+                }).ToList(),
+                ClosedMessage = Optional(hours.ClosedMessage),
+                BreakMessage = Optional(hours.BreakMessage),
+            };
+        }
+
         extension.UpdatedAt = now;
+    }
+
+    private static string? ValidateHours(BusinessHoursDto hours)
+    {
+        if (!TimeZoneInfo.TryFindSystemTimeZoneById(hours.TimeZone.Trim(), out _))
+        {
+            return $"Zona horaria desconocida: {hours.TimeZone}";
+        }
+
+        if (hours.Days.GroupBy(d => d.Day).Any(g => g.Count() > 1))
+        {
+            return "Cada día puede aparecer una sola vez";
+        }
+
+        foreach (var day in hours.Days)
+        {
+            if (day.Opens >= day.Closes)
+            {
+                return "La hora de cierre debe ser posterior a la de apertura";
+            }
+
+            if (day.BreakStarts.HasValue != day.BreakEnds.HasValue)
+            {
+                return "El descanso necesita inicio y fin";
+            }
+
+            if (day.BreakStarts is { } start && day.BreakEnds is { } end && (start >= end || start < day.Opens || end > day.Closes))
+            {
+                return "El descanso debe quedar dentro del horario del día";
+            }
+        }
+
+        return hours.Enabled && hours.Days.Count == 0 ? "Marca al menos un día de atención o desactiva el horario" : null;
     }
 
     private static string? Optional(string? value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
@@ -236,6 +308,12 @@ public sealed class ExtensionsController(
         if (request.Codecs?.FirstOrDefault(c => !Extension.SupportedCodecs.Contains(c.Trim(), StringComparer.OrdinalIgnoreCase)) is { } unknown)
         {
             ModelState.AddModelError(nameof(SaveExtensionRequest.Codecs), $"Códec no soportado: {unknown}");
+            return ValidationProblem(ModelState);
+        }
+
+        if (request.BusinessHours is { } hours && ValidateHours(hours) is { } problem)
+        {
+            ModelState.AddModelError(nameof(SaveExtensionRequest.BusinessHours), problem);
             return ValidationProblem(ModelState);
         }
 

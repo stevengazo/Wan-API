@@ -1,4 +1,5 @@
 using Mapache.Api.Realtime;
+using Mapache.Infrastructure.Transfers;
 using Mapache.Domain.Entities;
 using Mapache.Infrastructure.Persistence;
 using Mapache.Infrastructure.Security;
@@ -159,4 +160,10 @@ public sealed record ExtensionStatusDto(Guid ExtensionId, string State, string S
 {
     public static ExtensionStatusDto From(SipRegistrationStatus s) =>
         new(s.ExtensionId, s.State.ToString(), s.Server, s.Error, s.ActiveCalls, s.Since);
+}
+
+/// <summary>Transferencias del Custom LLM (herramienta transfer_call) hacia el motor SIP.</summary>
+public sealed class SipCallTransfer(ISipEngine engine) : ICallTransfer
+{
+    public Task<string> TransferAsync(Guid callId, string target, CancellationToken ct) => engine.TransferAsync(callId, target);
 }

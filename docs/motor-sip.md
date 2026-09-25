@@ -62,6 +62,16 @@ Con el límite de simultáneas alcanzado responde `486 Busy Here`. Una misma ext
 
 Cada llamada queda guardada con dirección, estado, motivo de fin y transcripción, y el panel la ve en vivo (`CallsChanged`, `CallTranscript`).
 
+## Transferencias y horario de atención
+
+El bot transfiere con la herramienta `transfer_call` del Custom LLM: el motor busca la llamada en curso y hace una transferencia ciega (REFER) al destino.
+
+- **Solo destinos del directorio:** por destino exacto o por nombre si la coincidencia es única. El modelo no puede marcar números arbitrarios, lo que evita fraude con números de pago.
+- **Horario por extensión:** días, apertura, cierre, un descanso opcional y la zona horaria (IANA). Fuera de horario o en el descanso:
+  - el Custom LLM no ofrece `transfer_call` y le indica al bot que no transfiera, que diga el **mensaje de fuera de horario** (o el de descanso) y que ofrezca tomar un recado;
+  - el motor también rechaza la transferencia por si el modelo la pide igual.
+- Sin horario activado, la extensión está siempre abierta.
+
 ## Llamadas salientes (teléfono web)
 
 La página **Teléfono** del panel marca desde cualquier extensión activa, para probarla sin un softphone:

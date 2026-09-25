@@ -269,6 +269,10 @@ namespace Mapache.Infrastructure.Persistence.Migrations
                         .HasMaxLength(128)
                         .HasColumnType("character varying(128)");
 
+                    b.Property<string>("BusinessHours")
+                        .IsRequired()
+                        .HasColumnType("jsonb");
+
                     b.PrimitiveCollection<List<string>>("Codecs")
                         .IsRequired()
                         .HasColumnType("text[]");

@@ -58,6 +58,7 @@ try
 
     builder.Services.AddInfrastructure(builder.Configuration);
     builder.Services.AddSingleton<ISipAccountSource, SipAccountSource>();
+    builder.Services.AddSingleton<Mapache.Infrastructure.Transfers.ICallTransfer, SipCallTransfer>();
     builder.Services.AddSingleton<IVoiceAgentSource, VoiceAgentSource>();
     builder.Services.AddSingleton<ISipEventSink, SipEventSink>();
     builder.Services.AddSipEngine(builder.Configuration);

@@ -89,6 +89,7 @@ public class MapacheDbContext(DbContextOptions<MapacheDbContext> options) : DbCo
             e.Property(x => x.PublicAddress).HasMaxLength(256);
             e.Property(x => x.StunServer).HasMaxLength(256);
             e.Property(x => x.AnswerMode).HasConversion<string>().HasMaxLength(32);
+            e.Property(x => x.BusinessHours).HasColumnType("jsonb").HasConversion(Json<BusinessHours>());
             e.HasIndex(x => new { x.SipServer, x.SipUsername }).IsUnique();
         });
 

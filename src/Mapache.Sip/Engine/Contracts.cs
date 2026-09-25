@@ -67,6 +67,12 @@ public interface ISipEngine
     /// <summary>Prepara la toma de una llamada entrante que atiende el bot; el bot la suelta al correr la llamada.</summary>
     /// <exception cref="InvalidOperationException">La llamada ya terminó o no la atiende el bot.</exception>
     IPhoneCall TakeCall(Guid callId);
+
+    /// <summary>
+    /// Transfiere (REFER) una llamada que atiende el bot. Devuelve el resultado para el modelo; no transfiere
+    /// fuera del horario de atención de la extensión.
+    /// </summary>
+    Task<string> TransferAsync(Guid callId, string target);
 }
 
 public enum PhoneCallState

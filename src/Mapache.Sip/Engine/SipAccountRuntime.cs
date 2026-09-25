@@ -297,7 +297,7 @@ internal sealed class SipAccountRuntime : IAsyncDisposable
             new Dictionary<string, string> { ["caller_id"] = caller, ["extension_name"] = _ext.Name },
             _logger,
             _cts.Token,
-            new JsonObject { ["extension_id"] = _ext.Id.ToString() });
+            new JsonObject { ["extension_id"] = _ext.Id.ToString(), ["call_id"] = callId.ToString() });
 
         conversation.UserTranscript += text => _ = _services.Events.TranscriptAsync(callId, TranscriptSpeaker.Caller, text);
         conversation.AgentResponse += text => _ = _services.Events.TranscriptAsync(callId, TranscriptSpeaker.Agent, text);
@@ -391,6 +391,26 @@ internal sealed class SipAccountRuntime : IAsyncDisposable
     /// <summary>Prepara la toma de una llamada que atiende el bot; null si no es de esta cuenta.</summary>
     public IPhoneCall? CreateTakeOver(Guid callId) =>
         _botCalls.ContainsKey(callId) ? new TakenCall(this, callId, _logger) : null;
+
+    /// <summary>Transferencia pedida por el bot; null si la llamada no es de esta cuenta.</summary>
+    internal async Task<string?> TransferAsync(Guid callId, string target)
+    {
+        if (!_botCalls.TryGetValue(callId, out var call))
+        {
+            return null;
+        }
+
+        // Doble control: el Custom LLM ya no ofrece la herramienta fuera de horario, pero el motor no confía en eso.
+        var state = _ext.BusinessHours.StateAt(_services.Time.GetUtcNow());
+        if (state != BusinessHoursState.Open)
+        {
+            return "No se transfirió: la extensión está fuera del horario de atención. Ofrece tomar un recado.";
+        }
+
+        return await call.Bridge.TransferAsync(target)
+            ? $"Llamada transferida a {target}."
+            : "La central no aceptó la transferencia. Discúlpate y ofrece tomar un recado.";
+    }
 
     /// <summary>Pide al puente que suelte la llamada; false si ya terminó o la tomó otra persona.</summary>
     internal bool RequestHandOff(Guid callId, TakenCall taker)

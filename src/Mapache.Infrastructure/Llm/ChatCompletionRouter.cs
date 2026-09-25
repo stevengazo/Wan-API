@@ -3,6 +3,7 @@ using Mapache.Domain.Entities;
 using Mapache.Infrastructure.Knowledge;
 using Mapache.Infrastructure.Persistence;
 using Mapache.Infrastructure.Tools;
+using Mapache.Infrastructure.Transfers;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
@@ -23,7 +24,8 @@ public sealed class ChatCompletionRouter(
     OpenAiCompatibleChatClient openAiCompatible,
     AnthropicChatClient anthropic,
     TimeProvider time,
-    ILogger<ChatCompletionRouter> logger)
+    ILogger<ChatCompletionRouter> logger,
+    ICallTransfer? callTransfer = null)
 {
     /// <summary>Rondas de herramientas de Mapache por turno; evita que el modelo quede en un bucle.</summary>
     public const int MaxToolRounds = 4;
@@ -36,15 +38,26 @@ public sealed class ChatCompletionRouter(
         var directory = await db.DirectoryEntries.AsNoTracking().Where(d => d.Enabled).ToListAsync(ct);
         var forms = await db.FormTemplates.AsNoTracking().Where(f => f.Enabled).ToListAsync(ct);
         var callSettings = await db.CallSettings.AsNoTracking().SingleOrDefaultAsync(ct);
+
+        // El motor SIP manda qué extensión atiende y qué llamada es (custom_llm_extra_body).
+        var (extensionId, callId) = CallIdentity(request);
+        var extension = extensionId is { } id ? await db.Extensions.AsNoTracking().SingleOrDefaultAsync(x => x.Id == id, ct) : null;
+        var hours = extension?.BusinessHours.StateAt(time.GetUtcNow()) ?? BusinessHoursState.Open;
         // Búsqueda previa en la base con lo último que dijo quien llama: el texto completo responde en
         // milisegundos, así que no se nota en la latencia del turno.
         var hits = LastUserMessage(request) is { Length: > 2 } question
             ? await knowledge.SearchAsync(question, limit: 3, ct: ct)
             : [];
-        var context = string.Join("\n\n", new[] { BotContext.Build(request, directory, forms, callSettings), KnowledgeService.Format(hits) }
+        var context = string.Join("\n\n", new[] { BotContext.Build(request, directory, forms, callSettings, hours, extension?.BusinessHours.MessageFor(hours)), KnowledgeService.Format(hits) }
             .Where(p => !string.IsNullOrWhiteSpace(p)));
         Prepare(request, selection, context.Length == 0 ? null : context);
-        var tools = BotToolRegistry.AddTo(request, await toolRegistry.LoadAsync(ct));
+        var available = new Dictionary<string, BotTool>(await toolRegistry.LoadAsync(ct));
+        if (callId is { } call && callTransfer is not null && hours == BusinessHoursState.Open && directory.Count > 0)
+        {
+            available.TryAdd(CallTransferTool.Name, CallTransferTool.Create(call, directory, callTransfer));
+        }
+
+        var tools = BotToolRegistry.AddTo(request, available);
         logger.LogInformation("Custom LLM: {Provider} {Model} con {Tools} herramientas de Mapache", target.Provider, target.Model, tools.Count);
 
         for (var round = 0; ; round++)
@@ -139,6 +152,15 @@ public sealed class ChatCompletionRouter(
             JsonArray parts => string.Concat(parts.Select(p => p?["text"]?.GetValue<string>())),
             _ => null,
         };
+
+    /// <summary>Extensión y llamada que manda el motor SIP en <c>elevenlabs_extra_body</c>; nulos si no vienen.</summary>
+    public static (Guid? ExtensionId, Guid? CallId) CallIdentity(JsonObject request)
+    {
+        var extra = request["elevenlabs_extra_body"] as JsonObject;
+        static Guid? Read(JsonNode? node) =>
+            node is JsonValue value && value.TryGetValue<string>(out var text) && Guid.TryParse(text, out var id) ? id : null;
+        return (Read(extra?["extension_id"]), Read(extra?["call_id"]));
+    }
 
     /// <summary>
     /// Deja la petición lista para el proveedor: el modelo de Mapache, las instrucciones generales en lugar

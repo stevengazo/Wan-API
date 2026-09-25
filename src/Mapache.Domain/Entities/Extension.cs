@@ -121,6 +121,9 @@ public class Extension
 
     public AnswerMode AnswerMode { get; set; } = AnswerMode.Bot;
 
+    /// <summary>Horario de atención: fuera de él o en el descanso no se transfieren llamadas.</summary>
+    public BusinessHours BusinessHours { get; set; } = new();
+
     public bool Enabled { get; set; } = true;
 
     public DateTimeOffset CreatedAt { get; set; }

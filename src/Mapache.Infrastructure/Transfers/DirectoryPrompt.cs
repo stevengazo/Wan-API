@@ -8,7 +8,8 @@ namespace Mapache.Infrastructure.Transfers;
 public static class DirectoryPrompt
 {
     /// <summary>Bloque que se agrega a las instrucciones del bot; nulo si no hay entradas.</summary>
-    public static string? Build(IReadOnlyCollection<DirectoryEntry> entries)
+    /// <param name="transfersAllowed">Fuera de horario el directorio queda solo como referencia (p. ej. para recados).</param>
+    public static string? Build(IReadOnlyCollection<DirectoryEntry> entries, bool transfersAllowed = true)
     {
         if (entries.Count == 0)
         {
@@ -16,9 +17,16 @@ public static class DirectoryPrompt
         }
 
         var text = new StringBuilder();
-        text.AppendLine("Directorio de transferencias. Si quien llama necesita hablar con alguno de estos destinos, o su consulta")
-            .AppendLine("corresponde a lo que atiende, ofrécele transferirlo e indica el destino exacto de la lista.")
-            .AppendLine("No transfieras a destinos que no estén aquí.");
+        if (transfersAllowed)
+        {
+            text.AppendLine("Directorio de transferencias. Si quien llama necesita hablar con alguno de estos destinos, o su consulta")
+                .AppendLine("corresponde a lo que atiende, ofrécele transferirlo e indica el destino exacto de la lista.")
+                .AppendLine("No transfieras a destinos que no estén aquí.");
+        }
+        else
+        {
+            text.AppendLine("Directorio (solo como referencia: ahora no se transfieren llamadas).");
+        }
         foreach (var entry in entries.OrderBy(e => e.Department).ThenBy(e => e.Name))
         {
             text.Append("- ").Append(entry.Name);

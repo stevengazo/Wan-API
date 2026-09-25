@@ -49,7 +49,10 @@ A las tools que trae ElevenLabs, Mapache suma las suyas (`BotToolRegistry`):
 
 - `search_knowledge_base`, si hay alguna base activa con contenido;
 - cada **petición HTTP** activa;
-- cada herramienta habilitada de los **servidores MCP**, con el nombre `mcp_<servidor>_<herramienta>`.
+- cada herramienta habilitada de los **servidores MCP**, con el nombre `mcp_<servidor>_<herramienta>`;
+- `transfer_call`, si la extensión está en horario de atención y el directorio tiene destinos (ver [motor-sip.md](motor-sip.md#transferencias-y-horario-de-atención)).
+
+El motor SIP manda en `custom_llm_extra_body` el `extension_id` y el `call_id` de la llamada: con ellos el Custom LLM sabe el horario de la extensión y a qué llamada aplicar la transferencia.
 
 Si el agente ya tiene una tool con el mismo nombre, gana la del agente.
 
