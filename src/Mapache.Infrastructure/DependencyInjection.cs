@@ -7,6 +7,7 @@ using Mapache.Infrastructure.Persistence;
 using Mapache.Infrastructure.Recordings;
 using Mapache.Infrastructure.Security;
 using Mapache.Infrastructure.Tools;
+using Mapache.Infrastructure.Transfers;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -50,7 +51,9 @@ public static class DependencyInjection
         services.AddScoped<IBotToolSource, HttpToolSource>();
         services.AddSingleton<McpConnector>();
         services.AddScoped<IBotToolSource, McpToolSource>();
+        services.AddScoped<IBotToolSource, TransferToolSource>();
         services.AddScoped<BotToolRegistry>();
+        services.AddScoped<BotSessionBuilder>();
 
         services.Configure<RecordingOptions>(configuration.GetSection(RecordingOptions.SectionName));
         services.AddSingleton<RecordingStore>();

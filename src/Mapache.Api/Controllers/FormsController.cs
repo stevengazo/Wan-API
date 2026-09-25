@@ -1,6 +1,7 @@
 using System.ComponentModel.DataAnnotations;
 using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
+using Mapache.Api.Agent;
 using Mapache.Api.Auth;
 using Mapache.Api.Realtime;
 using Mapache.Api.Webhooks;
@@ -80,8 +81,8 @@ public sealed record ToolResult(bool Ok, string Message, IReadOnlyList<string>? 
 public sealed partial class FormsController(
     MapacheDbContext db,
     TimeProvider time,
-    IFormActionQueue actionQueue,
-    IHubContext<EventsHub, IEventsClient> events) : ControllerBase
+    IHubContext<EventsHub, IEventsClient> events,
+    AgentIntake intake) : ControllerBase
 {
     [HttpGet("api/forms")]
     [Authorize]
@@ -222,40 +223,8 @@ public sealed partial class FormsController(
 
     [HttpPost("api/agent-tools/forms/submit")]
     [Authorize(Policy = AgentToolAuthenticationHandler.PolicyName)]
-    public async Task<ToolResult> Submit(SubmitFormToolRequest request, CancellationToken ct)
-    {
-        var forms = await db.FormTemplates.AsNoTracking().Where(f => f.Enabled).ToListAsync(ct);
-        if (FormsPrompt.Find(forms, request.Form) is not { } form)
-        {
-            return new ToolResult(false, $"No existe el formulario \"{request.Form}\". Usa el nombre exacto de la lista.");
-        }
-
-        var validation = FormsPrompt.Validate(form, request.Values);
-        if (!validation.IsValid)
-        {
-            return new ToolResult(false, "No se guardó. Pide o corrige estos datos y vuelve a enviarlo.", validation.Problems);
-        }
-
-        var submission = new FormSubmission
-        {
-            FormTemplateId = form.Id,
-            Values = validation.Values,
-            ConversationId = Optional(request.ConversationId),
-            CallerNumber = Optional(request.CallerNumber),
-            CreatedAt = time.GetUtcNow(),
-        };
-        db.FormSubmissions.Add(submission);
-        await db.SaveChangesAsync(ct);
-        // Las acciones (webhooks, Teams, correo...) van a la cola: el bot no espera a que terminen.
-        await FormActionRunner.DispatchAsync(db, actionQueue, submission, submission.CreatedAt, ct);
-        await events.Clients.All.FormSubmissionsChanged();
-        await events.Clients.All.Notify(new PanelNotification(
-            "form",
-            $"Nuevo formulario: {form.Name}",
-            string.Join(" · ", validation.Values.Take(3).Select(v => v.Value)),
-            $"/formularios/{form.Id}"));
-        return new ToolResult(true, "Formulario guardado. Confírmale a quien llama que quedó registrado.");
-    }
+    public Task<ToolResult> Submit(SubmitFormToolRequest request, CancellationToken ct) =>
+        intake.SubmitFormAsync(request, ct);
 
     private ActionResult? Validate(SaveFormTemplateRequest request)
     {

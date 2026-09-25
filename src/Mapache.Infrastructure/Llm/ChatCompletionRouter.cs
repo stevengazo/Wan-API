@@ -1,10 +1,6 @@
 using System.Text.Json.Nodes;
 using Mapache.Domain.Entities;
-using Mapache.Infrastructure.Knowledge;
-using Mapache.Infrastructure.Persistence;
 using Mapache.Infrastructure.Tools;
-using Mapache.Infrastructure.Transfers;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
 namespace Mapache.Infrastructure.Llm;
@@ -17,47 +13,25 @@ public sealed record LlmSelection(LlmProvider Provider, string Model, string? Sy
 /// activo en la configuración general.
 /// </summary>
 public sealed class ChatCompletionRouter(
-    MapacheDbContext db,
-    LlmResolver resolver,
-    KnowledgeService knowledge,
-    BotToolRegistry toolRegistry,
+    BotSessionBuilder sessionBuilder,
     OpenAiCompatibleChatClient openAiCompatible,
     AnthropicChatClient anthropic,
     TimeProvider time,
-    ILogger<ChatCompletionRouter> logger,
-    ICallTransfer? callTransfer = null)
+    ILogger<ChatCompletionRouter> logger)
 {
     /// <summary>Rondas de herramientas de Mapache por turno; evita que el modelo quede en un bucle.</summary>
     public const int MaxToolRounds = 4;
 
     public async Task StreamAsync(JsonObject request, Stream output, CancellationToken ct)
     {
-        var target = await resolver.ResolveAsync(ct);
-        var selection = new LlmSelection(target.Provider, target.Model, target.SystemPrompt);
-
-        var directory = await db.DirectoryEntries.AsNoTracking().Where(d => d.Enabled).ToListAsync(ct);
-        var forms = await db.FormTemplates.AsNoTracking().Where(f => f.Enabled).ToListAsync(ct);
-        var callSettings = await db.CallSettings.AsNoTracking().SingleOrDefaultAsync(ct);
-
-        // El motor SIP manda qué extensión atiende y qué llamada es (custom_llm_extra_body).
+        // El motor SIP manda qué extensión atiende y qué llamada es (custom_llm_extra_body o headers).
         var (extensionId, callId) = CallIdentity(request);
-        var extension = extensionId is { } id ? await db.Extensions.AsNoTracking().SingleOrDefaultAsync(x => x.Id == id, ct) : null;
-        var hours = extension?.BusinessHours.StateAt(time.GetUtcNow()) ?? BusinessHoursState.Open;
-        // Búsqueda previa en la base con lo último que dijo quien llama: el texto completo responde en
-        // milisegundos, así que no se nota en la latencia del turno.
-        var hits = LastUserMessage(request) is { Length: > 2 } question
-            ? await knowledge.SearchAsync(question, limit: 3, ct: ct)
-            : [];
-        var context = string.Join("\n\n", new[] { BotContext.Build(request, directory, forms, callSettings, hours, extension?.BusinessHours.MessageFor(hours)), KnowledgeService.Format(hits) }
-            .Where(p => !string.IsNullOrWhiteSpace(p)));
-        Prepare(request, selection, context.Length == 0 ? null : context);
-        var available = new Dictionary<string, BotTool>(await toolRegistry.LoadAsync(ct));
-        if (callId is { } call && callTransfer is not null && hours == BusinessHoursState.Open && directory.Count > 0)
-        {
-            available.TryAdd(CallTransferTool.Name, CallTransferTool.Create(call, directory, callTransfer));
-        }
-
-        var tools = BotToolRegistry.AddTo(request, available);
+        var session = await sessionBuilder.BuildAsync(
+            new BotCallContext(extensionId, callId), BotContext.ToolNames(request), LastUserMessage(request), ct);
+        var target = session.Target;
+        var selection = new LlmSelection(target.Provider, target.Model, target.SystemPrompt);
+        Prepare(request, selection, session.Context);
+        var tools = BotToolRegistry.AddTo(request, session.Tools);
         logger.LogInformation("Custom LLM: {Provider} {Model} con {Tools} herramientas de Mapache", target.Provider, target.Model, tools.Count);
 
         for (var round = 0; ; round++)

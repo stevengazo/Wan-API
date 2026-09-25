@@ -12,7 +12,7 @@ public sealed class KnowledgeToolSource(MapacheDbContext db, KnowledgeService kn
 {
     public const string Name = "search_knowledge_base";
 
-    public async Task<IReadOnlyList<BotTool>> GetToolsAsync(CancellationToken ct)
+    public async Task<IReadOnlyList<BotTool>> GetToolsAsync(BotCallContext call, CancellationToken ct)
     {
         if (!await db.KnowledgeChunks.AnyAsync(c => db.KnowledgeBases.Any(b => b.Id == c.KnowledgeBaseId && b.Enabled), ct))
         {

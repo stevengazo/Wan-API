@@ -104,7 +104,7 @@ public sealed partial class HttpToolRunner(HttpClient http, ISecretProtector pro
 /// <summary>Herramientas HTTP activas del panel.</summary>
 public sealed class HttpToolSource(MapacheDbContext db, HttpToolRunner runner) : IBotToolSource
 {
-    public async Task<IReadOnlyList<BotTool>> GetToolsAsync(CancellationToken ct)
+    public async Task<IReadOnlyList<BotTool>> GetToolsAsync(BotCallContext call, CancellationToken ct)
     {
         var tools = await db.HttpTools.AsNoTracking().Where(t => t.Enabled).ToListAsync(ct);
         return tools.Select(tool => new BotTool(

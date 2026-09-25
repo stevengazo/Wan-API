@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using System.Text.Json.Serialization;
+using Mapache.Api.Agent;
 using Mapache.Api.Auth;
 using Mapache.Api.Realtime;
 using Mapache.Api.Webhooks;
@@ -43,8 +44,8 @@ public sealed record LeaveMessageToolRequest(
 [ApiController]
 public sealed class MessagesController(
     MapacheDbContext db,
-    TimeProvider time,
-    IHubContext<EventsHub, IEventsClient> events) : ControllerBase
+    IHubContext<EventsHub, IEventsClient> events,
+    AgentIntake intake) : ControllerBase
 {
     [HttpGet("api/messages")]
     [Authorize]
@@ -85,33 +86,8 @@ public sealed class MessagesController(
 
     [HttpPost("api/agent-tools/messages")]
     [Authorize(Policy = AgentToolAuthenticationHandler.PolicyName)]
-    public async Task<ToolResult> Leave(LeaveMessageToolRequest request, CancellationToken ct)
-    {
-        // Se enlaza con el directorio solo si la mejor coincidencia es clara; si no, queda el nombre en texto.
-        var directory = await db.DirectoryEntries.AsNoTracking().ToListAsync(ct);
-        var match = DirectoryPrompt.Search(directory, request.Recipient, limit: 2);
-
-        db.CallMessages.Add(new CallMessage
-        {
-            Recipient = request.Recipient.Trim(),
-            DirectoryEntryId = match.Count == 1 ? match[0].Id : null,
-            CallerName = Optional(request.CallerName),
-            CallbackNumber = Optional(request.CallbackNumber),
-            Body = request.Message.Trim(),
-            Urgent = request.Urgent,
-            ConversationId = Optional(request.ConversationId),
-            CreatedAt = time.GetUtcNow(),
-        });
-        await db.SaveChangesAsync(ct);
-        await events.Clients.All.MessagesChanged();
-        var body = request.Message.Trim();
-        await events.Clients.All.Notify(new PanelNotification(
-            "message",
-            request.Urgent ? $"Recado urgente para {request.Recipient.Trim()}" : $"Recado para {request.Recipient.Trim()}",
-            body.Length > 140 ? body[..140] + "…" : body,
-            "/recados"));
-        return new ToolResult(true, "Recado guardado. Dile a quien llama que se lo harán llegar.");
-    }
+    public Task<ToolResult> Leave(LeaveMessageToolRequest request, CancellationToken ct) =>
+        intake.LeaveMessageAsync(request, ct);
 
     private static string? Optional(string? value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
 }

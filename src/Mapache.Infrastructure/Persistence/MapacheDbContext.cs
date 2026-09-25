@@ -222,6 +222,14 @@ public class MapacheDbContext(DbContextOptions<MapacheDbContext> options) : DbCo
         {
             e.Property(s => s.Id).ValueGeneratedNever();
             e.Property(s => s.AgentId).HasMaxLength(128);
+            e.Property(s => s.Provider).HasConversion<string>().HasMaxLength(32);
+            e.Property(s => s.OpenAiModel).HasMaxLength(64);
+            e.Property(s => s.OpenAiVoice).HasMaxLength(32);
+            e.Property(s => s.OpenAiTranscriptionModel).HasMaxLength(64);
+            e.Property(s => s.DeepgramLanguage).HasMaxLength(16);
+            e.Property(s => s.DeepgramListenModel).HasMaxLength(64);
+            e.Property(s => s.DeepgramSpeakModel).HasMaxLength(64);
+            e.Property(s => s.Greeting).HasMaxLength(500);
         });
 
         modelBuilder.Entity<CallSettings>(e =>

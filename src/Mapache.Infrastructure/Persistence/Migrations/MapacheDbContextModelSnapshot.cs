@@ -918,6 +918,45 @@ namespace Mapache.Infrastructure.Persistence.Migrations
                     b.Property<string>("ApiKeyEncrypted")
                         .HasColumnType("text");
 
+                    b.Property<string>("DeepgramApiKeyEncrypted")
+                        .HasColumnType("text");
+
+                    b.Property<string>("DeepgramLanguage")
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)");
+
+                    b.Property<string>("DeepgramListenModel")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<string>("DeepgramSpeakModel")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<string>("Greeting")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<string>("OpenAiApiKeyEncrypted")
+                        .HasColumnType("text");
+
+                    b.Property<string>("OpenAiModel")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<string>("OpenAiTranscriptionModel")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<string>("OpenAiVoice")
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
+                    b.Property<string>("Provider")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
                     b.Property<DateTimeOffset>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");
 

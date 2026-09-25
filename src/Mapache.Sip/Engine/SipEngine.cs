@@ -1,3 +1,4 @@
+using Mapache.Sip.Media;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -13,7 +14,8 @@ internal sealed record SipRuntimeServices(
     IHttpClientFactory Http,
     ILoggerFactory Loggers,
     TimeProvider Time,
-    SipEngineOptions Options);
+    SipEngineOptions Options,
+    IBotBrain Brain);
 
 /// <summary>
 /// Motor SIP: mantiene registrada cada cuenta habilitada y la vuelve a crear cuando cambia su configuración.
@@ -37,10 +39,11 @@ public sealed class SipEngine : BackgroundService, ISipEngine
         IHttpClientFactory http,
         ILoggerFactory loggers,
         TimeProvider time,
-        IOptions<SipEngineOptions> options)
+        IOptions<SipEngineOptions> options,
+        IBotBrain brain)
     {
         _accounts = accounts;
-        _services = new SipRuntimeServices(events, voiceAgent, http, loggers, time, options.Value);
+        _services = new SipRuntimeServices(events, voiceAgent, http, loggers, time, options.Value, brain);
         _logger = loggers.CreateLogger<SipEngine>();
         SIPSorcery.LogFactory.Set(loggers);
     }
@@ -204,7 +207,7 @@ public static class SipEngineServiceCollectionExtensions
     public static IServiceCollection AddSipEngine(this IServiceCollection services, IConfiguration configuration)
     {
         services.Configure<SipEngineOptions>(configuration.GetSection(SipEngineOptions.SectionName));
-        services.AddHttpClient("elevenlabs");
+        services.AddHttpClient("voice");
         services.AddSingleton<SipEngine>();
         services.AddSingleton<ISipEngine>(sp => sp.GetRequiredService<SipEngine>());
         services.AddHostedService(sp => sp.GetRequiredService<SipEngine>());

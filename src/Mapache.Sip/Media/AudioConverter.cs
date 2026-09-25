@@ -9,11 +9,14 @@ public enum TelephonyCodec
 }
 
 /// <summary>
-/// Formato de audio de ElevenLabs: "ulaw_8000" o "pcm_{rate}" (PCM 16 bits little-endian mono).
+/// Formato de audio del proveedor de voz: µ-law 8 kHz o PCM 16 bits little-endian mono a cierta frecuencia.
+/// <see cref="Parse"/> lee la notación de ElevenLabs ("ulaw_8000", "pcm_16000").
 /// </summary>
-public readonly record struct ElevenLabsAudioFormat(bool IsMuLaw, int SampleRate)
+public readonly record struct VoiceAudioFormat(bool IsMuLaw, int SampleRate)
 {
-    public static ElevenLabsAudioFormat Parse(string value)
+    public static readonly VoiceAudioFormat MuLaw8000 = new(true, 8000);
+
+    public static VoiceAudioFormat Parse(string value)
     {
         if (value == "ulaw_8000")
         {
@@ -30,17 +33,17 @@ public readonly record struct ElevenLabsAudioFormat(bool IsMuLaw, int SampleRate
 }
 
 /// <summary>
-/// Convierte audio entre G.711 a 8 kHz (lado telefónico) y el formato que negocia ElevenLabs.
+/// Convierte audio entre G.711 a 8 kHz (lado telefónico) y el formato del proveedor de voz.
 /// Si ambos lados son µ-law 8 kHz el audio pasa sin tocar (objetivo de D3).
 /// </summary>
 public static class AudioConverter
 {
     public const int TelephonySampleRate = 8000;
 
-    public static bool IsPassthrough(TelephonyCodec codec, ElevenLabsAudioFormat format) =>
+    public static bool IsPassthrough(TelephonyCodec codec, VoiceAudioFormat format) =>
         codec == TelephonyCodec.Pcmu && format.IsMuLaw;
 
-    public static byte[] TelephonyToElevenLabs(ReadOnlySpan<byte> g711, TelephonyCodec codec, ElevenLabsAudioFormat target)
+    public static byte[] TelephonyToElevenLabs(ReadOnlySpan<byte> g711, TelephonyCodec codec, VoiceAudioFormat target)
     {
         if (IsPassthrough(codec, target))
         {
@@ -56,7 +59,7 @@ public static class AudioConverter
         return ToBytes(Resample(pcm, TelephonySampleRate, target.SampleRate));
     }
 
-    public static byte[] ElevenLabsToTelephony(ReadOnlySpan<byte> audio, ElevenLabsAudioFormat source, TelephonyCodec codec)
+    public static byte[] ElevenLabsToTelephony(ReadOnlySpan<byte> audio, VoiceAudioFormat source, TelephonyCodec codec)
     {
         if (IsPassthrough(codec, source))
         {

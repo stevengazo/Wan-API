@@ -59,6 +59,10 @@ try
     builder.Services.AddInfrastructure(builder.Configuration);
     builder.Services.AddSingleton<ISipAccountSource, SipAccountSource>();
     builder.Services.AddSingleton<Mapache.Infrastructure.Transfers.ICallTransfer, SipCallTransfer>();
+    builder.Services.AddScoped<Mapache.Api.Agent.AgentIntake>();
+    builder.Services.AddScoped<PublicUrlResolver>();
+    builder.Services.AddSingleton<Mapache.Sip.Media.IBotBrain, BotBrain>();
+    builder.Services.AddScoped<Mapache.Infrastructure.Tools.IBotToolSource, Mapache.Api.Agent.IntakeToolSource>();
     builder.Services.AddSingleton<IVoiceAgentSource, VoiceAgentSource>();
     builder.Services.AddSingleton<ISipEventSink, SipEventSink>();
     builder.Services.AddSipEngine(builder.Configuration);

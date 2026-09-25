@@ -1,3 +1,8 @@
+using Microsoft.Extensions.Options;
+using Mapache.Infrastructure.Tools;
+using Mapache.Infrastructure.Llm;
+using Mapache.Api.Webhooks;
+using System.Text.Json.Nodes;
 using Mapache.Api.Realtime;
 using Mapache.Infrastructure.Transfers;
 using Mapache.Domain.Entities;
@@ -26,20 +31,94 @@ public sealed class SipAccountSource(IServiceScopeFactory scopes) : ISipAccountS
     }
 }
 
-public sealed class VoiceAgentSource(IServiceScopeFactory scopes) : IVoiceAgentSource
+public sealed class VoiceAgentSource(IServiceScopeFactory scopes, IOptions<AgentWebhookOptions> agentWebhooks, ILogger<VoiceAgentSource> logger)
+    : IVoiceAgentSource
 {
-    public async Task<ElevenLabsOptions?> GetAsync(CancellationToken ct)
+    public async Task<VoiceProviderOptions?> GetAsync(CancellationToken ct)
     {
         using var scope = scopes.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<MapacheDbContext>();
+        var protector = scope.ServiceProvider.GetRequiredService<ISecretProtector>();
         var settings = await db.VoiceSettings.AsNoTracking().SingleOrDefaultAsync(ct);
-        if (settings is not { ApiKeyEncrypted: { } key, AgentId: { Length: > 0 } agentId })
+        if (settings is null)
         {
             return null;
         }
 
-        var protector = scope.ServiceProvider.GetRequiredService<ISecretProtector>();
-        return new ElevenLabsOptions(protector.Unprotect(key), agentId);
+        string? Unprotect(string? value) => value is null ? null : protector.Unprotect(value);
+
+        switch (settings.Provider)
+        {
+            case VoiceProvider.OpenAiRealtime:
+                // Sin key propia se usa la de OpenAI de Configuración → IA: suele ser la misma cuenta.
+                var openAiKey = Unprotect(settings.OpenAiApiKeyEncrypted) ?? Unprotect(await db.LlmProviderSettings.AsNoTracking()
+                    .Where(p => p.Provider == LlmProvider.OpenAi).Select(p => p.ApiKeyEncrypted).SingleOrDefaultAsync(ct));
+                return openAiKey is null
+                    ? null
+                    : new OpenAiRealtimeOptions(
+                        openAiKey,
+                        settings.OpenAiModel ?? VoiceDefaults.OpenAiModel,
+                        settings.OpenAiVoice ?? VoiceDefaults.OpenAiVoice,
+                        settings.OpenAiTranscriptionModel ?? VoiceDefaults.OpenAiTranscriptionModel,
+                        settings.Greeting);
+
+            case VoiceProvider.Deepgram:
+                var publicUrl = await scope.ServiceProvider.GetRequiredService<PublicUrlResolver>().ResolveAsync(ct);
+                if (settings.DeepgramApiKeyEncrypted is null || publicUrl is null || agentWebhooks.Value.ToolToken.Length == 0)
+                {
+                    // Deepgram llama al Custom LLM desde su nube: sin URL pública no hay a dónde.
+                    logger.LogWarning("Deepgram necesita API key, URL pública y AgentWebhooks:ToolToken");
+                    return null;
+                }
+
+                return new DeepgramAgentOptions(
+                    protector.Unprotect(settings.DeepgramApiKeyEncrypted),
+                    settings.DeepgramLanguage ?? VoiceDefaults.DeepgramLanguage,
+                    settings.DeepgramListenModel ?? VoiceDefaults.DeepgramListenModel,
+                    settings.DeepgramSpeakModel ?? VoiceDefaults.DeepgramSpeakModel,
+                    settings.Greeting,
+                    $"{publicUrl}/api/llm",
+                    agentWebhooks.Value.ToolToken);
+
+            default:
+                return settings is { ApiKeyEncrypted: { } key, AgentId: { Length: > 0 } agentId }
+                    ? new ElevenLabsOptions(protector.Unprotect(key), agentId)
+                    : null;
+        }
+    }
+}
+
+/// <summary>
+/// Instrucciones y herramientas para OpenAI Realtime, con el mismo <see cref="BotSessionBuilder"/> que el Custom
+/// LLM. Cada herramienta se ejecuta en un scope propio: la llamada dura más que cualquier scope de request.
+/// </summary>
+public sealed class BotBrain(IServiceScopeFactory scopes) : IBotBrain
+{
+    public async Task<BotBrainSession> StartAsync(Guid extensionId, Guid callId, CancellationToken ct)
+    {
+        var call = new BotCallContext(extensionId, callId);
+        BotSession session;
+        using (var scope = scopes.CreateScope())
+        {
+            session = await scope.ServiceProvider.GetRequiredService<BotSessionBuilder>().BuildAsync(call, [], null, ct);
+        }
+
+        var tools = session.Tools.Values.Select(t => new VoiceToolSpec(t.Name, t.Description, t.Parameters)).ToList();
+        return new BotBrainSession(
+            session.Instructions("Eres la recepción telefónica de la empresa. Sé breve, cordial y habla en español."),
+            tools,
+            async (name, arguments, token) =>
+            {
+                using var scope = scopes.CreateScope();
+                var available = await scope.ServiceProvider.GetRequiredService<BotToolRegistry>().LoadAsync(call, token);
+                if (!available.TryGetValue(name, out var tool))
+                {
+                    return "Esa herramienta ya no está disponible.";
+                }
+
+                var args = string.IsNullOrWhiteSpace(arguments) ? [] : JsonNode.Parse(arguments) as JsonObject ?? [];
+                return await tool.ExecuteAsync(args, token);
+            });
     }
 }
 

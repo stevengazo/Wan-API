@@ -27,7 +27,7 @@ Mapache es un **softphone con cerebro**. Funciona como MicroSIP: le das una cuen
 | | |
 |---|---|
 | 📞 **Atiende en tu central** | Cualquier servidor SIP (Asterisk, FreePBX, 3CX, proveedores en la nube) por UDP, TCP o TLS, con servidor secundario, proxy, STUN y keepalive. |
-| 🗣️ **Habla natural** | ElevenLabs Conversational AI hace el reconocimiento, la síntesis, los turnos y las interrupciones. |
+| 🗣️ **Habla natural** | Voz de ElevenLabs, OpenAI Realtime o Deepgram, a elección y sin cambiar nada más. |
 | 🧠 **Piensa con el modelo que elijas** | OpenAI, Gemini o Claude, con las API keys cifradas y configurables desde el panel. |
 | 📚 **Sabe de tu negocio** | Bases de conocimiento con PDF, Word, Markdown, CSV o HTML y búsqueda de texto completo en español. |
 | 🔌 **Consulta tus sistemas** | Peticiones HTTP a tu ERP o CRM y herramientas de cualquier servidor MCP. |
@@ -188,7 +188,8 @@ flowchart TD
 | [Arquitectura](docs/arquitectura.md) | Capas, flujo de una llamada, decisiones de diseño |
 | [Instalación](docs/instalacion.md) | Docker, local, primer arranque |
 | [Configuración](docs/configuracion.md) | Todas las variables y claves de `appsettings` |
-| [ElevenLabs](docs/elevenlabs.md) | Cómo crear y conectar el agente de voz |
+| [Proveedores de voz](docs/voz.md) | ElevenLabs, OpenAI Realtime o Deepgram |
+| [ElevenLabs](docs/elevenlabs.md) | Cómo crear y conectar el agente de ElevenLabs |
 | [Motor SIP](docs/motor-sip.md) | Cuentas, transporte, NAT, llamadas entrantes |
 | [LLM del bot](docs/llm.md) | Custom LLM, proveedores, contexto y bucle de herramientas |
 | [Conocimiento](docs/conocimiento.md) | Bases de conocimiento y búsqueda |

@@ -28,10 +28,10 @@ public interface ISipAccountSource
     Task<IReadOnlyList<SipAccount>> GetEnabledAsync(CancellationToken ct);
 }
 
-/// <summary>Agente de ElevenLabs configurado en el panel; nulo si falta.</summary>
+/// <summary>Proveedor de voz configurado en el panel (ElevenLabs, OpenAI Realtime, Deepgram); nulo si falta.</summary>
 public interface IVoiceAgentSource
 {
-    Task<ElevenLabsOptions?> GetAsync(CancellationToken ct);
+    Task<VoiceProviderOptions?> GetAsync(CancellationToken ct);
 }
 
 /// <summary>Lo que pasa en el motor, para persistirlo y avisar al panel (lo implementa la API).</summary>

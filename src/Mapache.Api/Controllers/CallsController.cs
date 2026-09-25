@@ -29,13 +29,35 @@ public sealed record TranscriptLineDto(TranscriptSpeaker Speaker, string Text, D
 
 public sealed record CallDetailDto(CallDto Call, IReadOnlyList<TranscriptLineDto> Transcript);
 
-/// <summary>La API key no sale de la API; solo se informa si está cargada.</summary>
-public sealed record VoiceSettingsDto(bool HasApiKey, string? AgentId);
+/// <summary>Las API keys no salen de la API; solo se informa si están cargadas.</summary>
+public sealed record VoiceSettingsDto(
+    VoiceProvider Provider,
+    bool HasApiKey,
+    string? AgentId,
+    bool HasOpenAiApiKey,
+    string? OpenAiModel,
+    string? OpenAiVoice,
+    string? OpenAiTranscriptionModel,
+    bool HasDeepgramApiKey,
+    string? DeepgramLanguage,
+    string? DeepgramListenModel,
+    string? DeepgramSpeakModel,
+    string? Greeting);
 
-/// <summary><c>ApiKey</c> vacía conserva la guardada.</summary>
+/// <summary>Cada API key vacía conserva la guardada.</summary>
 public sealed record SaveVoiceSettingsRequest(
     [StringLength(256, ErrorMessage = Messages.MaxLength)] string? ApiKey,
-    [StringLength(128, ErrorMessage = Messages.MaxLength)] string? AgentId);
+    [StringLength(128, ErrorMessage = Messages.MaxLength)] string? AgentId,
+    VoiceProvider Provider = VoiceProvider.ElevenLabs,
+    [StringLength(256, ErrorMessage = Messages.MaxLength)] string? OpenAiApiKey = null,
+    [StringLength(64, ErrorMessage = Messages.MaxLength)] string? OpenAiModel = null,
+    [StringLength(32, ErrorMessage = Messages.MaxLength)] string? OpenAiVoice = null,
+    [StringLength(64, ErrorMessage = Messages.MaxLength)] string? OpenAiTranscriptionModel = null,
+    [StringLength(256, ErrorMessage = Messages.MaxLength)] string? DeepgramApiKey = null,
+    [StringLength(16, ErrorMessage = Messages.MaxLength)] string? DeepgramLanguage = null,
+    [StringLength(64, ErrorMessage = Messages.MaxLength)] string? DeepgramListenModel = null,
+    [StringLength(64, ErrorMessage = Messages.MaxLength)] string? DeepgramSpeakModel = null,
+    [StringLength(500, ErrorMessage = Messages.MaxLength)] string? Greeting = null);
 
 [ApiController]
 [Authorize]
@@ -70,7 +92,7 @@ public sealed class CallsController(MapacheDbContext db, ISipEngine engine, ISec
     public async Task<VoiceSettingsDto> GetVoice(CancellationToken ct)
     {
         var settings = await db.VoiceSettings.AsNoTracking().SingleOrDefaultAsync(ct) ?? new VoiceSettings();
-        return new VoiceSettingsDto(settings.ApiKeyEncrypted is not null, settings.AgentId);
+        return ToDto(settings);
     }
 
     [HttpPut("api/settings/voice")]
@@ -84,16 +106,39 @@ public sealed class CallsController(MapacheDbContext db, ISipEngine engine, ISec
             db.VoiceSettings.Add(settings);
         }
 
-        if (!string.IsNullOrWhiteSpace(request.ApiKey))
-        {
-            settings.ApiKeyEncrypted = protector.Protect(request.ApiKey.Trim());
-        }
+        string? Protect(string? value, string? current) => string.IsNullOrWhiteSpace(value) ? current : protector.Protect(value.Trim());
+        static string? Optional(string? value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
 
-        settings.AgentId = string.IsNullOrWhiteSpace(request.AgentId) ? null : request.AgentId.Trim();
+        settings.Provider = request.Provider;
+        settings.ApiKeyEncrypted = Protect(request.ApiKey, settings.ApiKeyEncrypted);
+        settings.AgentId = Optional(request.AgentId);
+        settings.OpenAiApiKeyEncrypted = Protect(request.OpenAiApiKey, settings.OpenAiApiKeyEncrypted);
+        settings.OpenAiModel = Optional(request.OpenAiModel);
+        settings.OpenAiVoice = Optional(request.OpenAiVoice);
+        settings.OpenAiTranscriptionModel = Optional(request.OpenAiTranscriptionModel);
+        settings.DeepgramApiKeyEncrypted = Protect(request.DeepgramApiKey, settings.DeepgramApiKeyEncrypted);
+        settings.DeepgramLanguage = Optional(request.DeepgramLanguage);
+        settings.DeepgramListenModel = Optional(request.DeepgramListenModel);
+        settings.DeepgramSpeakModel = Optional(request.DeepgramSpeakModel);
+        settings.Greeting = Optional(request.Greeting);
         settings.UpdatedAt = time.GetUtcNow();
         await db.SaveChangesAsync(ct);
-        return new VoiceSettingsDto(settings.ApiKeyEncrypted is not null, settings.AgentId);
+        return ToDto(settings);
     }
+
+    private static VoiceSettingsDto ToDto(VoiceSettings s) => new(
+        s.Provider,
+        s.ApiKeyEncrypted is not null,
+        s.AgentId,
+        s.OpenAiApiKeyEncrypted is not null,
+        s.OpenAiModel,
+        s.OpenAiVoice,
+        s.OpenAiTranscriptionModel,
+        s.DeepgramApiKeyEncrypted is not null,
+        s.DeepgramLanguage,
+        s.DeepgramListenModel,
+        s.DeepgramSpeakModel,
+        s.Greeting);
 
     private IQueryable<CallDto> Project(IQueryable<Call> query) =>
         query.AsNoTracking().Select(c => new CallDto(

@@ -11,16 +11,16 @@ public class AudioConverterTests
     [InlineData("pcm_16000", false, 16000)]
     [InlineData("pcm_8000", false, 8000)]
     public void ParsesElevenLabsFormats(string value, bool isMuLaw, int rate) =>
-        Assert.Equal(new ElevenLabsAudioFormat(isMuLaw, rate), ElevenLabsAudioFormat.Parse(value));
+        Assert.Equal(new VoiceAudioFormat(isMuLaw, rate), VoiceAudioFormat.Parse(value));
 
     [Fact]
     public void RejectsUnknownFormat() =>
-        Assert.Throws<NotSupportedException>(() => ElevenLabsAudioFormat.Parse("mp3_44100"));
+        Assert.Throws<NotSupportedException>(() => VoiceAudioFormat.Parse("mp3_44100"));
 
     [Fact]
     public void PcmuWithUlawPassesThroughUntouched()
     {
-        var format = ElevenLabsAudioFormat.Parse("ulaw_8000");
+        var format = VoiceAudioFormat.Parse("ulaw_8000");
 
         Assert.Equal(Ulaw, AudioConverter.TelephonyToElevenLabs(Ulaw, TelephonyCodec.Pcmu, format));
         Assert.Equal(Ulaw, AudioConverter.ElevenLabsToTelephony(Ulaw, format, TelephonyCodec.Pcmu));
@@ -29,7 +29,7 @@ public class AudioConverterTests
     [Fact]
     public void Pcm16000DoublesSampleCountAndRoundTrips()
     {
-        var format = ElevenLabsAudioFormat.Parse("pcm_16000");
+        var format = VoiceAudioFormat.Parse("pcm_16000");
         var frame = AudioConverter.EncodeG711(Sine(160, 8000), TelephonyCodec.Pcma);
 
         var up = AudioConverter.TelephonyToElevenLabs(frame, TelephonyCodec.Pcma, format);

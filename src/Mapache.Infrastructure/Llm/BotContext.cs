@@ -24,9 +24,18 @@ public static class BotContext
         IReadOnlyCollection<FormTemplate> forms,
         CallSettings? callSettings,
         BusinessHoursState hours = BusinessHoursState.Open,
+        string? hoursMessage = null) =>
+        Build(ToolNames(request), directory, forms, callSettings, hours, hoursMessage);
+
+    /// <param name="tools">Nombres de todas las herramientas disponibles: las del agente y las de Mapache.</param>
+    public static string? Build(
+        IReadOnlySet<string> tools,
+        IReadOnlyCollection<DirectoryEntry> directory,
+        IReadOnlyCollection<FormTemplate> forms,
+        CallSettings? callSettings,
+        BusinessHoursState hours = BusinessHoursState.Open,
         string? hoursMessage = null)
     {
-        var tools = ToolNames(request);
         var parts = new List<string?>();
 
         if (hours != BusinessHoursState.Open)
@@ -61,7 +70,7 @@ public static class BotContext
         return text.Length == 0 ? null : text;
     }
 
-    private static HashSet<string> ToolNames(JsonObject request) =>
+    public static HashSet<string> ToolNames(JsonObject request) =>
         (request["tools"] as JsonArray ?? [])
             .Select(t => t?["function"]?["name"]?.GetValue<string>())
             .OfType<string>()

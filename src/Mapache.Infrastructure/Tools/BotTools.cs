@@ -25,21 +25,27 @@ public sealed record BotTool(
     };
 }
 
-/// <summary>Origen de herramientas: la base de conocimiento, las peticiones HTTP, los servidores MCP.</summary>
+/// <summary>Qué extensión atiende y qué llamada es; nulos fuera de una llamada (pruebas, panel).</summary>
+public sealed record BotCallContext(Guid? ExtensionId, Guid? CallId)
+{
+    public static readonly BotCallContext None = new(null, null);
+}
+
+/// <summary>Origen de herramientas: conocimiento, peticiones HTTP, servidores MCP, transferencias, recados...</summary>
 public interface IBotToolSource
 {
-    Task<IReadOnlyList<BotTool>> GetToolsAsync(CancellationToken ct);
+    Task<IReadOnlyList<BotTool>> GetToolsAsync(BotCallContext call, CancellationToken ct);
 }
 
 /// <summary>Reúne las herramientas de todos los orígenes. La primera con un nombre gana.</summary>
 public sealed class BotToolRegistry(IEnumerable<IBotToolSource> sources)
 {
-    public async Task<IReadOnlyDictionary<string, BotTool>> LoadAsync(CancellationToken ct)
+    public async Task<IReadOnlyDictionary<string, BotTool>> LoadAsync(BotCallContext call, CancellationToken ct)
     {
         var tools = new Dictionary<string, BotTool>(StringComparer.Ordinal);
         foreach (var source in sources)
         {
-            foreach (var tool in await source.GetToolsAsync(ct))
+            foreach (var tool in await source.GetToolsAsync(call, ct))
             {
                 tools.TryAdd(tool.Name, tool);
             }

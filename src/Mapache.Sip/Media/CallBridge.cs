@@ -22,7 +22,7 @@ public sealed class CallBridge : IAsyncDisposable
 
     private readonly SIPUserAgent _ua;
     private readonly RTPSession _rtp;
-    private readonly ElevenLabsConversation _conversation;
+    private readonly IVoiceSession _conversation;
     private readonly TelephonyCodec _codec;
     private readonly string _transferDomain;
     private readonly ILogger _logger;
@@ -39,7 +39,7 @@ public sealed class CallBridge : IAsyncDisposable
     public CallBridge(
         SIPUserAgent ua,
         RTPSession rtp,
-        ElevenLabsConversation conversation,
+        IVoiceSession conversation,
         string transferDomain,
         ILogger logger)
     {
@@ -53,7 +53,7 @@ public sealed class CallBridge : IAsyncDisposable
         _codec = negotiated == SIPSorceryMedia.Abstractions.AudioCodecsEnum.PCMA ? TelephonyCodec.Pcma : TelephonyCodec.Pcmu;
 
         _logger.LogInformation(
-            "Bridge iniciado: conversación {ConversationId}, códec {Codec}, ElevenLabs in={In} out={Out}, passthrough in={PassIn} out={PassOut}",
+            "Bridge iniciado: conversación {ConversationId}, códec {Codec}, voz in={In} out={Out}, passthrough in={PassIn} out={PassOut}",
             conversation.ConversationId, _codec, conversation.InputFormat, conversation.OutputFormat,
             AudioConverter.IsPassthrough(_codec, conversation.InputFormat),
             AudioConverter.IsPassthrough(_codec, conversation.OutputFormat));
@@ -73,7 +73,7 @@ public sealed class CallBridge : IAsyncDisposable
             _logger.LogInformation("Usuario: {Text}", text);
         };
         _conversation.AgentResponse += text => _logger.LogInformation("Agente: {Text}", text);
-        _conversation.Closed += reason => _ended.TrySetResult($"ElevenLabs: {reason}");
+        _conversation.Closed += reason => _ended.TrySetResult($"voz: {reason}");
 
         var uplink = Task.Run(UplinkLoopAsync);
         var downlink = Task.Run(DownlinkLoopAsync);
@@ -113,20 +113,51 @@ public sealed class CallBridge : IAsyncDisposable
         }
     }
 
+    /// <summary>
+    /// Sube el audio de quien llama al proveedor de voz. Muchos teléfonos y centrales dejan de mandar RTP en
+    /// silencio (supresión de silencio, VAD): sin audio el proveedor no detecta el fin del turno y el bot no
+    /// responde nunca, así que los huecos se rellenan con silencio al ritmo de un frame cada 20 ms.
+    /// </summary>
     private async Task UplinkLoopAsync()
     {
+        var silenceByte = _codec == TelephonyCodec.Pcmu ? (byte)0xFF : (byte)0xD5;
+        var silence = AudioConverter.TelephonyToElevenLabs(Enumerable.Repeat(silenceByte, FrameSamples).ToArray(), _codec, _conversation.InputFormat);
+        var gap = TimeSpan.FromMilliseconds(60);
+        var lastAudio = Stopwatch.StartNew();
+        var lastSilence = Stopwatch.StartNew();
+
         try
         {
-            await foreach (var g711 in _inbound.Reader.ReadAllAsync(_cts.Token))
+            while (!_cts.IsCancellationRequested)
             {
-                var pcm = AudioConverter.DecodeG711(g711, _codec);
-                if (AudioConverter.Rms(pcm) > VoiceRmsThreshold)
+                using var wait = CancellationTokenSource.CreateLinkedTokenSource(_cts.Token);
+                wait.CancelAfter(FrameDuration);
+                byte[]? g711 = null;
+                try
                 {
-                    _latency.OnUserVoice();
+                    g711 = await _inbound.Reader.ReadAsync(wait.Token);
+                }
+                catch (OperationCanceledException) when (!_cts.IsCancellationRequested)
+                {
+                    // Sin paquete en 20 ms: se decide abajo si toca silencio.
                 }
 
-                var audio = AudioConverter.TelephonyToElevenLabs(g711, _codec, _conversation.InputFormat);
-                await _conversation.SendUserAudioAsync(audio, _cts.Token);
+                if (g711 is not null)
+                {
+                    lastAudio.Restart();
+                    var pcm = AudioConverter.DecodeG711(g711, _codec);
+                    if (AudioConverter.Rms(pcm) > VoiceRmsThreshold)
+                    {
+                        _latency.OnUserVoice();
+                    }
+
+                    await _conversation.SendUserAudioAsync(AudioConverter.TelephonyToElevenLabs(g711, _codec, _conversation.InputFormat), _cts.Token);
+                }
+                else if (lastAudio.Elapsed > gap && lastSilence.Elapsed >= FrameDuration)
+                {
+                    lastSilence.Restart();
+                    await _conversation.SendUserAudioAsync(silence, _cts.Token);
+                }
             }
         }
         catch (OperationCanceledException)
@@ -134,7 +165,7 @@ public sealed class CallBridge : IAsyncDisposable
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error enviando audio a ElevenLabs");
+            _logger.LogError(ex, "Error enviando audio al proveedor de voz");
             _ended.TrySetResult("error en uplink");
         }
     }

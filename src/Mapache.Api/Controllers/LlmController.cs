@@ -43,11 +43,26 @@ public sealed class LlmController(
     TimeProvider time,
     ILogger<LlmController> logger) : ControllerBase
 {
-    /// <summary>Custom LLM del agente de ElevenLabs (su URL se configura como <c>https://&lt;host&gt;/api/llm/v1</c>).</summary>
+    /// <summary>
+    /// Custom LLM del agente de voz. ElevenLabs lo usa como <c>https://&lt;host&gt;/api/llm/v1</c>; Deepgram arma la
+    /// URL desde la base <c>https://&lt;host&gt;/api/llm</c>, así que se aceptan ambas rutas.
+    /// </summary>
     [HttpPost("v1/chat/completions")]
+    [HttpPost("chat/completions")]
     [Authorize(Policy = AgentToolAuthenticationHandler.PolicyName)]
     public async Task ChatCompletions([FromBody] JsonObject request, CancellationToken ct)
     {
+        // Deepgram no manda el extra body de ElevenLabs: la llamada viaja en headers y se normaliza aquí.
+        if (request["elevenlabs_extra_body"] is null
+            && Request.Headers["x-mapache-extension"].ToString() is { Length: > 0 } extensionId)
+        {
+            request["elevenlabs_extra_body"] = new JsonObject
+            {
+                ["extension_id"] = extensionId,
+                ["call_id"] = Request.Headers["x-mapache-call"].ToString(),
+            };
+        }
+
         Response.ContentType = "text/event-stream";
         Response.Headers.CacheControl = "no-cache";
         // nginx no debe acumular la respuesta: cada fragmento es voz que el llamante está esperando.

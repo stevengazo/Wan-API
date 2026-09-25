@@ -13,6 +13,7 @@ Documentación del motor SIP y la API de Mapache. Para una vista general, empiez
 
 | Guía | Para qué |
 |------|----------|
+| [Proveedores de voz](voz.md) | ElevenLabs, OpenAI Realtime o Deepgram |
 | [Motor SIP](motor-sip.md) | Registrar cuentas SIP y recibir llamadas |
 | [LLM del bot](llm.md) | Elegir proveedor de IA y entender qué contexto recibe el modelo |
 | [Conocimiento](conocimiento.md) | Que el bot responda con tus documentos |

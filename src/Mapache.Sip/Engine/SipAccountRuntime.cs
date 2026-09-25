@@ -282,22 +282,28 @@ internal sealed class SipAccountRuntime : IAsyncDisposable
         var agent = await _services.VoiceAgent.GetAsync(_cts.Token);
         if (agent is null)
         {
-            _logger.LogWarning("Llamada rechazada: falta configurar ElevenLabs en el panel");
+            _logger.LogWarning("Llamada rechazada: falta configurar la voz en el panel");
             uas.Reject(SIPResponseStatusCodesEnum.ServiceUnavailable, null, null);
-            return (CallStatus.Failed, "falta configurar ElevenLabs (API key y agente)");
+            return (CallStatus.Failed, "falta configurar el proveedor de voz (Configuración → Voz)");
         }
 
         uas.Progress(SIPResponseStatusCodesEnum.Ringing, null, null, null, null);
         var rtp = CreateRtpSession();
 
         // Se abre la conversación mientras suena, así el agente está listo al contestar.
-        var conversation = await ElevenLabsConversation.StartAsync(
-            _services.Http.CreateClient("elevenlabs"),
-            agent,
-            new Dictionary<string, string> { ["caller_id"] = caller, ["extension_name"] = _ext.Name },
-            _logger,
-            _cts.Token,
-            new JsonObject { ["extension_id"] = _ext.Id.ToString(), ["call_id"] = callId.ToString() });
+        IVoiceSession conversation;
+        try
+        {
+            conversation = await VoiceSessionFactory.StartAsync(
+                agent, new VoiceCallContext(_ext.Id, callId, caller, _ext.Name), _services.Http.CreateClient("voice"), _services.Brain, _logger, _cts.Token);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            _logger.LogError(ex, "No se pudo abrir la conversación con {Provider}", agent.DisplayName);
+            uas.Reject(SIPResponseStatusCodesEnum.ServiceUnavailable, null, null);
+            rtp.Close("voz no disponible");
+            return (CallStatus.Failed, $"{agent.DisplayName} no respondió: {ex.Message}");
+        }
 
         conversation.UserTranscript += text => _ = _services.Events.TranscriptAsync(callId, TranscriptSpeaker.Caller, text);
         conversation.AgentResponse += text => _ = _services.Events.TranscriptAsync(callId, TranscriptSpeaker.Agent, text);

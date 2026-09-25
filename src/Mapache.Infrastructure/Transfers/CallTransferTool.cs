@@ -1,5 +1,7 @@
 using Mapache.Domain.Entities;
+using Mapache.Infrastructure.Persistence;
 using Mapache.Infrastructure.Tools;
+using Microsoft.EntityFrameworkCore;
 
 namespace Mapache.Infrastructure.Transfers;
 
@@ -50,5 +52,29 @@ public static class CallTransferTool
 
         var matches = DirectoryPrompt.Search(directory, target, limit: 2);
         return matches.Count == 1 ? matches[0] : null;
+    }
+}
+
+/// <summary>
+/// Ofrece <c>transfer_call</c> solo cuando tiene sentido: hay una llamada, la extensión está en horario y el
+/// directorio tiene destinos. Sin <see cref="ICallTransfer"/> (fuera de la API) no ofrece nada.
+/// </summary>
+public sealed class TransferToolSource(MapacheDbContext db, TimeProvider time, ICallTransfer? transfer = null) : IBotToolSource
+{
+    public async Task<IReadOnlyList<BotTool>> GetToolsAsync(BotCallContext call, CancellationToken ct)
+    {
+        if (transfer is null || call is not { CallId: { } callId, ExtensionId: { } extensionId })
+        {
+            return [];
+        }
+
+        var extension = await db.Extensions.AsNoTracking().SingleOrDefaultAsync(e => e.Id == extensionId, ct);
+        if (extension is null || extension.BusinessHours.StateAt(time.GetUtcNow()) != BusinessHoursState.Open)
+        {
+            return [];
+        }
+
+        var directory = await db.DirectoryEntries.AsNoTracking().Where(d => d.Enabled).ToListAsync(ct);
+        return directory.Count == 0 ? [] : [CallTransferTool.Create(callId, directory, transfer)];
     }
 }

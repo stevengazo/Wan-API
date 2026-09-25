@@ -73,7 +73,7 @@ public sealed class SiteSettingsController(MapacheDbContext db, IOptions<AppOpti
     }
 
     /// <summary>Solo http(s) absoluto, sin la barra final para poder concatenar rutas.</summary>
-    private static string? Normalize(string? value) =>
+    public static string? Normalize(string? value) =>
         Uri.TryCreate(value?.Trim(), UriKind.Absolute, out var uri) && (uri.Scheme == Uri.UriSchemeHttps || uri.Scheme == Uri.UriSchemeHttp)
             ? uri.GetLeftPart(UriPartial.Path).TrimEnd('/')
             : null;

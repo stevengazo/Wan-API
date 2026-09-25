@@ -109,7 +109,7 @@ public sealed partial class McpConnector(ISecretProtector protector, TimeProvide
 /// <summary>Herramientas habilitadas de los servidores MCP activos, con la lista guardada en la última sincronización.</summary>
 public sealed class McpToolSource(MapacheDbContext db, McpConnector connector) : IBotToolSource
 {
-    public async Task<IReadOnlyList<BotTool>> GetToolsAsync(CancellationToken ct)
+    public async Task<IReadOnlyList<BotTool>> GetToolsAsync(BotCallContext call, CancellationToken ct)
     {
         var servers = await db.McpServers.AsNoTracking().Where(s => s.Enabled).ToListAsync(ct);
         return servers
