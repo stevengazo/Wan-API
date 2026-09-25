@@ -12,6 +12,10 @@ public class MapacheDbContext(DbContextOptions<MapacheDbContext> options) : DbCo
 
     public DbSet<Call> Calls => Set<Call>();
 
+    public DbSet<LlmSettings> LlmSettings => Set<LlmSettings>();
+
+    public DbSet<LlmProviderSettings> LlmProviderSettings => Set<LlmProviderSettings>();
+
     public DbSet<CallTranscript> CallTranscripts => Set<CallTranscript>();
 
     /// <summary>Llaves de Data Protection: si se pierden, las contraseñas SIP cifradas quedan ilegibles.</summary>
@@ -35,6 +39,11 @@ public class MapacheDbContext(DbContextOptions<MapacheDbContext> options) : DbCo
             e.Property(x => x.Name).HasMaxLength(128);
             e.Property(x => x.SipServer).HasMaxLength(256);
             e.Property(x => x.SipProxy).HasMaxLength(256);
+            e.Property(x => x.SecondarySipServer).HasMaxLength(256);
+            e.Property(x => x.MediaEncryption).HasConversion<string>().HasMaxLength(16);
+            e.Property(x => x.DtmfMode).HasConversion<string>().HasMaxLength(16);
+            e.Property(x => x.VoicemailNumber).HasMaxLength(64);
+            e.Property(x => x.DialPrefix).HasMaxLength(32);
             e.Property(x => x.SipUsername).HasMaxLength(128);
             e.Property(x => x.SipDomain).HasMaxLength(256);
             e.Property(x => x.AuthUsername).HasMaxLength(128);
@@ -43,9 +52,20 @@ public class MapacheDbContext(DbContextOptions<MapacheDbContext> options) : DbCo
             e.Property(x => x.PublicAddress).HasMaxLength(256);
             e.Property(x => x.StunServer).HasMaxLength(256);
             e.Property(x => x.AnswerMode).HasConversion<string>().HasMaxLength(32);
-            e.Property(x => x.LlmProvider).HasConversion<string>().HasMaxLength(32);
-            e.Property(x => x.LlmModel).HasMaxLength(128);
             e.HasIndex(x => new { x.SipServer, x.SipUsername }).IsUnique();
+        });
+
+        modelBuilder.Entity<LlmSettings>(e =>
+        {
+            e.Property(s => s.Id).ValueGeneratedNever();
+            e.Property(s => s.ActiveProvider).HasConversion<string>().HasMaxLength(32);
+        });
+
+        modelBuilder.Entity<LlmProviderSettings>(e =>
+        {
+            e.HasKey(p => p.Provider);
+            e.Property(p => p.Provider).HasConversion<string>().HasMaxLength(32);
+            e.Property(p => p.Model).HasMaxLength(128);
         });
 
         modelBuilder.Entity<Call>(e =>

@@ -7,6 +7,25 @@ public enum SipTransport
     Tls,
 }
 
+/// <summary>Cifrado del audio (SRTP).</summary>
+public enum MediaEncryption
+{
+    Disabled,
+
+    /// <summary>Ofrece SRTP pero acepta RTP sin cifrar si el otro extremo no lo soporta.</summary>
+    Optional,
+    Mandatory,
+}
+
+/// <summary>Cómo se envían y reciben los tonos DTMF.</summary>
+public enum DtmfMode
+{
+    /// <summary>Eventos RTP (RFC 2833 / 4733): lo más compatible.</summary>
+    Rfc2833,
+    SipInfo,
+    Inband,
+}
+
 /// <summary>Quién contesta las llamadas entrantes de la cuenta.</summary>
 public enum AnswerMode
 {
@@ -29,6 +48,9 @@ public class Extension
 
     /// <summary>Registrar SIP: <c>host</c> o <c>host:puerto</c>.</summary>
     public required string SipServer { get; set; }
+
+    /// <summary>Registrar de respaldo: se usa si el principal deja de responder.</summary>
+    public string? SecondarySipServer { get; set; }
 
     /// <summary>Proxy saliente opcional; vacío = se usa <see cref="SipServer"/>.</summary>
     public string? SipProxy { get; set; }
@@ -57,19 +79,47 @@ public class Extension
 
     public int RegisterExpirySeconds { get; set; } = 300;
 
+    /// <summary>Espera antes de reintentar un REGISTER fallido.</summary>
+    public int RegisterRetrySeconds { get; set; } = 30;
+
     /// <summary>Intervalo de keepalive para mantener abierto el NAT; 0 = deshabilitado.</summary>
     public int KeepAliveSeconds { get; set; } = 15;
 
+    /// <summary>Puerto local de señalización SIP; 0 = lo elige el sistema.</summary>
+    public int LocalPort { get; set; }
+
+    /// <summary>Usar la IP y el puerto con que el servidor nos ve (rport) en lugar de los locales.</summary>
+    public bool AllowIpRewrite { get; set; } = true;
+
+    /// <summary>ICE para atravesar NAT en el audio.</summary>
+    public bool UseIce { get; set; }
+
+    public MediaEncryption MediaEncryption { get; set; } = MediaEncryption.Disabled;
+
+    /// <summary>Códecs habilitados en orden de preferencia (ver <see cref="SupportedCodecs"/>).</summary>
+    public List<string> Codecs { get; set; } = ["PCMU", "PCMA"];
+
+    public DtmfMode DtmfMode { get; set; } = DtmfMode.Rfc2833;
+
+    /// <summary>Refresco de sesión (RFC 4028) para detectar llamadas colgadas; 0 = deshabilitado.</summary>
+    public int SessionTimerSeconds { get; set; } = 1800;
+
+    /// <summary>Llamadas simultáneas que atiende la cuenta; 0 = sin límite.</summary>
+    public int MaxConcurrentCalls { get; set; }
+
+    /// <summary>Número del buzón de voz del servidor.</summary>
+    public string? VoicemailNumber { get; set; }
+
+    /// <summary>Prefijo que se antepone a los números marcados (p. ej. para salir a la red pública).</summary>
+    public string? DialPrefix { get; set; }
+
+    /// <summary>Ocultar el número en las llamadas salientes (anónimo).</summary>
+    public bool HideCallerId { get; set; }
+
+    /// <summary>PCMU primero: con <c>ulaw_8000</c> en ElevenLabs el audio pasa sin transcodificar.</summary>
+    public static readonly IReadOnlyList<string> SupportedCodecs = ["PCMU", "PCMA", "G722", "G729", "opus"];
+
     public AnswerMode AnswerMode { get; set; } = AnswerMode.Bot;
-
-    /// <summary>Proveedor del LLM del bot; nulo = el de <c>Llm:DefaultProvider</c>.</summary>
-    public LlmProvider? LlmProvider { get; set; }
-
-    /// <summary>Modelo del proveedor; vacío = el modelo por defecto configurado para ese proveedor.</summary>
-    public string? LlmModel { get; set; }
-
-    /// <summary>Instrucciones del bot para esta cuenta; vacío = las del agente de ElevenLabs.</summary>
-    public string? SystemPrompt { get; set; }
 
     public bool Enabled { get; set; } = true;
 

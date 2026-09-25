@@ -1,5 +1,8 @@
 using System.Text.Json.Nodes;
 using Mapache.Domain.Entities;
+using Mapache.Infrastructure.Persistence;
+using Mapache.Infrastructure.Security;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
@@ -10,46 +13,47 @@ public sealed record LlmSelection(LlmProvider Provider, string Model, string? Sy
 
 /// <summary>
 /// Custom LLM de ElevenLabs: recibe la petición en formato OpenAI y la resuelve con el proveedor
-/// que tenga configurada la cuenta SIP de la llamada.
+/// activo en la configuración general.
 /// </summary>
 public sealed class ChatCompletionRouter(
+    MapacheDbContext db,
+    ISecretProtector protector,
     IOptionsMonitor<LlmOptions> options,
     OpenAiCompatibleChatClient openAiCompatible,
     AnthropicChatClient anthropic,
     ILogger<ChatCompletionRouter> logger)
 {
-    public LlmSelection Resolve(Extension? extension)
+    public async Task StreamAsync(JsonObject request, Stream output, CancellationToken ct)
     {
-        var provider = extension?.LlmProvider ?? options.CurrentValue.DefaultProvider;
-        var model = string.IsNullOrWhiteSpace(extension?.LlmModel)
-            ? options.CurrentValue.For(provider).DefaultModel
-            : extension.LlmModel;
-        return new LlmSelection(provider, model, extension?.SystemPrompt);
-    }
+        var settings = await db.LlmSettings.AsNoTracking().SingleOrDefaultAsync(ct) ?? new LlmSettings();
+        var provider = settings.ActiveProvider;
+        var stored = await db.LlmProviderSettings.AsNoTracking().SingleOrDefaultAsync(p => p.Provider == provider, ct);
+        var defaults = options.CurrentValue.For(provider);
 
-    public async Task StreamAsync(LlmSelection selection, JsonObject request, Stream output, CancellationToken ct)
-    {
-        var provider = options.CurrentValue.For(selection.Provider);
-        if (!provider.IsConfigured)
+        if (stored?.ApiKeyEncrypted is not { } encryptedKey)
         {
-            throw new LlmException($"El proveedor {selection.Provider} no tiene API key o modelo por defecto configurados");
+            throw new LlmException($"El proveedor {provider} no tiene API key configurada");
         }
 
-        Prepare(request, selection);
-        logger.LogInformation("Custom LLM: {Provider} {Model}", selection.Provider, selection.Model);
+        var model = string.IsNullOrWhiteSpace(stored.Model) ? defaults.DefaultModel : stored.Model;
+        var selection = new LlmSelection(provider, model, settings.SystemPrompt);
+        var apiKey = protector.Unprotect(encryptedKey);
 
-        if (selection.Provider == LlmProvider.Anthropic)
+        Prepare(request, selection);
+        logger.LogInformation("Custom LLM: {Provider} {Model}", provider, model);
+
+        if (provider == LlmProvider.Anthropic)
         {
-            await anthropic.StreamAsync(provider, selection.Model, request, output, ct);
+            await anthropic.StreamAsync(apiKey, model, request, output, ct);
         }
         else
         {
-            await openAiCompatible.StreamAsync(provider, request, output, ct);
+            await openAiCompatible.StreamAsync(defaults.BaseUrl, apiKey, request, output, ct);
         }
     }
 
     /// <summary>
-    /// Deja la petición lista para el proveedor: el modelo de Mapache, las instrucciones de la cuenta en lugar
+    /// Deja la petición lista para el proveedor: el modelo de Mapache, las instrucciones generales en lugar
     /// de las del agente y sin <c>elevenlabs_extra_body</c>, que los proveedores rechazarían.
     /// </summary>
     public static void Prepare(JsonObject request, LlmSelection selection)

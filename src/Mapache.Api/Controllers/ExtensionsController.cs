@@ -16,6 +16,7 @@ public sealed record ExtensionDto(
     Guid Id,
     string Name,
     string SipServer,
+    string? SecondarySipServer,
     string? SipProxy,
     string SipUsername,
     string? SipDomain,
@@ -25,11 +26,20 @@ public sealed record ExtensionDto(
     string? PublicAddress,
     string? StunServer,
     int RegisterExpirySeconds,
+    int RegisterRetrySeconds,
     int KeepAliveSeconds,
+    int LocalPort,
+    bool AllowIpRewrite,
+    bool UseIce,
+    MediaEncryption MediaEncryption,
+    IReadOnlyList<string> Codecs,
+    DtmfMode DtmfMode,
+    int SessionTimerSeconds,
+    int MaxConcurrentCalls,
+    string? VoicemailNumber,
+    string? DialPrefix,
+    bool HideCallerId,
     AnswerMode AnswerMode,
-    LlmProvider? LlmProvider,
-    string? LlmModel,
-    string? SystemPrompt,
     bool Enabled,
     DateTimeOffset CreatedAt,
     DateTimeOffset UpdatedAt);
@@ -43,6 +53,7 @@ public sealed record SaveExtensionRequest(
     [Required(ErrorMessage = Messages.Required), StringLength(256, ErrorMessage = Messages.MaxLength)] string SipServer,
     [Required(ErrorMessage = Messages.Required), StringLength(128, ErrorMessage = Messages.MaxLength)] string SipUsername,
     [StringLength(256, ErrorMessage = Messages.MaxLength)] string? SipPassword,
+    [StringLength(256, ErrorMessage = Messages.MaxLength)] string? SecondarySipServer = null,
     [StringLength(256, ErrorMessage = Messages.MaxLength)] string? SipProxy = null,
     [StringLength(256, ErrorMessage = Messages.MaxLength)] string? SipDomain = null,
     [StringLength(128, ErrorMessage = Messages.MaxLength)] string? AuthUsername = null,
@@ -51,11 +62,20 @@ public sealed record SaveExtensionRequest(
     [StringLength(256, ErrorMessage = Messages.MaxLength)] string? PublicAddress = null,
     [StringLength(256, ErrorMessage = Messages.MaxLength)] string? StunServer = null,
     [Range(60, 3600, ErrorMessage = Messages.Range)] int RegisterExpirySeconds = 300,
+    [Range(5, 3600, ErrorMessage = Messages.Range)] int RegisterRetrySeconds = 30,
     [Range(0, 300, ErrorMessage = Messages.Range)] int KeepAliveSeconds = 15,
+    [Range(0, 65535, ErrorMessage = Messages.Range)] int LocalPort = 0,
+    bool AllowIpRewrite = true,
+    bool UseIce = false,
+    MediaEncryption MediaEncryption = MediaEncryption.Disabled,
+    IReadOnlyList<string>? Codecs = null,
+    DtmfMode DtmfMode = DtmfMode.Rfc2833,
+    [Range(0, 7200, ErrorMessage = Messages.Range)] int SessionTimerSeconds = 1800,
+    [Range(0, 100, ErrorMessage = Messages.Range)] int MaxConcurrentCalls = 0,
+    [StringLength(64, ErrorMessage = Messages.MaxLength)] string? VoicemailNumber = null,
+    [StringLength(32, ErrorMessage = Messages.MaxLength)] string? DialPrefix = null,
+    bool HideCallerId = false,
     AnswerMode AnswerMode = AnswerMode.Bot,
-    LlmProvider? LlmProvider = null,
-    [StringLength(128, ErrorMessage = Messages.MaxLength)] string? LlmModel = null,
-    [StringLength(8000, ErrorMessage = Messages.MaxLength)] string? SystemPrompt = null,
     bool Enabled = true);
 
 [ApiController]
@@ -157,15 +177,18 @@ public sealed class ExtensionsController(
     // Filtrar y ordenar antes de proyectar: EF no traduce predicados sobre un record construido.
     private static IQueryable<ExtensionDto> Project(IQueryable<Extension> query) =>
         query.AsNoTracking().Select(e => new ExtensionDto(
-            e.Id, e.Name, e.SipServer, e.SipProxy, e.SipUsername, e.SipDomain, e.AuthUsername, e.DisplayName,
-            e.Transport, e.PublicAddress, e.StunServer, e.RegisterExpirySeconds, e.KeepAliveSeconds,
-            e.AnswerMode, e.LlmProvider, e.LlmModel, e.SystemPrompt, e.Enabled, e.CreatedAt, e.UpdatedAt));
+            e.Id, e.Name, e.SipServer, e.SecondarySipServer, e.SipProxy, e.SipUsername, e.SipDomain, e.AuthUsername,
+            e.DisplayName, e.Transport, e.PublicAddress, e.StunServer, e.RegisterExpirySeconds, e.RegisterRetrySeconds,
+            e.KeepAliveSeconds, e.LocalPort, e.AllowIpRewrite, e.UseIce, e.MediaEncryption, e.Codecs, e.DtmfMode,
+            e.SessionTimerSeconds, e.MaxConcurrentCalls, e.VoicemailNumber, e.DialPrefix, e.HideCallerId,
+            e.AnswerMode, e.Enabled, e.CreatedAt, e.UpdatedAt));
 
     /// <summary>Copia todo salvo la contraseña, que crear y editar tratan distinto.</summary>
     private static void Apply(Extension extension, SaveExtensionRequest request, DateTimeOffset now)
     {
         extension.Name = request.Name.Trim();
         extension.SipServer = request.SipServer.Trim();
+        extension.SecondarySipServer = Optional(request.SecondarySipServer);
         extension.SipProxy = Optional(request.SipProxy);
         extension.SipUsername = request.SipUsername.Trim();
         extension.SipDomain = Optional(request.SipDomain);
@@ -175,19 +198,42 @@ public sealed class ExtensionsController(
         extension.PublicAddress = Optional(request.PublicAddress);
         extension.StunServer = Optional(request.StunServer);
         extension.RegisterExpirySeconds = request.RegisterExpirySeconds;
+        extension.RegisterRetrySeconds = request.RegisterRetrySeconds;
         extension.KeepAliveSeconds = request.KeepAliveSeconds;
+        extension.LocalPort = request.LocalPort;
+        extension.AllowIpRewrite = request.AllowIpRewrite;
+        extension.UseIce = request.UseIce;
+        extension.MediaEncryption = request.MediaEncryption;
+        extension.Codecs = NormalizeCodecs(request.Codecs);
+        extension.DtmfMode = request.DtmfMode;
+        extension.SessionTimerSeconds = request.SessionTimerSeconds;
+        extension.MaxConcurrentCalls = request.MaxConcurrentCalls;
+        extension.VoicemailNumber = Optional(request.VoicemailNumber);
+        extension.DialPrefix = Optional(request.DialPrefix);
+        extension.HideCallerId = request.HideCallerId;
         extension.AnswerMode = request.AnswerMode;
-        extension.LlmProvider = request.LlmProvider;
-        extension.LlmModel = Optional(request.LlmModel);
-        extension.SystemPrompt = Optional(request.SystemPrompt);
         extension.Enabled = request.Enabled;
         extension.UpdatedAt = now;
     }
 
     private static string? Optional(string? value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
 
+    /// <summary>Sin lista se usan los códecs por defecto; los nombres se llevan a su forma canónica.</summary>
+    private static List<string> NormalizeCodecs(IReadOnlyList<string>? codecs) =>
+        codecs is null or { Count: 0 }
+            ? ["PCMU", "PCMA"]
+            : codecs.Select(c => Extension.SupportedCodecs.First(s => s.Equals(c.Trim(), StringComparison.OrdinalIgnoreCase)))
+                .Distinct()
+                .ToList();
+
     private async Task<ActionResult?> ValidateAsync(Guid? id, SaveExtensionRequest request, CancellationToken ct)
     {
+        if (request.Codecs?.FirstOrDefault(c => !Extension.SupportedCodecs.Contains(c.Trim(), StringComparer.OrdinalIgnoreCase)) is { } unknown)
+        {
+            ModelState.AddModelError(nameof(SaveExtensionRequest.Codecs), $"Códec no soportado: {unknown}");
+            return ValidationProblem(ModelState);
+        }
+
         var server = request.SipServer.Trim();
         var username = request.SipUsername.Trim();
         if (await db.Extensions.AnyAsync(e => e.SipServer == server && e.SipUsername == username && e.Id != id, ct))

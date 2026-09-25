@@ -1,8 +1,11 @@
+using System.ComponentModel.DataAnnotations;
 using System.Text.Json.Nodes;
+using Mapache.Api.Auth;
 using Mapache.Api.Webhooks;
 using Mapache.Domain.Entities;
 using Mapache.Infrastructure.Llm;
 using Mapache.Infrastructure.Persistence;
+using Mapache.Infrastructure.Security;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Mvc;
@@ -11,27 +14,40 @@ using Microsoft.Extensions.Options;
 
 namespace Mapache.Api.Controllers;
 
-public sealed record LlmProviderDto(LlmProvider Provider, bool Configured, string DefaultModel, bool IsDefault);
+/// <summary>La API key nunca sale de la API; solo se informa si está cargada.</summary>
+public sealed record LlmProviderSettingsDto(LlmProvider Provider, string? Model, string DefaultModel, bool HasApiKey);
+
+public sealed record LlmSettingsDto(LlmProvider ActiveProvider, string? SystemPrompt, IReadOnlyList<LlmProviderSettingsDto> Providers);
+
+/// <summary>
+/// <c>ApiKey</c> nula o vacía conserva la guardada; <c>ClearApiKey</c> la borra.
+/// </summary>
+public sealed record SaveLlmProviderRequest(
+    LlmProvider Provider,
+    [StringLength(128, ErrorMessage = Messages.MaxLength)] string? Model,
+    [StringLength(512, ErrorMessage = Messages.MaxLength)] string? ApiKey,
+    bool ClearApiKey = false);
+
+public sealed record SaveLlmSettingsRequest(
+    LlmProvider ActiveProvider,
+    [StringLength(8000, ErrorMessage = Messages.MaxLength)] string? SystemPrompt,
+    [Required(ErrorMessage = Messages.Required)] IReadOnlyList<SaveLlmProviderRequest> Providers);
 
 [ApiController]
 [Route("api/llm")]
 public sealed class LlmController(
     MapacheDbContext db,
     ChatCompletionRouter router,
+    ISecretProtector protector,
     IOptionsMonitor<LlmOptions> options,
+    TimeProvider time,
     ILogger<LlmController> logger) : ControllerBase
 {
-    /// <summary>
-    /// Custom LLM del agente de ElevenLabs (su URL se configura como <c>https://&lt;host&gt;/api/llm/v1</c>).
-    /// La cuenta SIP llega en <c>elevenlabs_extra_body.extension_id</c>; sin ella se usa el proveedor por defecto.
-    /// </summary>
+    /// <summary>Custom LLM del agente de ElevenLabs (su URL se configura como <c>https://&lt;host&gt;/api/llm/v1</c>).</summary>
     [HttpPost("v1/chat/completions")]
     [Authorize(Policy = AgentToolAuthenticationHandler.PolicyName)]
     public async Task ChatCompletions([FromBody] JsonObject request, CancellationToken ct)
     {
-        var extension = await FindExtensionAsync(request, ct);
-        var selection = router.Resolve(extension);
-
         Response.ContentType = "text/event-stream";
         Response.Headers.CacheControl = "no-cache";
         // nginx no debe acumular la respuesta: cada fragmento es voz que el llamante está esperando.
@@ -40,11 +56,11 @@ public sealed class LlmController(
 
         try
         {
-            await router.StreamAsync(selection, request, Response.Body, ct);
+            await router.StreamAsync(request, Response.Body, ct);
         }
         catch (LlmException ex) when (!Response.HasStarted)
         {
-            logger.LogWarning(ex, "Custom LLM sin respuesta de {Provider}", selection.Provider);
+            logger.LogWarning(ex, "Custom LLM sin respuesta del proveedor");
             Response.ContentType = "application/problem+json";
             Response.StatusCode = StatusCodes.Status502BadGateway;
             await Response.WriteAsJsonAsync(new ProblemDetails { Status = 502, Title = ex.Message }, ct);
@@ -52,29 +68,65 @@ public sealed class LlmController(
         catch (LlmException ex)
         {
             // Ya se envió parte de la respuesta: solo queda cortar el stream.
-            logger.LogWarning(ex, "Custom LLM cortado a mitad de respuesta ({Provider})", selection.Provider);
+            logger.LogWarning(ex, "Custom LLM cortado a mitad de respuesta");
         }
     }
 
-    /// <summary>Proveedores disponibles para el panel: cuáles tienen API key y su modelo por defecto.</summary>
-    [HttpGet("providers")]
+    [HttpGet("settings")]
     [Authorize]
-    public IReadOnlyList<LlmProviderDto> Providers()
+    public async Task<LlmSettingsDto> GetSettings(CancellationToken ct)
     {
-        var current = options.CurrentValue;
-        return Enum.GetValues<LlmProvider>()
-            .Select(p => new LlmProviderDto(p, current.For(p).IsConfigured, current.For(p).DefaultModel, p == current.DefaultProvider))
-            .ToList();
+        var settings = await db.LlmSettings.AsNoTracking().SingleOrDefaultAsync(ct) ?? new LlmSettings();
+        var stored = await db.LlmProviderSettings.AsNoTracking().ToDictionaryAsync(p => p.Provider, ct);
+        return ToDto(settings, stored);
     }
 
-    private async Task<Extension?> FindExtensionAsync(JsonObject request, CancellationToken ct)
+    [HttpPut("settings")]
+    [Authorize(Roles = Roles.Admin)]
+    public async Task<LlmSettingsDto> SaveSettings(SaveLlmSettingsRequest request, CancellationToken ct)
     {
-        var raw = request["elevenlabs_extra_body"]?["extension_id"]?.ToString();
-        if (!Guid.TryParse(raw, out var id))
+        var settings = await db.LlmSettings.SingleOrDefaultAsync(ct);
+        if (settings is null)
         {
-            return null;
+            settings = new LlmSettings();
+            db.LlmSettings.Add(settings);
         }
 
-        return await db.Extensions.AsNoTracking().SingleOrDefaultAsync(e => e.Id == id, ct);
+        settings.ActiveProvider = request.ActiveProvider;
+        settings.SystemPrompt = string.IsNullOrWhiteSpace(request.SystemPrompt) ? null : request.SystemPrompt.Trim();
+        settings.UpdatedAt = time.GetUtcNow();
+
+        var stored = await db.LlmProviderSettings.ToDictionaryAsync(p => p.Provider, ct);
+        foreach (var item in request.Providers)
+        {
+            if (!stored.TryGetValue(item.Provider, out var provider))
+            {
+                provider = new LlmProviderSettings { Provider = item.Provider };
+                db.LlmProviderSettings.Add(provider);
+                stored[item.Provider] = provider;
+            }
+
+            provider.Model = string.IsNullOrWhiteSpace(item.Model) ? null : item.Model.Trim();
+            if (item.ClearApiKey)
+            {
+                provider.ApiKeyEncrypted = null;
+            }
+            else if (!string.IsNullOrWhiteSpace(item.ApiKey))
+            {
+                provider.ApiKeyEncrypted = protector.Protect(item.ApiKey.Trim());
+            }
+        }
+
+        await db.SaveChangesAsync(ct);
+        return ToDto(settings, stored);
     }
+
+    private LlmSettingsDto ToDto(LlmSettings settings, IReadOnlyDictionary<LlmProvider, LlmProviderSettings> stored) =>
+        new(settings.ActiveProvider, settings.SystemPrompt, Enum.GetValues<LlmProvider>()
+            .Select(p => new LlmProviderSettingsDto(
+                p,
+                stored.GetValueOrDefault(p)?.Model,
+                options.CurrentValue.For(p).DefaultModel,
+                stored.GetValueOrDefault(p)?.ApiKeyEncrypted is not null))
+            .ToList());
 }

@@ -20,7 +20,7 @@ public sealed class AnthropicChatClient(TimeProvider time, ILogger<AnthropicChat
     private AnthropicClient? _client;
     private string? _clientKey;
 
-    public async Task StreamAsync(LlmProviderOptions provider, string model, JsonObject request, Stream output, CancellationToken ct)
+    public async Task StreamAsync(string apiKey, string model, JsonObject request, Stream output, CancellationToken ct)
     {
         var parameters = new MessageCreateParams
         {
@@ -63,7 +63,7 @@ public sealed class AnthropicChatClient(TimeProvider time, ILogger<AnthropicChat
 
         try
         {
-            await foreach (var streamEvent in Client(provider).Beta.Messages.CreateStreaming(parameters, ct))
+            await foreach (var streamEvent in Client(apiKey).Beta.Messages.CreateStreaming(parameters, ct))
             {
                 if (streamEvent.TryPickContentBlockStart(out var start) && start.ContentBlock.TryPickBetaToolUse(out var toolUse))
                 {
@@ -115,13 +115,13 @@ public sealed class AnthropicChatClient(TimeProvider time, ILogger<AnthropicChat
         await writer.WriteFinishAsync(finishReason, ct);
     }
 
-    private AnthropicClient Client(LlmProviderOptions provider)
+    private AnthropicClient Client(string apiKey)
     {
-        // Se recrea solo si cambia la key (IOptionsMonitor la puede recargar sin reiniciar).
-        if (_client is null || _clientKey != provider.ApiKey)
+        // Se recrea solo si cambia la key (se edita desde el panel sin reiniciar).
+        if (_client is null || _clientKey != apiKey)
         {
-            _client = new AnthropicClient { ApiKey = provider.ApiKey };
-            _clientKey = provider.ApiKey;
+            _client = new AnthropicClient { ApiKey = apiKey };
+            _clientKey = apiKey;
         }
 
         return _client;

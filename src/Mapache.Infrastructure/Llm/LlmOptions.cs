@@ -2,12 +2,13 @@ using Mapache.Domain.Entities;
 
 namespace Mapache.Infrastructure.Llm;
 
+/// <summary>
+/// Valores fijos por proveedor. Lo que se elige desde el panel (proveedor activo, modelo, API key,
+/// instrucciones) vive en la base: <see cref="LlmSettings"/> y <see cref="LlmProviderSettings"/>.
+/// </summary>
 public sealed class LlmOptions
 {
     public const string SectionName = "Llm";
-
-    /// <summary>Proveedor para las cuentas que no eligen uno.</summary>
-    public LlmProvider DefaultProvider { get; set; } = LlmProvider.OpenAi;
 
     public LlmProviderOptions OpenAi { get; set; } = new() { BaseUrl = "https://api.openai.com/v1" };
 
@@ -27,12 +28,9 @@ public sealed class LlmOptions
 
 public sealed class LlmProviderOptions
 {
-    public string ApiKey { get; set; } = "";
-
+    /// <summary>Modelo cuando el panel no elige uno.</summary>
     public string DefaultModel { get; set; } = "";
 
     /// <summary>Solo para los proveedores compatibles con OpenAI.</summary>
     public string BaseUrl { get; set; } = "";
-
-    public bool IsConfigured => !string.IsNullOrWhiteSpace(ApiKey) && !string.IsNullOrWhiteSpace(DefaultModel);
 }

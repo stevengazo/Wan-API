@@ -11,13 +11,13 @@ namespace Mapache.Infrastructure.Llm;
 /// </summary>
 public sealed class OpenAiCompatibleChatClient(HttpClient http, ILogger<OpenAiCompatibleChatClient> logger)
 {
-    public async Task StreamAsync(LlmProviderOptions provider, JsonObject request, Stream output, CancellationToken ct)
+    public async Task StreamAsync(string baseUrl, string apiKey, JsonObject request, Stream output, CancellationToken ct)
     {
-        using var message = new HttpRequestMessage(HttpMethod.Post, $"{provider.BaseUrl.TrimEnd('/')}/chat/completions")
+        using var message = new HttpRequestMessage(HttpMethod.Post, $"{baseUrl.TrimEnd('/')}/chat/completions")
         {
             Content = new StringContent(request.ToJsonString(), Encoding.UTF8, "application/json"),
         };
-        message.Headers.Authorization = new AuthenticationHeaderValue("Bearer", provider.ApiKey);
+        message.Headers.Authorization = new AuthenticationHeaderValue("Bearer", apiKey);
 
         using var response = await http.SendAsync(message, HttpCompletionOption.ResponseHeadersRead, ct);
         if (!response.IsSuccessStatusCode)
