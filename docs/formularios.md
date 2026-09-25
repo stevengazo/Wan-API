@@ -116,6 +116,15 @@ Cuando alguien no puede atender, el bot toma un recado con la tool `leave_messag
 
 En el panel, los recados pasan por los estados **Nuevo → Leído → Resuelto** y llegan en vivo.
 
+### Compartir un recado (WhatsApp)
+
+**Compartir** genera un enlace público con vencimiento (1 hora, 24 horas, 7 o 30 días) para mandarlo por WhatsApp u otro canal. Quien lo abre ve el recado, el número para devolver la llamada (se toca para llamar) y, si la llamada se grabó, puede escucharla, sin iniciar sesión.
+
+- El enlace es el id del recado firmado con vencimiento (ASP.NET Data Protection): no se guarda nada y vence solo.
+- Deja de funcionar si se borra el recado. Si se filtró, bórralo o espera a que venza.
+- La página pública responde con `Cache-Control: no-store` y `X-Robots-Tag: noindex`.
+- La URL usa la **URL pública** de Configuración → General.
+
 ## Grabaciones
 
 Con **Grabar llamadas** activo (Configuración → Llamadas):

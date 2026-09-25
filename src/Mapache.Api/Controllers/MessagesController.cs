@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using System.Text.Json.Serialization;
 using Mapache.Api.Auth;
 using Mapache.Api.Realtime;
 using Mapache.Api.Webhooks;
@@ -27,14 +28,17 @@ public sealed record CallMessageDto(
 
 public sealed record UpdateMessageRequest(CallMessageStatus Status);
 
-/// <summary>Server tool <c>leave_message</c>. <c>ConversationId</c> se mapea a <c>system__conversation_id</c>.</summary>
+/// <summary>
+/// Server tool <c>leave_message</c>. Los parámetros van en snake_case, como se definen en el agente de
+/// ElevenLabs; <c>conversation_id</c> se mapea a <c>system__conversation_id</c>.
+/// </summary>
 public sealed record LeaveMessageToolRequest(
     [Required(ErrorMessage = Messages.Required), StringLength(128, ErrorMessage = Messages.MaxLength)] string Recipient,
     [Required(ErrorMessage = Messages.Required), StringLength(4000, ErrorMessage = Messages.MaxLength)] string Message,
-    [StringLength(128, ErrorMessage = Messages.MaxLength)] string? CallerName = null,
-    [StringLength(64, ErrorMessage = Messages.MaxLength)] string? CallbackNumber = null,
+    [StringLength(128, ErrorMessage = Messages.MaxLength)][property: JsonPropertyName("caller_name")] string? CallerName = null,
+    [StringLength(64, ErrorMessage = Messages.MaxLength)][property: JsonPropertyName("callback_number")] string? CallbackNumber = null,
     bool Urgent = false,
-    string? ConversationId = null);
+    [property: JsonPropertyName("conversation_id")] string? ConversationId = null);
 
 [ApiController]
 public sealed class MessagesController(

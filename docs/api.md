@@ -98,6 +98,8 @@ Responde `409` si intentas borrarte a ti mismo o dejar el sistema sin administra
 | `GET` | `/messages` | usuario | |
 | `PATCH` / `DELETE` | `/messages/{id}` | usuario / admin | Estado: `New`, `Read`, `Done` |
 | `POST` | `/agent-tools/messages` | agente | Server tool `leave_message` |
+| `POST` | `/messages/{id}/share` | usuario | `{expiresInHours}` (1–720) → `{token, expiresAt}` para el enlace `/r/{token}` |
+| `GET` | `/public/messages/{token}`, `/public/messages/{token}/audio` | anónimo (token válido) | Recado y audio del enlace público |
 | `GET` | `/recordings` | usuario | |
 | `GET` | `/recordings/{id}/audio` | usuario | MP3 con soporte de rangos |
 | `DELETE` | `/recordings/{id}` | admin | |

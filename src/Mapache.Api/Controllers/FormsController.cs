@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
 using Mapache.Api.Auth;
 using Mapache.Api.Realtime;
@@ -69,8 +70,8 @@ public sealed record FormDraftDto(string Name, string? Description, IReadOnlyLis
 public sealed record SubmitFormToolRequest(
     [Required(ErrorMessage = Messages.Required)] string Form,
     [Required(ErrorMessage = Messages.Required)] Dictionary<string, string?> Values,
-    string? ConversationId = null,
-    string? CallerNumber = null);
+    [property: JsonPropertyName("conversation_id")] string? ConversationId = null,
+    [property: JsonPropertyName("caller_number")] string? CallerNumber = null);
 
 /// <summary>Respuesta para el bot: siempre 200, con lo que falta si no se pudo guardar.</summary>
 public sealed record ToolResult(bool Ok, string Message, IReadOnlyList<string>? Problems = null);
