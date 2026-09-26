@@ -1,7 +1,7 @@
-using Mapache.Domain.Entities;
-using Mapache.Infrastructure.Transfers;
+using Wan.Domain.Entities;
+using Wan.Infrastructure.Transfers;
 
-namespace Mapache.Tests.Llm;
+namespace Wan.Tests.Llm;
 
 public class DirectoryPromptTests
 {

@@ -5,12 +5,12 @@ using Amazon.S3.Model;
 using Azure.Storage.Blobs;
 using Azure.Storage.Blobs.Models;
 using Azure.Storage.Sas;
-using Mapache.Domain.Entities;
-using Mapache.Infrastructure.Persistence;
-using Mapache.Infrastructure.Security;
+using Wan.Domain.Entities;
+using Wan.Infrastructure.Persistence;
+using Wan.Infrastructure.Security;
 using Microsoft.EntityFrameworkCore;
 
-namespace Mapache.Infrastructure.Recordings;
+namespace Wan.Infrastructure.Recordings;
 
 /// <summary>
 /// Dónde escuchar una grabación: un archivo local (con rangos), una URL firmada de corta duración o, si está
@@ -149,7 +149,7 @@ public sealed class AzureBlobRecordingStorage(string connectionString, string co
 /// Guarda, abre y borra grabaciones en el almacenamiento que corresponda: las nuevas van al configurado en el
 /// panel; las existentes se abren donde quedaron (<see cref="Recording.Storage"/>).
 /// </summary>
-public sealed class RecordingService(MapacheDbContext db, RecordingStore localStore, ISecretProtector protector, TimeProvider time)
+public sealed class RecordingService(WanDbContext db, RecordingStore localStore, ISecretProtector protector, TimeProvider time)
 {
     public async Task<Recording> SaveAsync(
         string conversationId, Stream content, string contentType, Guid? callId, double? durationSeconds, CancellationToken ct)
@@ -238,13 +238,13 @@ public sealed class RecordingService(MapacheDbContext db, RecordingStore localSt
         var storage = Create(settings);
         try
         {
-            var key = $"{(string.IsNullOrWhiteSpace(settings.Prefix) ? "" : settings.Prefix.Trim('/') + "/")}mapache-prueba-{Guid.NewGuid():N}.txt";
+            var key = $"{(string.IsNullOrWhiteSpace(settings.Prefix) ? "" : settings.Prefix.Trim('/') + "/")}wan-prueba-{Guid.NewGuid():N}.txt";
             if (settings.Provider == StorageProvider.Local)
             {
-                key = $"mapache-prueba-{Guid.NewGuid():N}.txt";
+                key = $"wan-prueba-{Guid.NewGuid():N}.txt";
             }
 
-            using var content = new MemoryStream("Prueba de Mapache"u8.ToArray());
+            using var content = new MemoryStream("Prueba de Wan"u8.ToArray());
             await storage.SaveAsync(key, content, "text/plain", ct);
             _ = await storage.OpenAsync(key, "text/plain", ct);
             await storage.DeleteAsync(key, ct);

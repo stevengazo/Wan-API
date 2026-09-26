@@ -1,11 +1,11 @@
-using Mapache.Sip.Media;
+using Wan.Sip.Media;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
-namespace Mapache.Sip.Engine;
+namespace Wan.Sip.Engine;
 
 /// <summary>Dependencias que comparten las cuentas en funcionamiento.</summary>
 internal sealed record SipRuntimeServices(

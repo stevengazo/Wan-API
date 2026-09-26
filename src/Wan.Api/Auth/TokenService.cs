@@ -1,11 +1,11 @@
 using System.Security.Claims;
 using System.Text;
-using Mapache.Domain.Entities;
+using Wan.Domain.Entities;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.JsonWebTokens;
 using Microsoft.IdentityModel.Tokens;
 
-namespace Mapache.Api.Auth;
+namespace Wan.Api.Auth;
 
 public sealed class TokenService(IOptions<JwtOptions> options, TimeProvider time)
 {

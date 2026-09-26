@@ -1,12 +1,12 @@
-using Mapache.Api.Realtime;
-using Mapache.Domain.Entities;
-using Mapache.Infrastructure.Campaigns;
-using Mapache.Infrastructure.Persistence;
-using Mapache.Sip.Engine;
+using Wan.Api.Realtime;
+using Wan.Domain.Entities;
+using Wan.Infrastructure.Campaigns;
+using Wan.Infrastructure.Persistence;
+using Wan.Sip.Engine;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 
-namespace Mapache.Api.Campaigns;
+namespace Wan.Api.Campaigns;
 
 /// <summary>
 /// Marcador de campañas: cada pocos segundos toma los contactos pendientes de las campañas en curso y lanza
@@ -44,7 +44,7 @@ public sealed class CampaignDialer(
     private async Task RecoverAsync(CancellationToken ct)
     {
         using var scope = scopes.CreateScope();
-        var db = scope.ServiceProvider.GetRequiredService<MapacheDbContext>();
+        var db = scope.ServiceProvider.GetRequiredService<WanDbContext>();
         var stuck = await db.CampaignContacts.Where(c => c.Status == CampaignContactStatus.Calling)
             .ExecuteUpdateAsync(s => s.SetProperty(c => c.Status, CampaignContactStatus.Pending), ct);
         if (stuck > 0)
@@ -56,7 +56,7 @@ public sealed class CampaignDialer(
     private async Task DialAsync(CancellationToken ct)
     {
         using var scope = scopes.CreateScope();
-        var db = scope.ServiceProvider.GetRequiredService<MapacheDbContext>();
+        var db = scope.ServiceProvider.GetRequiredService<WanDbContext>();
         var now = time.GetUtcNow();
         var campaigns = await db.Campaigns.Include(c => c.Extension).Where(c => c.Status == CampaignStatus.Running).ToListAsync(ct);
 
@@ -131,7 +131,7 @@ public sealed class CampaignDialer(
         }
 
         using var scope = scopes.CreateScope();
-        var db = scope.ServiceProvider.GetRequiredService<MapacheDbContext>();
+        var db = scope.ServiceProvider.GetRequiredService<WanDbContext>();
         var contact = await db.CampaignContacts.SingleOrDefaultAsync(c => c.Id == contactId, CancellationToken.None);
         if (contact is null)
         {

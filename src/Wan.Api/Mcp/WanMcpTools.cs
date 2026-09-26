@@ -1,30 +1,30 @@
 using System.ComponentModel;
 using System.Text.Json;
-using Mapache.Api.Realtime;
-using Mapache.Domain.Entities;
-using Mapache.Infrastructure.Knowledge;
-using Mapache.Infrastructure.Persistence;
-using Mapache.Infrastructure.Transfers;
+using Wan.Api.Realtime;
+using Wan.Domain.Entities;
+using Wan.Infrastructure.Knowledge;
+using Wan.Infrastructure.Persistence;
+using Wan.Infrastructure.Transfers;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using ModelContextProtocol.Server;
 
-namespace Mapache.Api.Mcp;
+namespace Wan.Api.Mcp;
 
 /// <summary>
-/// Herramientas del servidor MCP de Mapache (<c>/api/mcp</c>) para agentes externos. Devuelven JSON compacto:
+/// Herramientas del servidor MCP de Wan (<c>/api/mcp</c>) para agentes externos. Devuelven JSON compacto:
 /// lo leen modelos, no personas.
 /// </summary>
 [McpServerToolType]
-public sealed class MapacheMcpTools(
-    MapacheDbContext db,
+public sealed class WanMcpTools(
+    WanDbContext db,
     KnowledgeService knowledge,
     IHubContext<EventsHub, IEventsClient> events)
 {
     private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);
 
     [McpServerTool(Name = "search_knowledge_base", ReadOnly = true)]
-    [Description("Busca en las bases de conocimiento activas de Mapache (políticas, precios, horarios). Devuelve los fragmentos más relevantes con su documento.")]
+    [Description("Busca en las bases de conocimiento activas de Wan (políticas, precios, horarios). Devuelve los fragmentos más relevantes con su documento.")]
     public async Task<string> SearchKnowledgeBase(
         [Description("Qué buscar, en lenguaje natural")] string query,
         CancellationToken ct)

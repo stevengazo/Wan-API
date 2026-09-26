@@ -1,14 +1,14 @@
-using Mapache.Api.Audit;
+using Wan.Api.Audit;
 using System.ComponentModel.DataAnnotations;
-using Mapache.Api.Auth;
-using Mapache.Api.Mcp;
-using Mapache.Domain.Entities;
-using Mapache.Infrastructure.Persistence;
+using Wan.Api.Auth;
+using Wan.Api.Mcp;
+using Wan.Domain.Entities;
+using Wan.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
-namespace Mapache.Api.Controllers;
+namespace Wan.Api.Controllers;
 
 public sealed record McpAccessTokenDto(
     Guid Id,
@@ -29,16 +29,16 @@ public sealed record CreateMcpAccessTokenRequest(
 
 public sealed record UpdateMcpAccessTokenRequest(bool AllowAll, IReadOnlyList<string>? AllowedTools);
 
-/// <summary>Tokens para el servidor MCP de Mapache.</summary>
+/// <summary>Tokens para el servidor MCP de Wan.</summary>
 [ApiController]
 [Authorize(Roles = Roles.Admin)]
-public sealed class McpAccessController(MapacheDbContext db, TimeProvider time, AuditLog audit) : ControllerBase
+public sealed class McpAccessController(WanDbContext db, TimeProvider time, AuditLog audit) : ControllerBase
 {
     [HttpGet("api/mcp-tokens")]
     public async Task<IReadOnlyList<McpAccessTokenDto>> List(CancellationToken ct) =>
         (await db.McpAccessTokens.AsNoTracking().OrderByDescending(t => t.CreatedAt).ToListAsync(ct)).Select(ToDto).ToList();
 
-    /// <summary>Herramientas del servidor MCP de Mapache, para elegir los permisos de cada token.</summary>
+    /// <summary>Herramientas del servidor MCP de Wan, para elegir los permisos de cada token.</summary>
     [HttpGet("api/mcp-tokens/tools")]
     public IReadOnlyList<McpToolDescriptor> Tools() => McpToolPermissions.All;
 

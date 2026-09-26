@@ -1,21 +1,21 @@
 using System.ComponentModel.DataAnnotations;
 using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
-using Mapache.Api.Agent;
-using Mapache.Api.Auth;
-using Mapache.Api.Realtime;
-using Mapache.Api.Webhooks;
-using Mapache.Domain.Entities;
-using Mapache.Infrastructure.Actions;
-using Mapache.Infrastructure.Forms;
-using Mapache.Infrastructure.Llm;
-using Mapache.Infrastructure.Persistence;
+using Wan.Api.Agent;
+using Wan.Api.Auth;
+using Wan.Api.Realtime;
+using Wan.Api.Webhooks;
+using Wan.Domain.Entities;
+using Wan.Infrastructure.Actions;
+using Wan.Infrastructure.Forms;
+using Wan.Infrastructure.Llm;
+using Wan.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 
-namespace Mapache.Api.Controllers;
+namespace Wan.Api.Controllers;
 
 public sealed record FormFieldDto(string Key, string Label, FormFieldType Type, bool Required, string? Hint, IReadOnlyList<string> Options);
 
@@ -79,7 +79,7 @@ public sealed record ToolResult(bool Ok, string Message, IReadOnlyList<string>? 
 
 [ApiController]
 public sealed partial class FormsController(
-    MapacheDbContext db,
+    WanDbContext db,
     TimeProvider time,
     IHubContext<EventsHub, IEventsClient> events,
     AgentIntake intake) : ControllerBase

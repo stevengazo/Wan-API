@@ -5,7 +5,7 @@ using Anthropic.Models.Beta;
 using Anthropic.Models.Beta.Messages;
 using Microsoft.Extensions.Logging;
 
-namespace Mapache.Infrastructure.Llm;
+namespace Wan.Infrastructure.Llm;
 
 /// <summary>Claude por la Messages API; la respuesta se reescribe al formato SSE de OpenAI que espera ElevenLabs.</summary>
 public sealed class AnthropicChatClient(TimeProvider time, ILogger<AnthropicChatClient> logger)

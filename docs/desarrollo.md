@@ -5,7 +5,7 @@
 ```bash
 dotnet build                              # compilar la solución
 dotnet test                               # pruebas (xUnit)
-dotnet run --project src/Mapache.Api      # API en http://localhost:5238
+dotnet run --project src/Wan.Api      # API en http://localhost:5238
 ```
 
 ### En Windows con Smart App Control
@@ -18,7 +18,7 @@ docker run --rm -v "$PWD:/src" -w /src mcr.microsoft.com/dotnet/sdk:10.0 dotnet 
 
 ## Pruebas
 
-`tests/Mapache.Tests` cubre la lógica pura, sin base ni red:
+`tests/Wan.Tests` cubre la lógica pura, sin base ni red:
 
 | Carpeta | Qué prueba |
 |---------|------------|
@@ -34,8 +34,8 @@ Se aplican solas al arrancar. Para crear una:
 
 ```bash
 dotnet ef migrations add <Nombre> \
-  --project src/Mapache.Infrastructure \
-  --startup-project src/Mapache.Api \
+  --project src/Wan.Infrastructure \
+  --startup-project src/Wan.Api \
   --output-dir Persistence/Migrations
 ```
 
@@ -59,7 +59,7 @@ Revisa los `defaultValue` que genera EF al agregar columnas no nulas: para enums
 
 ## Agregar una herramienta al servidor MCP
 
-1. Agrega un método con `[McpServerTool]` y `[Description]` en [`Mcp/MapacheMcpTools.cs`](../src/Mapache.Api/Mcp/MapacheMcpTools.cs).
+1. Agrega un método con `[McpServerTool]` y `[Description]` en [`Mcp/WanMcpTools.cs`](../src/Wan.Api/Mcp/WanMcpTools.cs).
 2. Si solo consulta, márcala con `ReadOnly = true`: el panel la muestra en *Consultar*. Sin eso aparece en *Modificar datos*.
 3. Los tokens con acceso total la reciben sola; los demás la ven en el panel para activarla.
 

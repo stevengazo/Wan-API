@@ -1,8 +1,8 @@
 using System.Text.Json;
-using Mapache.Domain.Entities;
-using Mapache.Infrastructure.Forms;
+using Wan.Domain.Entities;
+using Wan.Infrastructure.Forms;
 
-namespace Mapache.Tests.Llm;
+namespace Wan.Tests.Llm;
 
 public class FormGeneratorTests
 {

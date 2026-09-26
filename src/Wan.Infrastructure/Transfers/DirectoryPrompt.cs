@@ -1,8 +1,8 @@
 using System.Globalization;
 using System.Text;
-using Mapache.Domain.Entities;
+using Wan.Domain.Entities;
 
-namespace Mapache.Infrastructure.Transfers;
+namespace Wan.Infrastructure.Transfers;
 
 /// <summary>Convierte el directorio en texto para el bot y busca destinos por nombre o tema.</summary>
 public static class DirectoryPrompt

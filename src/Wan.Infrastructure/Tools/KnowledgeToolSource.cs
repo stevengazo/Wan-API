@@ -1,14 +1,14 @@
-using Mapache.Infrastructure.Knowledge;
-using Mapache.Infrastructure.Persistence;
+using Wan.Infrastructure.Knowledge;
+using Wan.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 
-namespace Mapache.Infrastructure.Tools;
+namespace Wan.Infrastructure.Tools;
 
 /// <summary>
 /// <c>search_knowledge_base</c>: además del contexto que se agrega en cada turno, el bot puede buscar con
 /// sus propias palabras cuando necesita un dato puntual.
 /// </summary>
-public sealed class KnowledgeToolSource(MapacheDbContext db, KnowledgeService knowledge) : IBotToolSource
+public sealed class KnowledgeToolSource(WanDbContext db, KnowledgeService knowledge) : IBotToolSource
 {
     public const string Name = "search_knowledge_base";
 

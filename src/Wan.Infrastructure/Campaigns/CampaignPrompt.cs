@@ -1,11 +1,11 @@
 using System.Text;
 using System.Text.RegularExpressions;
-using Mapache.Domain.Entities;
-using Mapache.Infrastructure.Persistence;
-using Mapache.Infrastructure.Tools;
+using Wan.Domain.Entities;
+using Wan.Infrastructure.Persistence;
+using Wan.Infrastructure.Tools;
 using Microsoft.EntityFrameworkCore;
 
-namespace Mapache.Infrastructure.Campaigns;
+namespace Wan.Infrastructure.Campaigns;
 
 /// <summary>Instrucciones del bot en una llamada de campaña y reemplazo de las variables del contacto.</summary>
 public static partial class CampaignPrompt
@@ -60,7 +60,7 @@ public static partial class CampaignPrompt
 /// <c>campaign_result</c>: el bot registra cómo terminó la conversación con el contacto (uno de los resultados de
 /// la campaña) y notas breves. Solo existe en llamadas de campaña.
 /// </summary>
-public sealed class CampaignToolSource(MapacheDbContext db, TimeProvider time) : IBotToolSource
+public sealed class CampaignToolSource(WanDbContext db, TimeProvider time) : IBotToolSource
 {
     public const string DoNotCall = "No volver a llamar";
 

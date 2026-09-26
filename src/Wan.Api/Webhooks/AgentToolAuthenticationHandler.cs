@@ -5,7 +5,7 @@ using System.Text.Encodings.Web;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.Extensions.Options;
 
-namespace Mapache.Api.Webhooks;
+namespace Wan.Api.Webhooks;
 
 /// <summary>
 /// Esquema de autenticación para los server tools del agente: <c>Authorization: Bearer &lt;ToolToken&gt;</c>.

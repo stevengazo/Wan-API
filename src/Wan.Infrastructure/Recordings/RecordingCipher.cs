@@ -1,6 +1,6 @@
 using System.Security.Cryptography;
 
-namespace Mapache.Infrastructure.Recordings;
+namespace Wan.Infrastructure.Recordings;
 
 /// <summary>
 /// Cifrado de grabaciones con AES-256-GCM: detecta cualquier alteración del archivo al descifrar. Formato:
@@ -32,7 +32,7 @@ public static class RecordingCipher
     {
         if (sealedData.Length < HeaderSize || !sealedData[..4].SequenceEqual(Magic))
         {
-            throw new CryptographicException("No es una grabación cifrada de Mapache");
+            throw new CryptographicException("No es una grabación cifrada de Wan");
         }
 
         var plain = new byte[sealedData.Length - HeaderSize];

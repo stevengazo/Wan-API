@@ -1,12 +1,12 @@
 using System.Security.Cryptography;
 using System.Xml.Linq;
-using Mapache.Infrastructure.Security;
+using Wan.Infrastructure.Security;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.DataProtection.KeyManagement;
 using Microsoft.AspNetCore.DataProtection.Repositories;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace Mapache.Tests.Api;
+namespace Wan.Tests.Api;
 
 public class KeyEncryptionTests
 {
@@ -47,7 +47,7 @@ public class KeyEncryptionTests
         var services = new ServiceCollection();
         services.AddSingleton(masterKey);
         services.AddDataProtection()
-            .SetApplicationName("Mapache")
+            .SetApplicationName("Wan")
             .AddKeyManagementOptions(o =>
             {
                 o.XmlRepository = repository;

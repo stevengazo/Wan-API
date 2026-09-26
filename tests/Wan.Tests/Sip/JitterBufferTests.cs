@@ -1,6 +1,6 @@
-using Mapache.Sip.Media;
+using Wan.Sip.Media;
 
-namespace Mapache.Tests.Sip;
+namespace Wan.Tests.Sip;
 
 public class JitterBufferTests
 {

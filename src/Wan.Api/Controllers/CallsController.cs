@@ -1,16 +1,16 @@
-using Mapache.Api.Audit;
+using Wan.Api.Audit;
 using System.ComponentModel.DataAnnotations;
-using Mapache.Api.Auth;
-using Mapache.Api.Sip;
-using Mapache.Domain.Entities;
-using Mapache.Infrastructure.Persistence;
-using Mapache.Infrastructure.Security;
-using Mapache.Sip.Engine;
+using Wan.Api.Auth;
+using Wan.Api.Sip;
+using Wan.Domain.Entities;
+using Wan.Infrastructure.Persistence;
+using Wan.Infrastructure.Security;
+using Wan.Sip.Engine;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
-namespace Mapache.Api.Controllers;
+namespace Wan.Api.Controllers;
 
 public sealed record CallDto(
     Guid Id,
@@ -62,7 +62,7 @@ public sealed record SaveVoiceSettingsRequest(
 
 [ApiController]
 [Authorize]
-public sealed class CallsController(MapacheDbContext db, ISipEngine engine, ISecretProtector protector, TimeProvider time, AuditLog audit) : ControllerBase
+public sealed class CallsController(WanDbContext db, ISipEngine engine, ISecretProtector protector, TimeProvider time, AuditLog audit) : ControllerBase
 {
     [HttpGet("api/calls")]
     public async Task<IReadOnlyList<CallDto>> List([FromQuery] int limit = 100, CancellationToken ct = default) =>

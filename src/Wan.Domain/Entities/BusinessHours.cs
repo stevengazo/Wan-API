@@ -1,4 +1,4 @@
-namespace Mapache.Domain.Entities;
+namespace Wan.Domain.Entities;
 
 public enum BusinessHoursState
 {

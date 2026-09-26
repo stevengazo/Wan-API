@@ -1,7 +1,7 @@
 using System.Security.Cryptography;
 using System.Text;
 
-namespace Mapache.Infrastructure.Security;
+namespace Wan.Infrastructure.Security;
 
 /// <summary>
 /// Códigos de un solo uso por tiempo (RFC 6238): HMAC-SHA1, 6 dígitos, 30 segundos. Es lo que esperan Google

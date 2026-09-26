@@ -1,12 +1,12 @@
 using System.Text.Json.Nodes;
-using Mapache.Domain.Entities;
-using Mapache.Infrastructure.Forms;
-using Mapache.Infrastructure.Transfers;
+using Wan.Domain.Entities;
+using Wan.Infrastructure.Forms;
+using Wan.Infrastructure.Transfers;
 
-namespace Mapache.Infrastructure.Llm;
+namespace Wan.Infrastructure.Llm;
 
 /// <summary>
-/// Contexto que Mapache agrega a las instrucciones del bot en cada respuesta: directorio, formularios,
+/// Contexto que Wan agrega a las instrucciones del bot en cada respuesta: directorio, formularios,
 /// recados y aviso de grabación.
 /// </summary>
 public static class BotContext
@@ -27,7 +27,7 @@ public static class BotContext
         string? hoursMessage = null) =>
         Build(ToolNames(request), directory, forms, callSettings, hours, hoursMessage);
 
-    /// <param name="tools">Nombres de todas las herramientas disponibles: las del agente y las de Mapache.</param>
+    /// <param name="tools">Nombres de todas las herramientas disponibles: las del agente y las de Wan.</param>
     public static string? Build(
         IReadOnlySet<string> tools,
         IReadOnlyCollection<DirectoryEntry> directory,

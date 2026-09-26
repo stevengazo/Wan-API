@@ -2,7 +2,7 @@ using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 
-namespace Mapache.Infrastructure.Llm;
+namespace Wan.Infrastructure.Llm;
 
 /// <summary>Llamada a herramienta armada a partir de los fragmentos del stream.</summary>
 public sealed class StreamedToolCall
@@ -17,7 +17,7 @@ public sealed class StreamedToolCall
 /// <summary>
 /// Se interpone entre el proveedor y ElevenLabs en el stream SSE de chat completions. El texto pasa en el
 /// momento (es voz que el llamante espera); las llamadas a herramientas, el <c>finish_reason</c> y el
-/// <c>[DONE]</c> se retienen hasta saber si las ejecuta Mapache o se le entregan a ElevenLabs.
+/// <c>[DONE]</c> se retienen hasta saber si las ejecuta Wan o se le entregan a ElevenLabs.
 /// </summary>
 public sealed class SseToolInterceptor(Stream output) : Stream
 {

@@ -2,28 +2,28 @@ using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Encodings.Web;
-using Mapache.Infrastructure.Persistence;
+using Wan.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 
-namespace Mapache.Api.Mcp;
+namespace Wan.Api.Mcp;
 
 /// <summary>
-/// Esquema del servidor MCP de Mapache: <c>Authorization: Bearer &lt;token&gt;</c> con un token creado en el panel.
+/// Esquema del servidor MCP de Wan: <c>Authorization: Bearer &lt;token&gt;</c> con un token creado en el panel.
 /// Aparte del JWT de usuarios y del token de tools del agente.
 /// </summary>
 public sealed class McpTokenAuthenticationHandler(
     IOptionsMonitor<AuthenticationSchemeOptions> schemeOptions,
     ILoggerFactory loggerFactory,
     UrlEncoder encoder,
-    MapacheDbContext db,
+    WanDbContext db,
     TimeProvider time)
     : AuthenticationHandler<AuthenticationSchemeOptions>(schemeOptions, loggerFactory, encoder)
 {
     public const string SchemeName = "McpToken";
     public const string PolicyName = "Mcp";
-    public const string TokenPrefix = "mapache_mcp_";
+    public const string TokenPrefix = "wan_mcp_";
 
     /// <summary>Claim con cada herramienta permitida; <see cref="AllToolsValue"/> permite todas.</summary>
     public const string ToolClaim = "mcp_tool";

@@ -19,7 +19,7 @@ Desde entonces, el login pide la contraseña y después el código de 6 dígitos
 | Paso intermedio | Tras la contraseña, la API devuelve un `mfaToken` de 5 minutos. Cambiar la contraseña lo invalida. |
 | Pérdida del teléfono | Un administrador lo quita en **Usuarios → Quitar doble factor** (queda en la auditoría). |
 
-Quien entra con Google o Microsoft no pasa por el doble factor de Mapache: el segundo factor lo exige el proveedor, según la política de Google Workspace o de Entra ID.
+Quien entra con Google o Microsoft no pasa por el doble factor de Wan: el segundo factor lo exige el proveedor, según la política de Google Workspace o de Entra ID.
 
 ## Google y Microsoft
 
@@ -28,17 +28,17 @@ Se habilitan en **Configuración → Inicio de sesión**. El formulario muestra 
 ### Google
 
 1. En [Google Cloud Console](https://console.cloud.google.com/apis/credentials), ve a **APIs y servicios → Credenciales → Crear credenciales → ID de cliente de OAuth**.
-2. Tipo **Aplicación web**. En **URIs de redirección autorizados**, pega la de Mapache (`https://tu-dominio/api/auth/external/google/callback`).
-3. Copia el **ID de cliente** y el **secreto** en Mapache y activa **Permitir entrar con Google**.
+2. Tipo **Aplicación web**. En **URIs de redirección autorizados**, pega la de Wan (`https://tu-dominio/api/auth/external/google/callback`).
+3. Copia el **ID de cliente** y el **secreto** en Wan y activa **Permitir entrar con Google**.
 
 Si la pantalla de consentimiento está en modo *Prueba*, solo entran los usuarios de prueba cargados en Google Cloud. Con tipo *Interno* (Google Workspace), solo entran las cuentas de tu organización.
 
 ### Microsoft (Entra ID)
 
 1. En el [portal de Azure](https://portal.azure.com), ve a **Microsoft Entra ID → Registros de aplicaciones → Nuevo registro**.
-2. En **URI de redirección**, elige plataforma **Web** y pega la de Mapache (`https://tu-dominio/api/auth/external/microsoft/callback`).
+2. En **URI de redirección**, elige plataforma **Web** y pega la de Wan (`https://tu-dominio/api/auth/external/microsoft/callback`).
 3. En **Certificados y secretos**, crea un secreto de cliente y copia su **valor** (no su ID).
-4. En Mapache, carga el **ID de aplicación (cliente)** y el secreto, y define **Cuentas aceptadas**:
+4. En Wan, carga el **ID de aplicación (cliente)** y el secreto, y define **Cuentas aceptadas**:
 
 | Valor | Quién entra |
 |-------|-------------|

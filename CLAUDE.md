@@ -4,10 +4,10 @@ Solución .NET 10. Ver [README.md](README.md) para comandos y configuración.
 
 ## Capas
 
-- `Mapache.Domain`: entidades y contratos. Sin dependencias de infraestructura ni de ASP.NET.
-- `Mapache.Infrastructure`: EF Core (Postgres), Data Protection, integraciones. Implementa contratos de Domain.
-- `Mapache.Sip`: motor SIP y bridge de audio. No depende de Infrastructure ni de Api.
-- `Mapache.Api`: controllers, SignalR, Hangfire, autenticación. Es el único que compone todo.
+- `Wan.Domain`: entidades y contratos. Sin dependencias de infraestructura ni de ASP.NET.
+- `Wan.Infrastructure`: EF Core (Postgres), Data Protection, integraciones. Implementa contratos de Domain.
+- `Wan.Sip`: motor SIP y bridge de audio. No depende de Infrastructure ni de Api.
+- `Wan.Api`: controllers, SignalR, Hangfire, autenticación. Es el único que compone todo.
 
 ## Convenciones
 
@@ -28,10 +28,10 @@ Solución .NET 10. Ver [README.md](README.md) para comandos y configuración.
 
 ## Base de datos
 
-- Migraciones en `Mapache.Infrastructure/Persistence/Migrations`; se aplican solas al arrancar.
-- Crear con: `dotnet ef migrations add <Nombre> --project src/Mapache.Infrastructure --startup-project src/Mapache.Api --output-dir Persistence/Migrations`.
+- Migraciones en `Wan.Infrastructure/Persistence/Migrations`; se aplican solas al arrancar.
+- Crear con: `dotnet ef migrations add <Nombre> --project src/Wan.Infrastructure --startup-project src/Wan.Api --output-dir Persistence/Migrations`.
 
 ## Verificación
 
 - `dotnet build` sin warnings nuevos y `dotnet test` en verde antes de dar algo por terminado.
-- Lógica pura (audio, firmas, buffers) con pruebas unitarias en `tests/Mapache.Tests`.
+- Lógica pura (audio, firmas, buffers) con pruebas unitarias en `tests/Wan.Tests`.

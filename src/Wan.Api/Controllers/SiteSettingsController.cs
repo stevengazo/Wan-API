@@ -1,14 +1,14 @@
-using Mapache.Api.Audit;
+using Wan.Api.Audit;
 using System.ComponentModel.DataAnnotations;
-using Mapache.Api.Auth;
-using Mapache.Domain.Entities;
-using Mapache.Infrastructure.Persistence;
+using Wan.Api.Auth;
+using Wan.Domain.Entities;
+using Wan.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 
-namespace Mapache.Api.Controllers;
+namespace Wan.Api.Controllers;
 
 /// <summary>Opciones del sitio que se leen del entorno (sección App).</summary>
 public sealed class AppOptions
@@ -28,7 +28,7 @@ public sealed record SaveSiteSettingsRequest(
     [MaxLength(512, ErrorMessage = Messages.MaxLength)] string? PublicUrl);
 
 [ApiController]
-public sealed class SiteSettingsController(MapacheDbContext db, IOptions<AppOptions> options, TimeProvider time, AuditLog audit) : ControllerBase
+public sealed class SiteSettingsController(WanDbContext db, IOptions<AppOptions> options, TimeProvider time, AuditLog audit) : ControllerBase
 {
     [HttpGet("api/settings/site")]
     [Authorize]
@@ -47,7 +47,7 @@ public sealed class SiteSettingsController(MapacheDbContext db, IOptions<AppOpti
         {
             if (Normalize(request.PublicUrl) is not { } normalized)
             {
-                ModelState.AddModelError(nameof(request.PublicUrl), "Usa una URL completa, por ejemplo https://mapache.miempresa.com");
+                ModelState.AddModelError(nameof(request.PublicUrl), "Usa una URL completa, por ejemplo https://wan.miempresa.com");
                 return ValidationProblem(ModelState);
             }
 

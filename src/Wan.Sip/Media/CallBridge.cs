@@ -6,7 +6,7 @@ using SIPSorcery.Net;
 using SIPSorcery.SIP;
 using SIPSorcery.SIP.App;
 
-namespace Mapache.Sip.Media;
+namespace Wan.Sip.Media;
 
 /// <summary>
 /// Puentea una llamada SIP ya contestada con una conversación de ElevenLabs.

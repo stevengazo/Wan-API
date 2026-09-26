@@ -1,19 +1,19 @@
-using Mapache.Api.Audit;
+using Wan.Api.Audit;
 using System.ComponentModel.DataAnnotations;
 using System.Text.Json.Serialization;
-using Mapache.Api.Agent;
-using Mapache.Api.Auth;
-using Mapache.Api.Realtime;
-using Mapache.Api.Webhooks;
-using Mapache.Domain.Entities;
-using Mapache.Infrastructure.Persistence;
-using Mapache.Infrastructure.Transfers;
+using Wan.Api.Agent;
+using Wan.Api.Auth;
+using Wan.Api.Realtime;
+using Wan.Api.Webhooks;
+using Wan.Domain.Entities;
+using Wan.Infrastructure.Persistence;
+using Wan.Infrastructure.Transfers;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 
-namespace Mapache.Api.Controllers;
+namespace Wan.Api.Controllers;
 
 public sealed record CallMessageDto(
     Guid Id,
@@ -44,7 +44,7 @@ public sealed record LeaveMessageToolRequest(
 
 [ApiController]
 public sealed class MessagesController(
-    MapacheDbContext db,
+    WanDbContext db,
     IHubContext<EventsHub, IEventsClient> events,
     AgentIntake intake,
     AuditLog audit) : ControllerBase

@@ -1,4 +1,4 @@
-namespace Mapache.Api.Webhooks;
+namespace Wan.Api.Webhooks;
 
 public sealed class AgentWebhookOptions
 {

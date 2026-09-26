@@ -1,6 +1,6 @@
-using Mapache.Domain.Entities;
+using Wan.Domain.Entities;
 
-namespace Mapache.Infrastructure.Llm;
+namespace Wan.Infrastructure.Llm;
 
 /// <summary>
 /// Valores fijos por proveedor. Lo que se elige desde el panel (proveedor activo, modelo, API key,

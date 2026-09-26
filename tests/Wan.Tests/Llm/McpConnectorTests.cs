@@ -1,7 +1,7 @@
-using Mapache.Infrastructure.Tools;
+using Wan.Infrastructure.Tools;
 using ModelContextProtocol.Protocol;
 
-namespace Mapache.Tests.Llm;
+namespace Wan.Tests.Llm;
 
 public class McpConnectorTests
 {

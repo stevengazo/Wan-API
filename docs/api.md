@@ -4,14 +4,14 @@ Base: `/api`. JSON en camelCase, enums como texto. En Development el documento O
 
 ## Autenticación
 
-Mapache tiene cuatro esquemas, separados a propósito: un token de un tipo no sirve en el lugar de otro.
+Wan tiene cuatro esquemas, separados a propósito: un token de un tipo no sirve en el lugar de otro.
 
 | Esquema | Quién lo usa | Header |
 |---------|--------------|--------|
-| 🧑 **JWT** | El panel (usuarios) | Cookie HttpOnly `mapache_session`; en `POST`/`PUT`/`DELETE` además el header `X-Mapache-Client: 1` (anti-CSRF). También acepta `Authorization: Bearer <jwt>`. |
+| 🧑 **JWT** | El panel (usuarios) | Cookie HttpOnly `wan_session`; en `POST`/`PUT`/`DELETE` además el header `X-Wan-Client: 1` (anti-CSRF). También acepta `Authorization: Bearer <jwt>`. |
 | 🗣️ **Token de tools del agente** | ElevenLabs (Custom LLM y server tools) | `Authorization: Bearer <AgentWebhooks:ToolToken>` |
 | ✍️ **Firma HMAC** | Webhook post-llamada de ElevenLabs | `ElevenLabs-Signature: t=…,v0=…` |
-| 🤖 **Token MCP** | Clientes MCP | `Authorization: Bearer mapache_mcp_…` |
+| 🤖 **Token MCP** | Clientes MCP | `Authorization: Bearer wan_mcp_…` |
 
 **Roles:** `Admin` configura todo; `Operator` ve el panel y atiende recados, respuestas y grabaciones.
 
@@ -200,11 +200,11 @@ Hub `/hubs/events`. El panel escucha:
 # La sesión queda en el archivo de cookies.
 curl -s -c sesion.txt -X POST http://localhost:8080/api/auth/login \
   -H "Content-Type: application/json" \
-  -d '{"email":"admin@mapache.local","password":"..."}' > /dev/null
+  -d '{"email":"admin@wan.local","password":"..."}' > /dev/null
 
 curl -s -b sesion.txt http://localhost:8080/api/extensions/status | jq
 
 # Para escribir, sumar el header anti-CSRF.
 curl -s -b sesion.txt -X PUT http://localhost:8080/api/auth/me \
-  -H "X-Mapache-Client: 1" -H "Content-Type: application/json" -d '{"displayName":"Admin"}' 
+  -H "X-Wan-Client: 1" -H "Content-Type: application/json" -d '{"displayName":"Admin"}' 
 ```

@@ -1,16 +1,16 @@
-using Mapache.Api.Audit;
+using Wan.Api.Audit;
 using System.ComponentModel.DataAnnotations;
 using System.Text.Json;
-using Mapache.Api.Auth;
-using Mapache.Domain.Entities;
-using Mapache.Infrastructure.Actions;
-using Mapache.Infrastructure.Persistence;
-using Mapache.Infrastructure.Security;
+using Wan.Api.Auth;
+using Wan.Domain.Entities;
+using Wan.Infrastructure.Actions;
+using Wan.Infrastructure.Persistence;
+using Wan.Infrastructure.Security;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
-namespace Mapache.Api.Controllers;
+namespace Wan.Api.Controllers;
 
 /// <summary>El secreto del webhook nunca sale de la API; solo se informa si está cargado.</summary>
 public sealed record FormActionDto(
@@ -54,7 +54,7 @@ public sealed record SaveSmtpSettingsRequest(
 [ApiController]
 [Authorize(Roles = Roles.Admin)]
 public sealed partial class FormActionsController(
-    MapacheDbContext db,
+    WanDbContext db,
     ISecretProtector protector,
     FormActionSender sender,
     IFormActionQueue queue,

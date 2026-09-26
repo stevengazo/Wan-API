@@ -1,9 +1,9 @@
 using Hangfire;
-using Mapache.Api.Realtime;
+using Wan.Api.Realtime;
 using Microsoft.AspNetCore.SignalR;
-using Mapache.Infrastructure.Actions;
+using Wan.Infrastructure.Actions;
 
-namespace Mapache.Api.Jobs;
+namespace Wan.Api.Jobs;
 
 /// <summary>
 /// Job de Hangfire que ejecuta una acción de formulario. Si el destino falla, Hangfire reintenta con

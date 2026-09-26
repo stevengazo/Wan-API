@@ -4,9 +4,9 @@ using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using System.Threading.Channels;
-using Mapache.Sip.Engine;
+using Wan.Sip.Engine;
 
-namespace Mapache.Api.Phone;
+namespace Wan.Api.Phone;
 
 /// <summary>
 /// Teléfono web del panel: un WebSocket por llamada, saliente o tomada del bot. Binario = audio PCM de 16 bits a 8 kHz en ambos
@@ -30,7 +30,7 @@ public static partial class WebPhoneEndpoint
             return;
         }
 
-        var logger = loggers.CreateLogger("Mapache.Api.Phone");
+        var logger = loggers.CreateLogger("Wan.Api.Phone");
         using var socket = await http.WebSockets.AcceptWebSocketAsync();
         var ct = http.RequestAborted;
 

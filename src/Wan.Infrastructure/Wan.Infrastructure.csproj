@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <ItemGroup>
-    <ProjectReference Include="..\Mapache.Domain\Mapache.Domain.csproj" />
+    <ProjectReference Include="..\Wan.Domain\Wan.Domain.csproj" />
   </ItemGroup>
 
   <ItemGroup>

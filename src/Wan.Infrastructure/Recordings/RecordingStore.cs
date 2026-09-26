@@ -1,6 +1,6 @@
 using Microsoft.Extensions.Options;
 
-namespace Mapache.Infrastructure.Recordings;
+namespace Wan.Infrastructure.Recordings;
 
 public sealed class RecordingOptions
 {

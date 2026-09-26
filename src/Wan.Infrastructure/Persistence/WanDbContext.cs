@@ -1,13 +1,13 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using Mapache.Domain.Entities;
+using Wan.Domain.Entities;
 using Microsoft.AspNetCore.DataProtection.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using NpgsqlTypes;
 
-namespace Mapache.Infrastructure.Persistence;
+namespace Wan.Infrastructure.Persistence;
 
-public class MapacheDbContext(DbContextOptions<MapacheDbContext> options) : DbContext(options), IDataProtectionKeyContext
+public class WanDbContext(DbContextOptions<WanDbContext> options) : DbContext(options), IDataProtectionKeyContext
 {
     public DbSet<User> Users => Set<User>();
 

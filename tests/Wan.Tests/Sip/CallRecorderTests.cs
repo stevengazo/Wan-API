@@ -1,7 +1,7 @@
 using System.Buffers.Binary;
-using Mapache.Sip.Media;
+using Wan.Sip.Media;
 
-namespace Mapache.Tests.Sip;
+namespace Wan.Tests.Sip;
 
 public class CallRecorderTests
 {
@@ -22,7 +22,7 @@ public class CallRecorderTests
     [Fact]
     public async Task MixesBothSidesAndWritesAValidFile()
     {
-        var path = Path.Combine(Path.GetTempPath(), $"mapache-test-{Guid.NewGuid():N}.wav");
+        var path = Path.Combine(Path.GetTempPath(), $"wan-test-{Guid.NewGuid():N}.wav");
         try
         {
             var recorder = new CallRecorder(path);

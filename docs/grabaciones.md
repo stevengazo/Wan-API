@@ -6,7 +6,7 @@ Con **Grabar llamadas** activo (Configuración → Llamadas), cada llamada que a
 
 | Proveedor de voz | Cómo se graba | Formato |
 |------------------|---------------|---------|
-| OpenAI Realtime, Deepgram | **Mapache**: mezcla la voz de quien llama con la del bot y, si alguien toma la llamada, con la del operador | WAV PCM 16 bits 8 kHz mono (~1 MB por minuto) |
+| OpenAI Realtime, Deepgram | **Wan**: mezcla la voz de quien llama con la del bot y, si alguien toma la llamada, con la del operador | WAV PCM 16 bits 8 kHz mono (~1 MB por minuto) |
 | ElevenLabs | ElevenLabs manda el audio al terminar (webhook post-llamada con *Send audio data*) | MP3 |
 
 `CallRecorder` recibe el audio de los dos lados y, con un reloj propio de 20 ms, mezcla un cuadro de cada lado (con silencio si uno no tiene), así las pausas y la supresión de silencio no desfasan las voces. Las llamadas de menos de un segundo no se guardan.

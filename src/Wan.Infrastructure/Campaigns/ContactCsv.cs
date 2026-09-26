@@ -1,7 +1,7 @@
 using System.Globalization;
 using System.Text;
 
-namespace Mapache.Infrastructure.Campaigns;
+namespace Wan.Infrastructure.Campaigns;
 
 /// <summary>Contacto leído de un CSV: número, nombre y el resto de las columnas como variables del guion.</summary>
 public sealed record ImportedContact(string PhoneNumber, string? Name, Dictionary<string, string> Variables);

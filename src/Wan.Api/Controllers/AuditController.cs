@@ -1,11 +1,11 @@
 using System.Text;
-using Mapache.Api.Auth;
-using Mapache.Infrastructure.Persistence;
+using Wan.Api.Auth;
+using Wan.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
-namespace Mapache.Api.Controllers;
+namespace Wan.Api.Controllers;
 
 public sealed record AuditEventDto(
     Guid Id, DateTimeOffset At, Guid? UserId, string? UserEmail, string Action, string? Target, string? TargetId, string? IpAddress, string? Details);
@@ -13,7 +13,7 @@ public sealed record AuditEventDto(
 /// <summary>Consulta del registro de auditoría. Solo lectura: no hay forma de editar ni borrar eventos.</summary>
 [ApiController]
 [Authorize(Roles = Roles.Admin)]
-public sealed class AuditController(MapacheDbContext db, TimeProvider time) : ControllerBase
+public sealed class AuditController(WanDbContext db, TimeProvider time) : ControllerBase
 {
     private const int MaxRows = 2000;
 

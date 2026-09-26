@@ -1,8 +1,8 @@
 using System.Security.Claims;
-using Mapache.Domain.Entities;
-using Mapache.Infrastructure.Persistence;
+using Wan.Domain.Entities;
+using Wan.Infrastructure.Persistence;
 
-namespace Mapache.Api.Audit;
+namespace Wan.Api.Audit;
 
 /// <summary>Códigos de las acciones auditadas (el panel los traduce).</summary>
 public static class AuditActions
@@ -61,7 +61,7 @@ public sealed class AuditLog(IServiceScopeFactory scopes, IHttpContextAccessor h
         try
         {
             using var scope = scopes.CreateScope();
-            var db = scope.ServiceProvider.GetRequiredService<MapacheDbContext>();
+            var db = scope.ServiceProvider.GetRequiredService<WanDbContext>();
             db.AuditEvents.Add(entry);
             await db.SaveChangesAsync();
         }

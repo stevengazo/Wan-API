@@ -3,7 +3,7 @@ using System.Text;
 using System.Text.Json.Nodes;
 using Microsoft.Extensions.Logging;
 
-namespace Mapache.Sip.Media;
+namespace Wan.Sip.Media;
 
 /// <summary>
 /// Conversación con un proveedor de voz (ElevenLabs, OpenAI Realtime, Deepgram): recibe el audio de quien

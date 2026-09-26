@@ -1,20 +1,20 @@
-using Mapache.Infrastructure.Recordings;
+using Wan.Infrastructure.Recordings;
 using Microsoft.Extensions.Options;
-using Mapache.Infrastructure.Tools;
-using Mapache.Infrastructure.Llm;
-using Mapache.Api.Webhooks;
+using Wan.Infrastructure.Tools;
+using Wan.Infrastructure.Llm;
+using Wan.Api.Webhooks;
 using System.Text.Json.Nodes;
-using Mapache.Api.Realtime;
-using Mapache.Infrastructure.Transfers;
-using Mapache.Domain.Entities;
-using Mapache.Infrastructure.Persistence;
-using Mapache.Infrastructure.Security;
-using Mapache.Sip.Engine;
-using Mapache.Sip.Media;
+using Wan.Api.Realtime;
+using Wan.Infrastructure.Transfers;
+using Wan.Domain.Entities;
+using Wan.Infrastructure.Persistence;
+using Wan.Infrastructure.Security;
+using Wan.Sip.Engine;
+using Wan.Sip.Media;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 
-namespace Mapache.Api.Sip;
+namespace Wan.Api.Sip;
 
 /// <summary>
 /// Lo que el motor SIP necesita de la base. Son singletons (como el motor) y abren un scope por operación
@@ -25,7 +25,7 @@ public sealed class SipAccountSource(IServiceScopeFactory scopes) : ISipAccountS
     public async Task<IReadOnlyList<SipAccount>> GetEnabledAsync(CancellationToken ct)
     {
         using var scope = scopes.CreateScope();
-        var db = scope.ServiceProvider.GetRequiredService<MapacheDbContext>();
+        var db = scope.ServiceProvider.GetRequiredService<WanDbContext>();
         var protector = scope.ServiceProvider.GetRequiredService<ISecretProtector>();
         var extensions = await db.Extensions.AsNoTracking().Where(e => e.Enabled).ToListAsync(ct);
         return extensions.Select(e => new SipAccount(e, protector.Unprotect(e.SipPasswordEncrypted))).ToList();
@@ -38,7 +38,7 @@ public sealed class VoiceAgentSource(IServiceScopeFactory scopes, IOptions<Agent
     public async Task<VoiceProviderOptions?> GetAsync(CancellationToken ct)
     {
         using var scope = scopes.CreateScope();
-        var db = scope.ServiceProvider.GetRequiredService<MapacheDbContext>();
+        var db = scope.ServiceProvider.GetRequiredService<WanDbContext>();
         var protector = scope.ServiceProvider.GetRequiredService<ISecretProtector>();
         var settings = await db.VoiceSettings.AsNoTracking().SingleOrDefaultAsync(ct);
         if (settings is null)
@@ -200,7 +200,7 @@ public sealed class SipEventSink(
     public async Task<bool> RecordingEnabledAsync()
     {
         using var scope = scopes.CreateScope();
-        var db = scope.ServiceProvider.GetRequiredService<MapacheDbContext>();
+        var db = scope.ServiceProvider.GetRequiredService<WanDbContext>();
         return await db.CallSettings.AsNoTracking().AnyAsync(s => s.RecordCalls);
     }
 
@@ -231,7 +231,7 @@ public sealed class SipEventSink(
         try
         {
             using var scope = scopes.CreateScope();
-            var db = scope.ServiceProvider.GetRequiredService<MapacheDbContext>();
+            var db = scope.ServiceProvider.GetRequiredService<WanDbContext>();
             var live = await db.Calls.AsNoTracking()
                 .Where(c => c.Id == callId)
                 .Select(c => new LiveCallDto(
@@ -248,16 +248,16 @@ public sealed class SipEventSink(
         }
     }
 
-    private Task WithDbAsync(Action<MapacheDbContext> action) => WithDbAsync(db =>
+    private Task WithDbAsync(Action<WanDbContext> action) => WithDbAsync(db =>
     {
         action(db);
         return Task.CompletedTask;
     });
 
-    private async Task WithDbAsync(Func<MapacheDbContext, Task> action)
+    private async Task WithDbAsync(Func<WanDbContext, Task> action)
     {
         using var scope = scopes.CreateScope();
-        var db = scope.ServiceProvider.GetRequiredService<MapacheDbContext>();
+        var db = scope.ServiceProvider.GetRequiredService<WanDbContext>();
         await action(db);
         await db.SaveChangesAsync();
     }

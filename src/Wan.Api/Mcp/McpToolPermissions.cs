@@ -4,9 +4,9 @@ using Microsoft.Extensions.DependencyInjection;
 using ModelContextProtocol.Protocol;
 using ModelContextProtocol.Server;
 
-namespace Mapache.Api.Mcp;
+namespace Wan.Api.Mcp;
 
-/// <summary>Herramienta del servidor MCP de Mapache, para elegir permisos en el panel.</summary>
+/// <summary>Herramienta del servidor MCP de Wan, para elegir permisos en el panel.</summary>
 public sealed record McpToolDescriptor(string Name, string Description, bool ReadOnly);
 
 /// <summary>
@@ -15,8 +15,8 @@ public sealed record McpToolDescriptor(string Name, string Description, bool Rea
 /// </summary>
 public static class McpToolPermissions
 {
-    /// <summary>Las herramientas se leen de <see cref="MapacheMcpTools"/>: agregar una la suma sola a la lista.</summary>
-    public static readonly IReadOnlyList<McpToolDescriptor> All = typeof(MapacheMcpTools)
+    /// <summary>Las herramientas se leen de <see cref="WanMcpTools"/>: agregar una la suma sola a la lista.</summary>
+    public static readonly IReadOnlyList<McpToolDescriptor> All = typeof(WanMcpTools)
         .GetMethods(BindingFlags.Public | BindingFlags.Instance)
         .Select(m => (Method: m, Tool: m.GetCustomAttribute<McpServerToolAttribute>()))
         .Where(x => x.Tool?.Name is not null)

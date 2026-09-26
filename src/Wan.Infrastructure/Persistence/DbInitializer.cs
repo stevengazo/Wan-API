@@ -1,11 +1,11 @@
-using Mapache.Domain.Entities;
+using Wan.Domain.Entities;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
-namespace Mapache.Infrastructure.Persistence;
+namespace Wan.Infrastructure.Persistence;
 
 public static class DbInitializer
 {
@@ -15,7 +15,7 @@ public static class DbInitializer
     public static async Task InitializeAsync(IServiceProvider services, CancellationToken ct = default)
     {
         using var scope = services.CreateScope();
-        var db = scope.ServiceProvider.GetRequiredService<MapacheDbContext>();
+        var db = scope.ServiceProvider.GetRequiredService<WanDbContext>();
         var config = scope.ServiceProvider.GetRequiredService<IConfiguration>();
         var logger = scope.ServiceProvider.GetRequiredService<ILoggerFactory>().CreateLogger(typeof(DbInitializer));
 

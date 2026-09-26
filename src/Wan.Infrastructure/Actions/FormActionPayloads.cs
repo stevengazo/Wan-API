@@ -2,15 +2,15 @@ using System.Net;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json.Nodes;
-using Mapache.Domain.Entities;
+using Wan.Domain.Entities;
 
-namespace Mapache.Infrastructure.Actions;
+namespace Wan.Infrastructure.Actions;
 
 /// <summary>Cuerpos de cada tipo de acción a partir de una respuesta de formulario.</summary>
 public static class FormActionPayloads
 {
-    public const string SignatureHeader = "X-Mapache-Signature";
-    public const string EventHeader = "X-Mapache-Event";
+    public const string SignatureHeader = "X-Wan-Signature";
+    public const string EventHeader = "X-Wan-Event";
     public const string SubmittedEvent = "form.submitted";
 
     /// <summary>Etiqueta y valor en el orden de los campos; los que ya no existen en la plantilla van al final.</summary>

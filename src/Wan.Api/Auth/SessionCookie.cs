@@ -1,19 +1,19 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 
-namespace Mapache.Api.Auth;
+namespace Wan.Api.Auth;
 
 /// <summary>
 /// Sesión del panel en una cookie HttpOnly: el JWT no queda al alcance de JavaScript, así un XSS no puede robarlo.
 /// </summary>
 public static class SessionCookie
 {
-    public const string Name = "mapache_session";
+    public const string Name = "wan_session";
 
     /// <summary>
     /// Anti-CSRF: en métodos que cambian datos la cookie solo vale si viene este header. Un sitio ajeno no puede
     /// agregarlo sin un preflight CORS, que la API no habilita.
     /// </summary>
-    public const string ClientHeader = "X-Mapache-Client";
+    public const string ClientHeader = "X-Wan-Client";
 
     public static void Append(HttpContext context, string token, DateTimeOffset expiresAt) =>
         context.Response.Cookies.Append(Name, token, Options(context, expiresAt));

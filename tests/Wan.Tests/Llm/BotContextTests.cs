@@ -1,8 +1,8 @@
 using System.Text.Json.Nodes;
-using Mapache.Domain.Entities;
-using Mapache.Infrastructure.Llm;
+using Wan.Domain.Entities;
+using Wan.Infrastructure.Llm;
 
-namespace Mapache.Tests.Llm;
+namespace Wan.Tests.Llm;
 
 public class BotContextTests
 {

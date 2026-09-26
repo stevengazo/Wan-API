@@ -1,4 +1,4 @@
-namespace Mapache.Domain.Entities;
+namespace Wan.Domain.Entities;
 
 public enum HttpToolParameterType
 {
@@ -23,7 +23,7 @@ public class HttpToolParameter
 
 /// <summary>
 /// Petición a un sistema externo que el bot puede hacer durante la llamada para consultar o registrar datos
-/// (estado de un pedido, saldo, disponibilidad). Mapache la ejecuta y le devuelve la respuesta al bot.
+/// (estado de un pedido, saldo, disponibilidad). Wan la ejecuta y le devuelve la respuesta al bot.
 /// </summary>
 public class HttpTool
 {

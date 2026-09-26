@@ -2,13 +2,13 @@
 
 ## Vista general
 
-Mapache divide el trabajo de una llamada en tres partes:
+Wan divide el trabajo de una llamada en tres partes:
 
 | Parte | Quién la hace | Por qué |
 |-------|---------------|---------|
-| **Telefonía** (SIP, RTP) | Mapache, con SIPSorcery | Para registrarse en cualquier central, igual que un softphone, sin depender de un proveedor. |
+| **Telefonía** (SIP, RTP) | Wan, con SIPSorcery | Para registrarse en cualquier central, igual que un softphone, sin depender de un proveedor. |
 | **Voz** (reconocimiento, síntesis, turnos, interrupciones) | ElevenLabs Conversational AI | Es la parte más difícil de hacer bien y con baja latencia. |
-| **Razonamiento** (qué responder, qué herramienta usar) | Mapache como *Custom LLM* + el proveedor elegido | Para controlar el contexto, las herramientas y el proveedor sin atarse a ElevenLabs. |
+| **Razonamiento** (qué responder, qué herramienta usar) | Wan como *Custom LLM* + el proveedor elegido | Para controlar el contexto, las herramientas y el proveedor sin atarse a ElevenLabs. |
 
 ```mermaid
 flowchart TB
@@ -16,14 +16,14 @@ flowchart TB
         EXT["Extensión 100"]
     end
 
-    subgraph API["🦝 Mapache.Api"]
+    subgraph API["🦝 Wan.Api"]
         direction TB
-        subgraph SIPE["Mapache.Sip"]
+        subgraph SIPE["Wan.Sip"]
             ENG["SipEngine"] --> RT["SipAccountRuntime<br/>(una por cuenta)"]
             RT --> BR["CallBridge"]
             BR --> ELC["ElevenLabsConversation"]
         end
-        subgraph INF["Mapache.Infrastructure"]
+        subgraph INF["Wan.Infrastructure"]
             ROUTER["ChatCompletionRouter"]
             CTX["BotContext<br/>instrucciones · directorio · formularios · conocimiento"]
             LOOP["SseToolInterceptor<br/>bucle de herramientas"]
@@ -57,12 +57,12 @@ flowchart TB
 
 | Proyecto | Responsabilidad | Depende de |
 |----------|-----------------|------------|
-| `Mapache.Domain` | Entidades (`Extension`, `Call`, `FormTemplate`...) y contratos. | nada |
-| `Mapache.Infrastructure` | EF Core, cifrado (`ISecretProtector`), clientes de LLM, conocimiento, herramientas, acciones de formularios. | Domain |
-| `Mapache.Sip` | Motor SIP, puente de audio, cliente WebSocket de ElevenLabs. | Domain |
-| `Mapache.Api` | Composición: controllers, autenticación, SignalR, Hangfire, servidor MCP y los adaptadores que conectan el motor SIP con la base. | todos |
+| `Wan.Domain` | Entidades (`Extension`, `Call`, `FormTemplate`...) y contratos. | nada |
+| `Wan.Infrastructure` | EF Core, cifrado (`ISecretProtector`), clientes de LLM, conocimiento, herramientas, acciones de formularios. | Domain |
+| `Wan.Sip` | Motor SIP, puente de audio, cliente WebSocket de ElevenLabs. | Domain |
+| `Wan.Api` | Composición: controllers, autenticación, SignalR, Hangfire, servidor MCP y los adaptadores que conectan el motor SIP con la base. | todos |
 
-`Mapache.Sip` no conoce la base ni la API. Recibe lo que necesita por tres contratos que implementa la API ([`Sip/SipBindings.cs`](../src/Mapache.Api/Sip/SipBindings.cs)):
+`Wan.Sip` no conoce la base ni la API. Recibe lo que necesita por tres contratos que implementa la API ([`Sip/SipBindings.cs`](../src/Wan.Api/Sip/SipBindings.cs)):
 
 - `ISipAccountSource`: las cuentas habilitadas, con la contraseña ya descifrada.
 - `IVoiceAgentSource`: la API key y el agente de ElevenLabs.
@@ -126,7 +126,7 @@ flowchart LR
 ## Decisiones de diseño
 
 - **Custom LLM en vez del LLM de ElevenLabs.** Así se elige el proveedor desde el panel, se cambian las instrucciones sin tocar el agente y se inyecta contexto (directorio, conocimiento, formularios) en cada turno.
-- **Herramientas dentro del Custom LLM.** Las de Mapache se ejecutan en el mismo request, sin ida y vuelta por ElevenLabs. El texto previo ("déjame revisar") sale en el momento y la voz no se corta.
+- **Herramientas dentro del Custom LLM.** Las de Wan se ejecutan en el mismo request, sin ida y vuelta por ElevenLabs. El texto previo ("déjame revisar") sale en el momento y la voz no se corta.
 - **Búsqueda de texto completo en vez de embeddings.** Responde en milisegundos, funciona con cualquier proveedor (Claude no tiene API de embeddings) y no suma costo por documento. La imagen de Postgres ya trae pgvector por si se necesita más adelante.
 - **Un solo proceso.** El motor SIP, la API, Hangfire y el servidor MCP corren en el mismo contenedor. Es más simple de operar y basta para decenas de llamadas simultáneas.
 - **Secretos cifrados en la base.** Las contraseñas SIP, las API keys y los secretos de webhooks van con ASP.NET Data Protection; la API nunca los devuelve.

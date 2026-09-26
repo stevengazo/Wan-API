@@ -1,8 +1,8 @@
-using Mapache.Infrastructure.Persistence;
-using Mapache.Infrastructure.Recordings;
+using Wan.Infrastructure.Persistence;
+using Wan.Infrastructure.Recordings;
 using Microsoft.EntityFrameworkCore;
 
-namespace Mapache.Api.Audit;
+namespace Wan.Api.Audit;
 
 public sealed record RetentionResult(int Recordings, int TranscriptLines);
 
@@ -10,7 +10,7 @@ public sealed record RetentionResult(int Recordings, int TranscriptLines);
 /// Borrado automático según la retención de Configuración → Llamadas: grabaciones (del almacenamiento y de la base)
 /// y transcripciones. Corre una vez por día con Hangfire y deja constancia en la auditoría.
 /// </summary>
-public sealed class RetentionJob(MapacheDbContext db, RecordingService recordings, AuditLog audit, TimeProvider time, ILogger<RetentionJob> logger)
+public sealed class RetentionJob(WanDbContext db, RecordingService recordings, AuditLog audit, TimeProvider time, ILogger<RetentionJob> logger)
 {
     public const string JobId = "retencion";
 

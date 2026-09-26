@@ -1,4 +1,4 @@
-namespace Mapache.Domain.Entities;
+namespace Wan.Domain.Entities;
 
 /// <summary>Conjunto de documentos que el bot consulta: "Políticas", "Catálogo de planes".</summary>
 public class KnowledgeBase

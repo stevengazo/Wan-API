@@ -1,6 +1,6 @@
-using Mapache.Api.Webhooks;
+using Wan.Api.Webhooks;
 
-namespace Mapache.Tests.Api;
+namespace Wan.Tests.Api;
 
 public class ElevenLabsSignatureTests
 {

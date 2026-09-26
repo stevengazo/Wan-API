@@ -1,15 +1,15 @@
 using System.ComponentModel.DataAnnotations;
-using Mapache.Api.Audit;
-using Mapache.Api.Auth;
-using Mapache.Api.Sip;
-using Mapache.Domain.Entities;
-using Mapache.Infrastructure.Persistence;
-using Mapache.Infrastructure.Security;
+using Wan.Api.Audit;
+using Wan.Api.Auth;
+using Wan.Api.Sip;
+using Wan.Domain.Entities;
+using Wan.Infrastructure.Persistence;
+using Wan.Infrastructure.Security;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
-namespace Mapache.Api.Controllers;
+namespace Wan.Api.Controllers;
 
 /// <param name="GoogleRedirectUri">La que hay que registrar en Google Cloud; sale de la URL pública.</param>
 public sealed record SsoSettingsDto(
@@ -39,7 +39,7 @@ public sealed record SaveSsoSettingsRequest(
 
 [ApiController]
 [Authorize(Roles = Roles.Admin)]
-public sealed class SsoSettingsController(MapacheDbContext db, ISecretProtector protector, PublicUrlResolver publicUrl, TimeProvider time, AuditLog audit)
+public sealed class SsoSettingsController(WanDbContext db, ISecretProtector protector, PublicUrlResolver publicUrl, TimeProvider time, AuditLog audit)
     : ControllerBase
 {
     [HttpGet("api/settings/sso")]

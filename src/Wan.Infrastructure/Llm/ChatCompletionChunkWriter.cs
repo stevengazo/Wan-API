@@ -1,7 +1,7 @@
 using System.Text;
 using System.Text.Json.Nodes;
 
-namespace Mapache.Infrastructure.Llm;
+namespace Wan.Infrastructure.Llm;
 
 /// <summary>
 /// Escribe una respuesta en streaming con el formato SSE de chat completions de OpenAI, que es el que

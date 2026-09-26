@@ -1,13 +1,13 @@
 # 🗣️ Conectar ElevenLabs
 
-ElevenLabs pone la voz: escucha, transcribe, sintetiza y maneja los turnos. Las respuestas las arma Mapache (Custom LLM).
+ElevenLabs pone la voz: escucha, transcribe, sintetiza y maneja los turnos. Las respuestas las arma Wan (Custom LLM).
 
 ```mermaid
 flowchart LR
-    M["🦝 Mapache<br/>motor SIP"] <-- "audio (WebSocket)" --> A["Agente ElevenLabs"]
-    A -- "¿qué respondo?<br/>POST /api/llm/v1/chat/completions" --> L["🦝 Mapache<br/>Custom LLM"]
-    A -- "server tools<br/>submit_form · leave_message · search_directory" --> T["🦝 Mapache<br/>/api/agent-tools/*"]
-    A -- "al colgar<br/>transcripción + audio" --> W["🦝 Mapache<br/>/api/webhooks/elevenlabs/post-call"]
+    M["🦝 Wan<br/>motor SIP"] <-- "audio (WebSocket)" --> A["Agente ElevenLabs"]
+    A -- "¿qué respondo?<br/>POST /api/llm/v1/chat/completions" --> L["🦝 Wan<br/>Custom LLM"]
+    A -- "server tools<br/>submit_form · leave_message · search_directory" --> T["🦝 Wan<br/>/api/agent-tools/*"]
+    A -- "al colgar<br/>transcripción + audio" --> W["🦝 Wan<br/>/api/webhooks/elevenlabs/post-call"]
 ```
 
 ## 1. Crear el agente
@@ -48,7 +48,7 @@ En los parámetros `conversation_id` y `caller_number`, usa las variables de sis
 
 Para probar la configuración: `POST /api/agent-tools/ping` con el mismo header debe responder 200.
 
-Mapache solo le explica al modelo los formularios o los recados si el agente tiene la tool correspondiente: pedirle usar una herramienta que no existe lo confunde.
+Wan solo le explica al modelo los formularios o los recados si el agente tiene la tool correspondiente: pedirle usar una herramienta que no existe lo confunde.
 
 ## 4. Webhook post-llamada
 
@@ -60,12 +60,12 @@ En *Settings* → *Webhooks* de ElevenLabs:
 | Eventos | Transcripción y, para grabar, **Send audio data** |
 | Secreto | Cópialo a `AgentWebhooks:PostCallSecret` |
 
-Mapache valida el header `ElevenLabs-Signature` (HMAC-SHA256 de `"{t}.{body}"`) y rechaza firmas de más de 30 minutos.
+Wan valida el header `ElevenLabs-Signature` (HMAC-SHA256 de `"{t}.{body}"`) y rechaza firmas de más de 30 minutos.
 
 ## 5. Conectar en el panel
 
 Configuración → ElevenLabs: pega la API key (se guarda cifrada) y el ID del agente. Las llamadas siguientes ya lo usan, sin reiniciar.
 
-## Requisito: Mapache accesible desde internet
+## Requisito: Wan accesible desde internet
 
 ElevenLabs llama al Custom LLM, a las tools y al webhook desde su nube, así que la API debe tener una URL pública con HTTPS. Para desarrollar en local sirve un túnel (Cloudflare Tunnel, ngrok, etc.) apuntando a `http://localhost:8080`.

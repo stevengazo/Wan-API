@@ -1,7 +1,7 @@
 using System.Text.Json.Nodes;
 using Microsoft.Extensions.Logging;
 
-namespace Mapache.Sip.Media;
+namespace Wan.Sip.Media;
 
 /// <summary>Proveedor de voz activo con sus credenciales, tal como lo configura el panel.</summary>
 public abstract record VoiceProviderOptions
@@ -10,13 +10,13 @@ public abstract record VoiceProviderOptions
     public abstract string DisplayName { get; }
 }
 
-/// <summary>Agente de ElevenLabs con el que se abre cada conversación (su LLM es el Custom LLM de Mapache).</summary>
+/// <summary>Agente de ElevenLabs con el que se abre cada conversación (su LLM es el Custom LLM de Wan).</summary>
 public sealed record ElevenLabsOptions(string ApiKey, string AgentId, string BaseUrl = "https://api.elevenlabs.io") : VoiceProviderOptions
 {
     public override string DisplayName => "ElevenLabs";
 }
 
-/// <summary>OpenAI Realtime: voz a voz con el modelo de OpenAI; Mapache le da instrucciones y herramientas.</summary>
+/// <summary>OpenAI Realtime: voz a voz con el modelo de OpenAI; Wan le da instrucciones y herramientas.</summary>
 public sealed record OpenAiRealtimeOptions(
     string ApiKey,
     string Model,
@@ -29,7 +29,7 @@ public sealed record OpenAiRealtimeOptions(
 }
 
 /// <summary>
-/// Deepgram Voice Agent: reconocimiento y síntesis de Deepgram; las respuestas las da el Custom LLM de Mapache
+/// Deepgram Voice Agent: reconocimiento y síntesis de Deepgram; las respuestas las da el Custom LLM de Wan
 /// (<paramref name="LlmUrl"/>, autenticado con <paramref name="LlmToken"/>).
 /// </summary>
 public sealed record DeepgramAgentOptions(
@@ -45,7 +45,7 @@ public sealed record DeepgramAgentOptions(
     public override string DisplayName => "Deepgram";
 }
 
-/// <summary>Herramienta que el proveedor de voz puede pedir; Mapache la ejecuta.</summary>
+/// <summary>Herramienta que el proveedor de voz puede pedir; Wan la ejecuta.</summary>
 public sealed record VoiceToolSpec(string Name, string Description, JsonObject Parameters);
 
 /// <summary>Instrucciones y herramientas del bot para una llamada, más cómo ejecutar las herramientas.</summary>

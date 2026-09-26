@@ -1,6 +1,6 @@
 <div align="center">
 
-# 🦝 Mapache — Backend
+# 🦝 Wan — Backend
 
 **Motor SIP y API de un bot telefónico con IA.**
 Registra tus cuentas SIP, atiende las llamadas con la voz de ElevenLabs y responde con OpenAI, Gemini o Claude.
@@ -22,7 +22,7 @@ Registra tus cuentas SIP, atiende las llamadas con la voz de ElevenLabs y respon
 
 ## ✨ Qué hace
 
-Mapache es un **softphone con cerebro**. Funciona como MicroSIP: le das una cuenta SIP de cualquier central o proveedor y se registra. La diferencia es que las llamadas no las atiende una persona, sino un agente de voz con IA que:
+Wan es un **softphone con cerebro**. Funciona como MicroSIP: le das una cuenta SIP de cualquier central o proveedor y se registra. La diferencia es que las llamadas no las atiende una persona, sino un agente de voz con IA que:
 
 | | |
 |---|---|
@@ -45,7 +45,7 @@ flowchart LR
         PBX["☎️ Central / proveedor SIP"]
     end
 
-    subgraph Mapache["🦝 Mapache API (.NET 10)"]
+    subgraph Wan["🦝 Wan API (.NET 10)"]
         SIP["Motor SIP<br/>SIPSorcery"]
         Bridge["CallBridge<br/>RTP ↔ WebSocket"]
         LLM["Custom LLM<br/>/api/llm/v1"]
@@ -69,7 +69,7 @@ flowchart LR
     LLM <--> AI
     LLM <--> Tools
     API <--> Panel
-    Mapache --- DB
+    Wan --- DB
     EL -. "webhook post-llamada<br/>(firma HMAC)" .-> API
 ```
 
@@ -80,7 +80,7 @@ sequenceDiagram
     autonumber
     participant C as 📱 Quien llama
     participant P as ☎️ Central SIP
-    participant M as 🦝 Mapache
+    participant M as 🦝 Wan
     participant E as 🗣️ ElevenLabs
     participant A as 🧠 Modelo de IA
 
@@ -123,8 +123,8 @@ Abre **http://localhost:8080** y entra con el admin de `Auth__BootstrapAdmin__*`
 ### Con imágenes publicadas
 
 ```bash
-docker pull ghcr.io/<usuario>/mapache-api:latest
-docker pull ghcr.io/<usuario>/mapache-frontend:latest
+docker pull ghcr.io/<usuario>/wan-api:latest
+docker pull ghcr.io/<usuario>/wan-frontend:latest
 ```
 
 El `docker-compose.yml` para producción está en [docs/despliegue.md](docs/despliegue.md).
@@ -134,9 +134,9 @@ El `docker-compose.yml` para producción está en [docs/despliegue.md](docs/desp
 ```bash
 docker compose up -d db                 # solo Postgres
 cd backend
-dotnet user-secrets set "ConnectionStrings:Mapache" "Host=localhost;Database=mapache;Username=mapache;Password=<POSTGRES_PASSWORD>" --project src/Mapache.Api
-dotnet user-secrets set "Auth:Jwt:SigningKey" "$(openssl rand -base64 48)" --project src/Mapache.Api
-dotnet run --project src/Mapache.Api    # http://localhost:5238
+dotnet user-secrets set "ConnectionStrings:Wan" "Host=localhost;Database=mapache;Username=mapache;Password=<POSTGRES_PASSWORD>" --project src/Wan.Api
+dotnet user-secrets set "Auth:Jwt:SigningKey" "$(openssl rand -base64 48)" --project src/Wan.Api
+dotnet run --project src/Wan.Api    # http://localhost:5238
 ```
 
 La guía completa está en [docs/instalacion.md](docs/instalacion.md).
@@ -146,20 +146,20 @@ La guía completa está en [docs/instalacion.md](docs/instalacion.md).
 ```
 backend/
 ├── src/
-│   ├── Mapache.Api/             # ASP.NET Core: controllers, SignalR, Hangfire, MCP server, auth
-│   ├── Mapache.Domain/          # Entidades y contratos, sin dependencias externas
-│   ├── Mapache.Infrastructure/  # EF Core, cifrado, LLM, conocimiento, herramientas, acciones
-│   └── Mapache.Sip/             # Motor SIP y puente de audio a ElevenLabs
-├── tests/Mapache.Tests/         # xUnit: audio, firmas, LLM, herramientas
+│   ├── Wan.Api/             # ASP.NET Core: controllers, SignalR, Hangfire, MCP server, auth
+│   ├── Wan.Domain/          # Entidades y contratos, sin dependencias externas
+│   ├── Wan.Infrastructure/  # EF Core, cifrado, LLM, conocimiento, herramientas, acciones
+│   └── Wan.Sip/             # Motor SIP y puente de audio a ElevenLabs
+├── tests/Wan.Tests/         # xUnit: audio, firmas, LLM, herramientas
 ├── docs/                        # Documentación completa
 └── Dockerfile
 ```
 
 ```mermaid
 flowchart TD
-    Api[Mapache.Api] --> Domain[Mapache.Domain]
-    Api --> Infra[Mapache.Infrastructure]
-    Api --> Sip[Mapache.Sip]
+    Api[Wan.Api] --> Domain[Wan.Domain]
+    Api --> Infra[Wan.Infrastructure]
+    Api --> Sip[Wan.Sip]
     Infra --> Domain
     Sip --> Domain
 ```
@@ -194,7 +194,7 @@ flowchart TD
 | [LLM del bot](docs/llm.md) | Custom LLM, proveedores, contexto y bucle de herramientas |
 | [Conocimiento](docs/conocimiento.md) | Bases de conocimiento y búsqueda |
 | [Herramientas](docs/herramientas.md) | Peticiones HTTP y servidores MCP externos |
-| [Servidor MCP](docs/servidor-mcp.md) | Exponer Mapache a Claude, Cursor y otros agentes |
+| [Servidor MCP](docs/servidor-mcp.md) | Exponer Wan a Claude, Cursor y otros agentes |
 | [Formularios y recados](docs/formularios.md) | Formularios, acciones, generación con IA, recados, grabaciones |
 | [API](docs/api.md) | Referencia de endpoints |
 | [Seguridad](docs/seguridad.md) | Autenticación, secretos y cifrado |
@@ -211,11 +211,11 @@ Cada push a `main` y cada tag `v*.*.*` publica la imagen multi-arquitectura (`li
 | tag `v1.2.3` | `1.2.3`, `1.2`, `1`, `latest` |
 | pull request | se compila, no se publica |
 
-Se publica en `ghcr.io/<usuario>/mapache-api`, y también en Docker Hub si el repositorio tiene los secretos `DOCKERHUB_USERNAME` y `DOCKERHUB_TOKEN`.
+Se publica en `ghcr.io/<usuario>/wan-api`, y también en Docker Hub si el repositorio tiene los secretos `DOCKERHUB_USERNAME` y `DOCKERHUB_TOKEN`.
 
 ## 🤝 Contribuir
 
-Mapache es **open source**. Los issues y pull requests son bienvenidos:
+Wan es **open source**. Los issues y pull requests son bienvenidos:
 
 1. Haz un fork y crea una rama (`git checkout -b mi-mejora`).
 2. Sigue las convenciones de [docs/desarrollo.md](docs/desarrollo.md): código en inglés, comentarios y commits en español.

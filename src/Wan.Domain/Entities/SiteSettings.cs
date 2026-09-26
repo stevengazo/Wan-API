@@ -1,4 +1,4 @@
-namespace Mapache.Domain.Entities;
+namespace Wan.Domain.Entities;
 
 /// <summary>Ajustes generales del sitio. Hay una sola fila.</summary>
 public class SiteSettings
@@ -8,7 +8,7 @@ public class SiteSettings
     public int Id { get; set; } = SingletonId;
 
     /// <summary>
-    /// URL con la que se llega al panel desde internet (https://mapache.miempresa.com). Vacío = la de
+    /// URL con la que se llega al panel desde internet (https://wan.miempresa.com). Vacío = la de
     /// <c>App:PublicUrl</c> del entorno.
     /// </summary>
     public string? PublicUrl { get; set; }

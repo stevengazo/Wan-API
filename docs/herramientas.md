@@ -1,6 +1,6 @@
 # 🔌 Herramientas del bot
 
-Lo que el bot puede **consultar o hacer** durante la llamada. Mapache las ejecuta dentro del Custom LLM y le devuelve el resultado al modelo en el mismo turno (ver [llm.md](llm.md#herramientas-y-bucle)).
+Lo que el bot puede **consultar o hacer** durante la llamada. Wan las ejecuta dentro del Custom LLM y le devuelve el resultado al modelo en el mismo turno (ver [llm.md](llm.md#herramientas-y-bucle)).
 
 ## Peticiones HTTP
 
@@ -41,13 +41,13 @@ Conecta cualquier servidor [MCP](https://modelcontextprotocol.io/) con transport
 
 ```mermaid
 flowchart LR
-    B["🤖 Bot"] --> M["🦝 Mapache<br/>cliente MCP"]
+    B["🤖 Bot"] --> M["🦝 Wan<br/>cliente MCP"]
     M --> S1["Servidor MCP<br/>de tu CRM"]
     M --> S2["Servidor MCP<br/>de calendario"]
 ```
 
 1. **Herramientas → Conectar servidor MCP:** nombre, URL y headers (cifrados).
-2. Al guardar, Mapache se conecta y lee la lista de herramientas.
+2. Al guardar, Wan se conecta y lee la lista de herramientas.
 3. Desactiva las que no quieras exponer al bot: por defecto quedan todas habilitadas.
 4. *Volver a leer* (`/sync`) actualiza la lista si el servidor cambió.
 5. *Probar* ejecuta una herramienta con argumentos de ejemplo.

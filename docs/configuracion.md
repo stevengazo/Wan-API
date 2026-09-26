@@ -1,6 +1,6 @@
 # ⚙️ Configuración
 
-Mapache se configura en dos lugares:
+Wan se configura en dos lugares:
 
 - **Infraestructura** (base, JWT, tokens, red): `appsettings.json`, user-secrets o variables de entorno. Se leen al arrancar.
 - **Funcionalidad** (proveedor de IA, agente de voz, extensiones, SMTP, grabación): desde el panel. Se guarda en la base y aplica al instante.
@@ -10,7 +10,7 @@ Mapache se configura en dos lugares:
 | Fuente | Cuándo se usa |
 |--------|---------------|
 | `appsettings.json` | Valores por defecto no secretos. Los secretos aparecen vacíos, como documentación. |
-| `appsettings.Development.json` | Logs `Debug` para `Mapache.*`. |
+| `appsettings.Development.json` | Logs `Debug` para `Wan.*`. |
 | `appsettings.Production.json` | `ReverseProxy:Enabled=true`, porque en Docker la API corre detrás de nginx. |
 | user-secrets | Secretos para `dotnet run` en local. |
 | Variables de entorno (`backend/.env`) | Secretos del contenedor. El separador de secciones es `__`. |
@@ -21,15 +21,15 @@ Mapache se configura en dos lugares:
 
 | Clave | Por defecto | Descripción |
 |-------|-------------|-------------|
-| `ConnectionStrings:Mapache` | (requerida) | Cadena de Npgsql. En Docker la arma `docker-compose.yml` con `POSTGRES_PASSWORD`. |
+| `ConnectionStrings:Wan` | (requerida) | Cadena de Npgsql. En Docker la arma `docker-compose.yml` con `POSTGRES_PASSWORD`. |
 
 ### Autenticación
 
 | Clave | Por defecto | Descripción |
 |-------|-------------|-------------|
 | `Auth:Jwt:SigningKey` | (requerida) | Clave HMAC de los JWT; al menos 32 bytes. `openssl rand -base64 48`. |
-| `Auth:Jwt:Issuer` | `mapache` | |
-| `Auth:Jwt:Audience` | `mapache-panel` | |
+| `Auth:Jwt:Issuer` | `wan` | |
+| `Auth:Jwt:Audience` | `wan-panel` | |
 | `Auth:Jwt:ExpiryMinutes` | `480` | Duración de la sesión del panel. |
 | `Auth:BootstrapAdmin:Email` | vacío | Admin que se crea en el primer arranque si no hay usuarios. |
 | `Auth:BootstrapAdmin:Password` | vacío | |
@@ -75,7 +75,7 @@ Las API keys y el modelo se cargan en el panel. Aquí solo van los valores por d
 
 | Clave | Por defecto | Descripción |
 |-------|-------------|-------------|
-| `App:PublicUrl` | vacío | URL con la que se llega a Mapache desde internet (`https://mapache.miempresa.com`). Se muestra en las URLs para ElevenLabs y los clientes MCP. La de Configuración → General tiene prioridad. |
+| `App:PublicUrl` | vacío | URL con la que se llega a Wan desde internet (`https://wan.miempresa.com`). Se muestra en las URLs para ElevenLabs y los clientes MCP. La de Configuración → General tiene prioridad. |
 
 ### Otros
 

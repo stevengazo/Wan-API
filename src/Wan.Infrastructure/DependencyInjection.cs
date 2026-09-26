@@ -1,37 +1,38 @@
-using Mapache.Domain.Entities;
-using Mapache.Infrastructure.Actions;
-using Mapache.Infrastructure.Forms;
-using Mapache.Infrastructure.Knowledge;
-using Mapache.Infrastructure.Llm;
-using Mapache.Infrastructure.Persistence;
-using Mapache.Infrastructure.Recordings;
-using Mapache.Infrastructure.Security;
-using Mapache.Infrastructure.Tools;
-using Mapache.Infrastructure.Transfers;
+using Wan.Domain.Entities;
+using Wan.Infrastructure.Actions;
+using Wan.Infrastructure.Forms;
+using Wan.Infrastructure.Knowledge;
+using Wan.Infrastructure.Llm;
+using Wan.Infrastructure.Persistence;
+using Wan.Infrastructure.Recordings;
+using Wan.Infrastructure.Security;
+using Wan.Infrastructure.Tools;
+using Wan.Infrastructure.Transfers;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace Mapache.Infrastructure;
+namespace Wan.Infrastructure;
 
 public static class DependencyInjection
 {
     public static IServiceCollection AddInfrastructure(this IServiceCollection services, IConfiguration configuration)
     {
-        var connectionString = configuration.GetConnectionString("Mapache");
+        var connectionString = configuration.GetConnectionString("Wan");
         if (string.IsNullOrWhiteSpace(connectionString))
         {
-            throw new InvalidOperationException("Falta ConnectionStrings:Mapache (user-secrets o variable de entorno)");
+            throw new InvalidOperationException("Falta ConnectionStrings:Wan (user-secrets o variable de entorno)");
         }
 
-        services.AddDbContext<MapacheDbContext>(options => options.UseNpgsql(connectionString));
+        services.AddDbContext<WanDbContext>(options => options.UseNpgsql(connectionString));
 
         // Llaves en la base para que sobrevivan a redeploys del contenedor y todas las instancias compartan las mismas.
+        // El nombre de aplicación sigue siendo el original: cambiarlo invalida las llaves y los secretos ya cifrados.
         var dataProtection = services.AddDataProtection()
             .SetApplicationName("Mapache")
-            .PersistKeysToDbContext<MapacheDbContext>();
+            .PersistKeysToDbContext<WanDbContext>();
         KeyEncryption.Configure(dataProtection, configuration);
 
         services.AddSingleton<ISecretProtector, SecretProtector>();
@@ -46,14 +47,14 @@ public static class DependencyInjection
         services.AddScoped<FormGenerator>();
         services.AddScoped<KnowledgeService>();
 
-        // Herramientas que ejecuta Mapache dentro del Custom LLM; el orden define cuál gana si se repite un nombre.
+        // Herramientas que ejecuta Wan dentro del Custom LLM; el orden define cuál gana si se repite un nombre.
         services.AddHttpClient<HttpToolRunner>();
         services.AddScoped<IBotToolSource, KnowledgeToolSource>();
         services.AddScoped<IBotToolSource, HttpToolSource>();
         services.AddSingleton<McpConnector>();
         services.AddScoped<IBotToolSource, McpToolSource>();
         services.AddScoped<IBotToolSource, TransferToolSource>();
-        services.AddScoped<IBotToolSource, Mapache.Infrastructure.Campaigns.CampaignToolSource>();
+        services.AddScoped<IBotToolSource, Wan.Infrastructure.Campaigns.CampaignToolSource>();
         services.AddScoped<BotToolRegistry>();
         services.AddScoped<BotSessionBuilder>();
 

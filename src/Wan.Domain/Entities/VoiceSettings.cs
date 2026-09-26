@@ -1,15 +1,15 @@
-namespace Mapache.Domain.Entities;
+namespace Wan.Domain.Entities;
 
 /// <summary>Quién pone la voz del bot: reconoce lo que dice quien llama, habla y maneja los turnos.</summary>
 public enum VoiceProvider
 {
-    /// <summary>Agente de ElevenLabs Conversational AI con el Custom LLM de Mapache.</summary>
+    /// <summary>Agente de ElevenLabs Conversational AI con el Custom LLM de Wan.</summary>
     ElevenLabs,
 
-    /// <summary>OpenAI Realtime: modelo de voz a voz de OpenAI con las instrucciones y herramientas de Mapache.</summary>
+    /// <summary>OpenAI Realtime: modelo de voz a voz de OpenAI con las instrucciones y herramientas de Wan.</summary>
     OpenAiRealtime,
 
-    /// <summary>Deepgram Voice Agent: voz de Deepgram con el Custom LLM de Mapache.</summary>
+    /// <summary>Deepgram Voice Agent: voz de Deepgram con el Custom LLM de Wan.</summary>
     Deepgram,
 }
 

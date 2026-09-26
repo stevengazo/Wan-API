@@ -3,11 +3,11 @@ using System.Text;
 using System.Text.Json.Nodes;
 using Microsoft.Extensions.Logging;
 
-namespace Mapache.Infrastructure.Llm;
+namespace Wan.Infrastructure.Llm;
 
 /// <summary>
 /// OpenAI y Gemini (su API compatible) ya hablan el formato que pide ElevenLabs: se reenvía la petición
-/// con la API key y el modelo de Mapache, y la respuesta SSE se copia tal cual.
+/// con la API key y el modelo de Wan, y la respuesta SSE se copia tal cual.
 /// </summary>
 public sealed class OpenAiCompatibleChatClient(HttpClient http, ILogger<OpenAiCompatibleChatClient> logger)
 {

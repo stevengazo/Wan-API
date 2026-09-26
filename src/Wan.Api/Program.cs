@@ -1,19 +1,19 @@
-using Mapache.Api.Controllers;
-using Mapache.Api.Phone;
+using Wan.Api.Controllers;
+using Wan.Api.Phone;
 using System.Text.Json.Serialization;
 using System.Threading.RateLimiting;
 using Hangfire;
 using Hangfire.PostgreSql;
-using Mapache.Api.Auth;
-using Mapache.Api.Jobs;
-using Mapache.Api.Mcp;
-using Mapache.Api.Realtime;
-using Mapache.Api.Webhooks;
-using Mapache.Infrastructure;
-using Mapache.Infrastructure.Actions;
-using Mapache.Infrastructure.Persistence;
-using Mapache.Api.Sip;
-using Mapache.Sip.Engine;
+using Wan.Api.Auth;
+using Wan.Api.Jobs;
+using Wan.Api.Mcp;
+using Wan.Api.Realtime;
+using Wan.Api.Webhooks;
+using Wan.Infrastructure;
+using Wan.Infrastructure.Actions;
+using Wan.Infrastructure.Persistence;
+using Wan.Api.Sip;
+using Wan.Sip.Engine;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.HttpOverrides;
@@ -33,7 +33,7 @@ try
         logger.ReadFrom.Configuration(builder.Configuration)
             .ReadFrom.Services(services)
             .Enrich.FromLogContext()
-            .Enrich.WithProperty("Application", "Mapache.Api");
+            .Enrich.WithProperty("Application", "Wan.Api");
 
         // JSON compacto fuera de desarrollo para que lo indexe cualquier colector de logs.
         if (builder.Environment.IsDevelopment())
@@ -58,14 +58,14 @@ try
 
     builder.Services.AddInfrastructure(builder.Configuration);
     builder.Services.AddSingleton<ISipAccountSource, SipAccountSource>();
-    builder.Services.AddSingleton<Mapache.Infrastructure.Transfers.ICallTransfer, SipCallTransfer>();
-    builder.Services.AddScoped<Mapache.Api.Agent.AgentIntake>();
+    builder.Services.AddSingleton<Wan.Infrastructure.Transfers.ICallTransfer, SipCallTransfer>();
+    builder.Services.AddScoped<Wan.Api.Agent.AgentIntake>();
     builder.Services.AddScoped<PublicUrlResolver>();
-    builder.Services.AddSingleton<Mapache.Api.Audit.AuditLog>();
-    builder.Services.AddScoped<Mapache.Api.Audit.RetentionJob>();
-    builder.Services.AddHostedService<Mapache.Api.Campaigns.CampaignDialer>();
-    builder.Services.AddSingleton<Mapache.Sip.Media.IBotBrain, BotBrain>();
-    builder.Services.AddScoped<Mapache.Infrastructure.Tools.IBotToolSource, Mapache.Api.Agent.IntakeToolSource>();
+    builder.Services.AddSingleton<Wan.Api.Audit.AuditLog>();
+    builder.Services.AddScoped<Wan.Api.Audit.RetentionJob>();
+    builder.Services.AddHostedService<Wan.Api.Campaigns.CampaignDialer>();
+    builder.Services.AddSingleton<Wan.Sip.Media.IBotBrain, BotBrain>();
+    builder.Services.AddScoped<Wan.Infrastructure.Tools.IBotToolSource, Wan.Api.Agent.IntakeToolSource>();
     builder.Services.AddSingleton<IVoiceAgentSource, VoiceAgentSource>();
     builder.Services.AddSingleton<ISipEventSink, SipEventSink>();
     builder.Services.AddSipEngine(builder.Configuration);
@@ -75,7 +75,7 @@ try
         .UseSimpleAssemblyNameTypeSerializer()
         .UseRecommendedSerializerSettings()
         .UsePostgreSqlStorage(
-            o => o.UseNpgsqlConnection(builder.Configuration.GetConnectionString("Mapache")),
+            o => o.UseNpgsqlConnection(builder.Configuration.GetConnectionString("Wan")),
             new PostgreSqlStorageOptions { SchemaName = "hangfire" }));
     builder.Services.AddHangfireServer();
     builder.Services.AddScoped<IFormActionQueue, HangfireFormActionQueue>();
@@ -127,7 +127,7 @@ try
     // nginx y con varias instancias de la API.
     builder.Services.AddMcpServer()
         .WithHttpTransport(o => o.Stateless = true)
-        .WithTools<MapacheMcpTools>()
+        .WithTools<WanMcpTools>()
         .WithTokenPermissions();
     builder.Services.AddHttpContextAccessor();
 
@@ -174,7 +174,7 @@ try
 
     // Retención: todos los días a las 3:00 UTC (fuera del horario de atención en América).
     app.Services.GetRequiredService<Hangfire.IRecurringJobManager>()
-        .AddOrUpdate<Mapache.Api.Audit.RetentionJob>(Mapache.Api.Audit.RetentionJob.JobId, job => job.RunAsync(CancellationToken.None), Hangfire.Cron.Daily(3));
+        .AddOrUpdate<Wan.Api.Audit.RetentionJob>(Wan.Api.Audit.RetentionJob.JobId, job => job.RunAsync(CancellationToken.None), Hangfire.Cron.Daily(3));
 
     app.UseWebSockets();
     app.UseAuthentication();

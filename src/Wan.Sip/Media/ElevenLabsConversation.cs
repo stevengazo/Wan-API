@@ -3,11 +3,11 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using Microsoft.Extensions.Logging;
 
-namespace Mapache.Sip.Media;
+namespace Wan.Sip.Media;
 
 /// <summary>
 /// Cliente del WebSocket de ElevenLabs Conversational AI (una conversación por llamada). El agente usa el
-/// Custom LLM de Mapache, que recibe la extensión y la llamada por <c>custom_llm_extra_body</c>.
+/// Custom LLM de Wan, que recibe la extensión y la llamada por <c>custom_llm_extra_body</c>.
 /// </summary>
 public sealed class ElevenLabsConversation : WebSocketVoiceSession
 {
@@ -35,7 +35,7 @@ public sealed class ElevenLabsConversation : WebSocketVoiceSession
         {
             ["type"] = "conversation_initiation_client_data",
             ["dynamic_variables"] = JsonSerializer.SerializeToNode(dynamicVariables),
-            // Llega al Custom LLM de Mapache como elevenlabs_extra_body (p. ej. qué extensión atiende).
+            // Llega al Custom LLM de Wan como elevenlabs_extra_body (p. ej. qué extensión atiende).
             ["custom_llm_extra_body"] = customLlmExtraBody,
         };
         if (!string.IsNullOrWhiteSpace(firstMessage))

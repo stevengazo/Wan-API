@@ -35,13 +35,13 @@ Las llaves se cifran en reposo con una **clave maestra** que vive fuera de la ba
 ## Autenticación
 
 - **Panel:** JWT firmado con HMAC-SHA256, 8 horas por defecto. Roles `Admin` y `Operator`.
-- **Sesión en cookie:** el JWT viaja en la cookie `mapache_session` (`HttpOnly`, `SameSite=Strict`, `Secure` con HTTPS). JavaScript no la puede leer, así un XSS no puede robar la sesión. En `POST`, `PUT` y `DELETE` la cookie solo vale con el header `X-Mapache-Client` (anti-CSRF: otro sitio no puede agregarlo sin preflight CORS, y la API no habilita CORS). Cerrar sesión borra la cookie; el JWT no se revoca en el servidor y vence solo.
+- **Sesión en cookie:** el JWT viaja en la cookie `wan_session` (`HttpOnly`, `SameSite=Strict`, `Secure` con HTTPS). JavaScript no la puede leer, así un XSS no puede robar la sesión. En `POST`, `PUT` y `DELETE` la cookie solo vale con el header `X-Wan-Client` (anti-CSRF: otro sitio no puede agregarlo sin preflight CORS, y la API no habilita CORS). Cerrar sesión borra la cookie; el JWT no se revoca en el servidor y vence solo.
 - **Doble factor:** TOTP opcional por usuario, con códigos de recuperación. Ver [inicio de sesión](inicio-de-sesion.md).
 - **Google y Microsoft:** OpenID Connect con PKCE; nunca se vincula una cuenta por coincidencia de correo.
 - **Login y registro:** 10 intentos por minuto por IP. Detrás de un proxy, activa `ReverseProxy:Enabled` para que la IP sea la real. Sin proxy déjalo apagado, porque el cliente podría falsear `X-Forwarded-For`.
-- **ElevenLabs → Mapache:** Custom LLM y server tools con un bearer token propio; webhook post-llamada con firma HMAC-SHA256 y una ventana de 30 minutos contra repeticiones.
+- **ElevenLabs → Wan:** Custom LLM y server tools con un bearer token propio; webhook post-llamada con firma HMAC-SHA256 y una ventana de 30 minutos contra repeticiones.
 - **Clientes MCP:** tokens revocables con permisos por herramienta.
-- **Webhooks salientes:** firmados con `X-Mapache-Signature` si la acción tiene secreto.
+- **Webhooks salientes:** firmados con `X-Wan-Signature` si la acción tiene secreto.
 
 ## Auditoría
 
@@ -60,7 +60,7 @@ Las llaves se cifran en reposo con una **clave maestra** que vive fuera de la ba
 
 El registro se escribe aparte de la operación: si falla, la operación no se cae y el error queda en los logs.
 
-## Antes de exponer Mapache a internet
+## Antes de exponer Wan a internet
 
 - [ ] **Cerrar el registro abierto:** `/api/auth/register` crea administradores. Restríngelo o quítalo una vez creado tu usuario.
 - [ ] Servir todo por **HTTPS** (ElevenLabs lo exige, y los JWT viajan en headers).

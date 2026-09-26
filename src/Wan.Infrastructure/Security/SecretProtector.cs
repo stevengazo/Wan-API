@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.DataProtection;
 
-namespace Mapache.Infrastructure.Security;
+namespace Wan.Infrastructure.Security;
 
 public interface ISecretProtector
 {

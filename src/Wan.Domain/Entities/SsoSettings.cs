@@ -1,4 +1,4 @@
-namespace Mapache.Domain.Entities;
+namespace Wan.Domain.Entities;
 
 /// <summary>Inicio de sesión con Google y Microsoft. Hay una sola fila; los secretos van cifrados.</summary>
 public class SsoSettings

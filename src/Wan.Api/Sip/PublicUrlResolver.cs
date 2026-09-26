@@ -1,12 +1,12 @@
-using Mapache.Api.Controllers;
-using Mapache.Infrastructure.Persistence;
+using Wan.Api.Controllers;
+using Wan.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 
-namespace Mapache.Api.Sip;
+namespace Wan.Api.Sip;
 
 /// <summary>URL pública efectiva: la de Configuración → General o, si no hay, <c>App:PublicUrl</c>.</summary>
-public sealed class PublicUrlResolver(MapacheDbContext db, IOptions<AppOptions> options)
+public sealed class PublicUrlResolver(WanDbContext db, IOptions<AppOptions> options)
 {
     public async Task<string?> ResolveAsync(CancellationToken ct)
     {

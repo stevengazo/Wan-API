@@ -2,7 +2,7 @@
 
 #nullable disable
 
-namespace Mapache.Infrastructure.Persistence.Migrations
+namespace Wan.Infrastructure.Persistence.Migrations
 {
     /// <inheritdoc />
     public partial class VoiceProviders : Migration

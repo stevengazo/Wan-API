@@ -1,9 +1,9 @@
-using Mapache.Domain.Entities;
-using Mapache.Infrastructure.Persistence;
-using Mapache.Infrastructure.Tools;
+using Wan.Domain.Entities;
+using Wan.Infrastructure.Persistence;
+using Wan.Infrastructure.Tools;
 using Microsoft.EntityFrameworkCore;
 
-namespace Mapache.Infrastructure.Transfers;
+namespace Wan.Infrastructure.Transfers;
 
 /// <summary>Transferencia de la llamada en curso; la implementa la API con el motor SIP.</summary>
 public interface ICallTransfer
@@ -59,7 +59,7 @@ public static class CallTransferTool
 /// Ofrece <c>transfer_call</c> solo cuando tiene sentido: hay una llamada, la extensión está en horario y el
 /// directorio tiene destinos. Sin <see cref="ICallTransfer"/> (fuera de la API) no ofrece nada.
 /// </summary>
-public sealed class TransferToolSource(MapacheDbContext db, TimeProvider time, ICallTransfer? transfer = null) : IBotToolSource
+public sealed class TransferToolSource(WanDbContext db, TimeProvider time, ICallTransfer? transfer = null) : IBotToolSource
 {
     public async Task<IReadOnlyList<BotTool>> GetToolsAsync(BotCallContext call, CancellationToken ct)
     {

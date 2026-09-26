@@ -1,9 +1,9 @@
 using System.Globalization;
 using System.Net.Mail;
 using System.Text;
-using Mapache.Domain.Entities;
+using Wan.Domain.Entities;
 
-namespace Mapache.Infrastructure.Forms;
+namespace Wan.Infrastructure.Forms;
 
 /// <summary>Resultado de validar lo que envió el bot: valores normalizados o qué falta corregir.</summary>
 public sealed record FormValidation(Dictionary<string, string> Values, IReadOnlyList<string> Problems)

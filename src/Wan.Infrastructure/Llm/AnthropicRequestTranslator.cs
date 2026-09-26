@@ -3,7 +3,7 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using Anthropic.Models.Beta.Messages;
 
-namespace Mapache.Infrastructure.Llm;
+namespace Wan.Infrastructure.Llm;
 
 /// <summary>Traduce una petición de chat completions (formato OpenAI, la que manda ElevenLabs) a la Messages API.</summary>
 public static class AnthropicRequestTranslator

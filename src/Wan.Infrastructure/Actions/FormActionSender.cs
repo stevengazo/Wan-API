@@ -2,22 +2,22 @@ using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
-using Mapache.Domain.Entities;
-using Mapache.Infrastructure.Persistence;
-using Mapache.Infrastructure.Security;
-using Mapache.Infrastructure.Tools;
+using Wan.Domain.Entities;
+using Wan.Infrastructure.Persistence;
+using Wan.Infrastructure.Security;
+using Wan.Infrastructure.Tools;
 using MailKit.Net.Smtp;
 using MailKit.Security;
 using Microsoft.EntityFrameworkCore;
 using MimeKit;
 
-namespace Mapache.Infrastructure.Actions;
+namespace Wan.Infrastructure.Actions;
 
 /// <summary>El destino rechazó o no respondió: el mensaje se guarda en el log de la ejecución.</summary>
 public sealed class FormActionException(string message, Exception? inner = null) : Exception(message, inner);
 
 /// <summary>Envía una respuesta de formulario por el canal de la acción. Lanza si falla, para reintentar.</summary>
-public sealed class FormActionSender(HttpClient http, MapacheDbContext db, ISecretProtector protector)
+public sealed class FormActionSender(HttpClient http, WanDbContext db, ISecretProtector protector)
 {
     public async Task SendAsync(FormAction action, FormTemplate form, FormSubmission submission, CancellationToken ct)
     {

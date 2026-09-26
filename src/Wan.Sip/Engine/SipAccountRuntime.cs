@@ -3,8 +3,8 @@ using System.Net;
 using System.Net.Sockets;
 using System.Text;
 using System.Text.Json.Nodes;
-using Mapache.Domain.Entities;
-using Mapache.Sip.Media;
+using Wan.Domain.Entities;
+using Wan.Sip.Media;
 using Microsoft.Extensions.Logging;
 using SIPSorcery.Net;
 using SIPSorcery.SIP;
@@ -12,7 +12,7 @@ using SIPSorcery.SIP.App;
 using SIPSorcery.Sys;
 using SIPSorceryMedia.Abstractions;
 
-namespace Mapache.Sip.Engine;
+namespace Wan.Sip.Engine;
 
 /// <summary>
 /// Una cuenta SIP en funcionamiento: su transporte, su registro (con paso al servidor secundario si el
@@ -54,7 +54,7 @@ internal sealed class SipAccountRuntime : IAsyncDisposable
         _account = account;
         _ext = account.Extension;
         _services = services;
-        _logger = services.Loggers.CreateLogger($"Mapache.Sip.Account.{_ext.SipUsername}");
+        _logger = services.Loggers.CreateLogger($"Wan.Sip.Account.{_ext.SipUsername}");
         _status = new SipRegistrationStatus(_ext.Id, SipRegistrationState.Registering, _ext.SipServer, null, 0, services.Time.GetUtcNow());
     }
 
@@ -337,9 +337,9 @@ internal sealed class SipAccountRuntime : IAsyncDisposable
     private async Task<(CallStatus Status, string Reason)> RunBotAsync(
         SIPUserAgent ua, RTPSession rtp, IVoiceSession conversation, Guid callId, string conversationId, VoiceProviderOptions agent)
     {
-        // ElevenLabs manda su propia grabación por webhook al terminar; con los demás graba Mapache.
+        // ElevenLabs manda su propia grabación por webhook al terminar; con los demás graba Wan.
         var recorder = agent is not ElevenLabsOptions && await _services.Events.RecordingEnabledAsync()
-            ? new CallRecorder(System.IO.Path.Combine(System.IO.Path.GetTempPath(), $"mapache-{callId:N}.wav"))
+            ? new CallRecorder(System.IO.Path.Combine(System.IO.Path.GetTempPath(), $"wan-{callId:N}.wav"))
             : null;
         try
         {

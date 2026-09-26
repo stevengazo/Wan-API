@@ -1,11 +1,11 @@
 using System.Text.Json.Nodes;
 using Microsoft.Extensions.Logging;
 
-namespace Mapache.Sip.Media;
+namespace Wan.Sip.Media;
 
 /// <summary>
 /// OpenAI Realtime por WebSocket: audio µ-law 8 kHz en ambos sentidos (sin convertir), detección de turnos del
-/// servidor y herramientas de Mapache ejecutadas aquí cuando el modelo las pide.
+/// servidor y herramientas de Wan ejecutadas aquí cuando el modelo las pide.
 /// </summary>
 public sealed class OpenAiRealtimeSession : WebSocketVoiceSession
 {

@@ -1,13 +1,13 @@
 using System.ComponentModel.DataAnnotations;
-using Mapache.Api.Auth;
-using Mapache.Domain.Entities;
-using Mapache.Infrastructure.Knowledge;
-using Mapache.Infrastructure.Persistence;
+using Wan.Api.Auth;
+using Wan.Domain.Entities;
+using Wan.Infrastructure.Knowledge;
+using Wan.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
-namespace Mapache.Api.Controllers;
+namespace Wan.Api.Controllers;
 
 public sealed record KnowledgeBaseDto(Guid Id, string Name, string? Description, bool Enabled, int DocumentCount, int ChunkCount, DateTimeOffset CreatedAt);
 
@@ -29,7 +29,7 @@ public sealed record KnowledgeSearchRequest([Required(ErrorMessage = Messages.Re
 
 [ApiController]
 [Authorize]
-public sealed class KnowledgeController(MapacheDbContext db, KnowledgeService knowledge, TimeProvider time) : ControllerBase
+public sealed class KnowledgeController(WanDbContext db, KnowledgeService knowledge, TimeProvider time) : ControllerBase
 {
     [HttpGet("api/knowledge")]
     public async Task<IReadOnlyList<KnowledgeBaseDto>> List(CancellationToken ct) =>

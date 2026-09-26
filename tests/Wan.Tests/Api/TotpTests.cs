@@ -1,7 +1,7 @@
 using System.Text;
-using Mapache.Infrastructure.Security;
+using Wan.Infrastructure.Security;
 
-namespace Mapache.Tests.Api;
+namespace Wan.Tests.Api;
 
 public class TotpTests
 {
@@ -33,8 +33,8 @@ public class TotpTests
     public void EncodesBase32AndBuildsTheProvisioningUri()
     {
         Assert.Equal("MZXW6YTBOI", Totp.ToBase32("foobar"u8.ToArray()));
-        var uri = Totp.ProvisioningUri("foobar"u8.ToArray(), "ana@empresa.com", "Mapache");
-        Assert.StartsWith("otpauth://totp/Mapache:ana%40empresa.com?secret=MZXW6YTBOI&issuer=Mapache", uri);
+        var uri = Totp.ProvisioningUri("foobar"u8.ToArray(), "ana@empresa.com", "Wan");
+        Assert.StartsWith("otpauth://totp/Wan:ana%40empresa.com?secret=MZXW6YTBOI&issuer=Wan", uri);
     }
 
     [Fact]

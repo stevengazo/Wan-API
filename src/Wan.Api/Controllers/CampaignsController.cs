@@ -1,16 +1,16 @@
-using Mapache.Api.Audit;
+using Wan.Api.Audit;
 using System.ComponentModel.DataAnnotations;
-using Mapache.Api.Auth;
-using Mapache.Api.Realtime;
-using Mapache.Domain.Entities;
-using Mapache.Infrastructure.Campaigns;
-using Mapache.Infrastructure.Persistence;
+using Wan.Api.Auth;
+using Wan.Api.Realtime;
+using Wan.Domain.Entities;
+using Wan.Infrastructure.Campaigns;
+using Wan.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 
-namespace Mapache.Api.Controllers;
+namespace Wan.Api.Controllers;
 
 /// <summary>Cuántos contactos hay en cada estado y cuántos con cada resultado del bot.</summary>
 public sealed record CampaignProgressDto(
@@ -72,7 +72,7 @@ public sealed record ImportContactsResult(int Imported, int Skipped, IReadOnlyLi
 
 [ApiController]
 [Authorize]
-public sealed class CampaignsController(MapacheDbContext db, TimeProvider time, IHubContext<EventsHub, IEventsClient> events, AuditLog audit) : ControllerBase
+public sealed class CampaignsController(WanDbContext db, TimeProvider time, IHubContext<EventsHub, IEventsClient> events, AuditLog audit) : ControllerBase
 {
     private static readonly string[] DefaultOutcomes = ["Interesado", "No interesado", "Volver a llamar"];
 

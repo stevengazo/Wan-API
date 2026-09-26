@@ -1,16 +1,16 @@
 using System.ComponentModel.DataAnnotations;
-using Mapache.Api.Auth;
-using Mapache.Api.Realtime;
-using Mapache.Domain.Entities;
-using Mapache.Infrastructure.Persistence;
-using Mapache.Infrastructure.Security;
-using Mapache.Sip.Engine;
+using Wan.Api.Auth;
+using Wan.Api.Realtime;
+using Wan.Domain.Entities;
+using Wan.Infrastructure.Persistence;
+using Wan.Infrastructure.Security;
+using Wan.Sip.Engine;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 
-namespace Mapache.Api.Controllers;
+namespace Wan.Api.Controllers;
 
 /// <summary>La contraseña SIP nunca sale de la API; solo se informa si está configurada.</summary>
 public sealed record ExtensionDto(
@@ -95,7 +95,7 @@ public sealed record SaveExtensionRequest(
 [Route("api/extensions")]
 [Authorize]
 public sealed class ExtensionsController(
-    MapacheDbContext db,
+    WanDbContext db,
     ISecretProtector protector,
     TimeProvider time,
     ISipEngine engine,

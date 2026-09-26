@@ -1,9 +1,9 @@
 using System.Text.Json.Nodes;
-using Mapache.Domain.Entities;
-using Mapache.Infrastructure.Tools;
+using Wan.Domain.Entities;
+using Wan.Infrastructure.Tools;
 using Microsoft.Extensions.Logging;
 
-namespace Mapache.Infrastructure.Llm;
+namespace Wan.Infrastructure.Llm;
 
 /// <summary>Proveedor, modelo e instrucciones que aplican a una conversación.</summary>
 public sealed record LlmSelection(LlmProvider Provider, string Model, string? SystemPrompt);
@@ -19,7 +19,7 @@ public sealed class ChatCompletionRouter(
     TimeProvider time,
     ILogger<ChatCompletionRouter> logger)
 {
-    /// <summary>Rondas de herramientas de Mapache por turno; evita que el modelo quede en un bucle.</summary>
+    /// <summary>Rondas de herramientas de Wan por turno; evita que el modelo quede en un bucle.</summary>
     public const int MaxToolRounds = 4;
 
     public async Task StreamAsync(JsonObject request, Stream output, CancellationToken ct)
@@ -30,7 +30,7 @@ public sealed class ChatCompletionRouter(
         var selection = new LlmSelection(target.Provider, target.Model, target.SystemPrompt);
         Prepare(request, selection, session.Context);
         var tools = BotToolRegistry.AddTo(request, session.Tools);
-        logger.LogInformation("Custom LLM: {Provider} {Model} con {Tools} herramientas de Mapache", target.Provider, target.Model, tools.Count);
+        logger.LogInformation("Custom LLM: {Provider} {Model} con {Tools} herramientas de Wan", target.Provider, target.Model, tools.Count);
 
         for (var round = 0; ; round++)
         {
@@ -47,7 +47,7 @@ public sealed class ChatCompletionRouter(
             var calls = interceptor.ToolCalls;
             if (!calls.Any(c => tools.ContainsKey(c.Name)))
             {
-                // Nada para Mapache: el texto ya salió y lo retenido (tools de ElevenLabs, fin) se entrega tal cual.
+                // Nada para Wan: el texto ya salió y lo retenido (tools de ElevenLabs, fin) se entrega tal cual.
                 await interceptor.ReleaseHeldAsync(ct);
                 return;
             }
@@ -66,7 +66,7 @@ public sealed class ChatCompletionRouter(
     }
 
     /// <summary>
-    /// Agrega a la conversación lo que pidió el modelo y el resultado de cada herramienta de Mapache, para la
+    /// Agrega a la conversación lo que pidió el modelo y el resultado de cada herramienta de Wan, para la
     /// siguiente ronda. Las de ElevenLabs que vinieron mezcladas no se ejecutan: se le avisa al modelo.
     /// </summary>
     private async Task AppendToolRoundAsync(
@@ -137,8 +137,8 @@ public sealed class ChatCompletionRouter(
     }
 
     /// <summary>
-    /// Deja la petición lista para el proveedor: el modelo de Mapache, las instrucciones generales en lugar
-    /// de las del agente, el contexto de Mapache (<see cref="BotContext"/>) y sin <c>elevenlabs_extra_body</c>,
+    /// Deja la petición lista para el proveedor: el modelo de Wan, las instrucciones generales en lugar
+    /// de las del agente, el contexto de Wan (<see cref="BotContext"/>) y sin <c>elevenlabs_extra_body</c>,
     /// que los proveedores rechazarían.
     /// </summary>
     public static void Prepare(JsonObject request, LlmSelection selection, string? context = null)

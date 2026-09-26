@@ -1,7 +1,7 @@
-using Mapache.Api.Controllers;
-using Mapache.Domain.Entities;
+using Wan.Api.Controllers;
+using Wan.Domain.Entities;
 
-namespace Mapache.Tests.Api;
+namespace Wan.Tests.Api;
 
 public class ExternalLoginTests
 {

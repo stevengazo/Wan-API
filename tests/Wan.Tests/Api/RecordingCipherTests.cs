@@ -1,7 +1,7 @@
 using System.Security.Cryptography;
-using Mapache.Infrastructure.Recordings;
+using Wan.Infrastructure.Recordings;
 
-namespace Mapache.Tests.Api;
+namespace Wan.Tests.Api;
 
 public class RecordingCipherTests
 {

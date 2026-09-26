@@ -1,10 +1,10 @@
-using Mapache.Domain.Entities;
+using Wan.Domain.Entities;
 using Microsoft.Extensions.Logging;
 using SIPSorcery.Net;
 using SIPSorcery.SIP;
 using SIPSorcery.SIP.App;
 
-namespace Mapache.Sip.Engine;
+namespace Wan.Sip.Engine;
 
 /// <summary>Llamada saliente del teléfono web: marca con las credenciales de la cuenta.</summary>
 internal sealed class OutboundCall : BrowserCall

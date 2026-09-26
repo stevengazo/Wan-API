@@ -4,12 +4,12 @@ using System.Text.Encodings.Web;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
-using Mapache.Domain.Entities;
-using Mapache.Infrastructure.Persistence;
-using Mapache.Infrastructure.Security;
+using Wan.Domain.Entities;
+using Wan.Infrastructure.Persistence;
+using Wan.Infrastructure.Security;
 using Microsoft.EntityFrameworkCore;
 
-namespace Mapache.Infrastructure.Tools;
+namespace Wan.Infrastructure.Tools;
 
 /// <summary>Arma y ejecuta las peticiones HTTP configuradas en el panel.</summary>
 public sealed partial class HttpToolRunner(HttpClient http, ISecretProtector protector)
@@ -102,7 +102,7 @@ public sealed partial class HttpToolRunner(HttpClient http, ISecretProtector pro
 }
 
 /// <summary>Herramientas HTTP activas del panel.</summary>
-public sealed class HttpToolSource(MapacheDbContext db, HttpToolRunner runner) : IBotToolSource
+public sealed class HttpToolSource(WanDbContext db, HttpToolRunner runner) : IBotToolSource
 {
     public async Task<IReadOnlyList<BotTool>> GetToolsAsync(BotCallContext call, CancellationToken ct)
     {

@@ -1,16 +1,16 @@
-using Mapache.Domain.Entities;
-using Mapache.Infrastructure.Campaigns;
-using Mapache.Infrastructure.Knowledge;
-using Mapache.Infrastructure.Persistence;
-using Mapache.Infrastructure.Tools;
+using Wan.Domain.Entities;
+using Wan.Infrastructure.Campaigns;
+using Wan.Infrastructure.Knowledge;
+using Wan.Infrastructure.Persistence;
+using Wan.Infrastructure.Tools;
 using Microsoft.EntityFrameworkCore;
 
-namespace Mapache.Infrastructure.Llm;
+namespace Wan.Infrastructure.Llm;
 
 /// <summary>Lo que el bot necesita para un turno o una llamada: el modelo de texto, el contexto y las herramientas.</summary>
 public sealed record BotSession(LlmTarget Target, string? Context, IReadOnlyDictionary<string, BotTool> Tools)
 {
-    /// <summary>Instrucciones del panel más el contexto de Mapache, para proveedores que reciben un solo prompt.</summary>
+    /// <summary>Instrucciones del panel más el contexto de Wan, para proveedores que reciben un solo prompt.</summary>
     public string Instructions(string? fallback = null) =>
         string.Join("\n\n", new[] { Target.SystemPrompt ?? fallback, Context }.Where(p => !string.IsNullOrWhiteSpace(p)));
 }
@@ -20,7 +20,7 @@ public sealed record BotSession(LlmTarget Target, string? Context, IReadOnlyDict
 /// pide en cada turno y OpenAI Realtime una vez al empezar la llamada.
 /// </summary>
 public sealed class BotSessionBuilder(
-    MapacheDbContext db,
+    WanDbContext db,
     LlmResolver resolver,
     KnowledgeService knowledge,
     BotToolRegistry toolRegistry,

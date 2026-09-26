@@ -1,7 +1,7 @@
-using Mapache.Domain.Entities;
-using Mapache.Infrastructure.Campaigns;
+using Wan.Domain.Entities;
+using Wan.Infrastructure.Campaigns;
 
-namespace Mapache.Tests.Llm;
+namespace Wan.Tests.Llm;
 
 public class CampaignTests
 {

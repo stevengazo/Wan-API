@@ -2,11 +2,11 @@ using System.Net.WebSockets;
 using System.Text.Json.Nodes;
 using Microsoft.Extensions.Logging;
 
-namespace Mapache.Sip.Media;
+namespace Wan.Sip.Media;
 
 /// <summary>
 /// Deepgram Voice Agent: audio µ-law 8 kHz en binario en ambos sentidos, reconocimiento y síntesis de Deepgram,
-/// y como LLM el Custom LLM de Mapache (mismo contexto, conocimiento y herramientas que con ElevenLabs).
+/// y como LLM el Custom LLM de Wan (mismo contexto, conocimiento y herramientas que con ElevenLabs).
 /// </summary>
 public sealed class DeepgramAgentSession : WebSocketVoiceSession
 {
@@ -32,7 +32,7 @@ public sealed class DeepgramAgentSession : WebSocketVoiceSession
             },
             ["think"] = new JsonObject
             {
-                ["provider"] = new JsonObject { ["type"] = "open_ai", ["model"] = "mapache" },
+                ["provider"] = new JsonObject { ["type"] = "open_ai", ["model"] = "wan" },
                 // La identidad de la llamada va en headers: el Custom LLM no recibe el extra body de ElevenLabs.
                 ["endpoint"] = new JsonObject
                 {
@@ -40,10 +40,10 @@ public sealed class DeepgramAgentSession : WebSocketVoiceSession
                     ["headers"] = new JsonObject
                     {
                         ["authorization"] = $"Bearer {options.LlmToken}",
-                        ["x-mapache-extension"] = call.ExtensionId.ToString(),
-                        ["x-mapache-call"] = call.CallId.ToString(),
-                        ["x-mapache-campaign"] = call.CampaignId?.ToString() ?? "",
-                        ["x-mapache-contact"] = call.ContactId?.ToString() ?? "",
+                        ["x-wan-extension"] = call.ExtensionId.ToString(),
+                        ["x-wan-call"] = call.CallId.ToString(),
+                        ["x-wan-campaign"] = call.CampaignId?.ToString() ?? "",
+                        ["x-wan-contact"] = call.ContactId?.ToString() ?? "",
                     },
                 },
             },

@@ -1,16 +1,16 @@
 using System.Text;
 using System.Text.RegularExpressions;
-using Mapache.Domain.Entities;
-using Mapache.Infrastructure.Persistence;
+using Wan.Domain.Entities;
+using Wan.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using NpgsqlTypes;
 
-namespace Mapache.Infrastructure.Knowledge;
+namespace Wan.Infrastructure.Knowledge;
 
 public sealed record KnowledgeHit(string Text, string DocumentName, string BaseName, float Rank);
 
 /// <summary>Indexa documentos en fragmentos y busca con el texto completo de Postgres en español.</summary>
-public sealed class KnowledgeService(MapacheDbContext db, TimeProvider time)
+public sealed class KnowledgeService(WanDbContext db, TimeProvider time)
 {
     public const string SearchVectorColumn = "SearchVector";
     public const int MaxFileBytes = 20 * 1024 * 1024;

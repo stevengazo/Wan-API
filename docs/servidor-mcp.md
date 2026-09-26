@@ -1,11 +1,11 @@
-# 🤖 Servidor MCP de Mapache
+# 🤖 Servidor MCP de Wan
 
-Mapache expone un servidor [MCP](https://modelcontextprotocol.io/) para que Claude, Cursor u otros agentes consulten y operen el sistema: leer recados, marcar los atendidos, revisar respuestas de formularios, buscar en el directorio o en el conocimiento.
+Wan expone un servidor [MCP](https://modelcontextprotocol.io/) para que Claude, Cursor u otros agentes consulten y operen el sistema: leer recados, marcar los atendidos, revisar respuestas de formularios, buscar en el directorio o en el conocimiento.
 
 ```
 URL:        https://<tu-host>/api/mcp
 Transporte: Streamable HTTP (sin estado)
-Auth:       Authorization: Bearer mapache_mcp_...
+Auth:       Authorization: Bearer wan_mcp_...
 ```
 
 ## Herramientas
@@ -36,7 +36,7 @@ flowchart LR
 - Los permisos se pueden cambiar después sin crear otro token.
 - Se guarda solo el SHA-256 del token: el valor completo se muestra **una vez**, al crearlo.
 
-**Cómo se aplican** ([`Mcp/McpToolPermissions.cs`](../src/Mapache.Api/Mcp/McpToolPermissions.cs)):
+**Cómo se aplican** ([`Mcp/McpToolPermissions.cs`](../src/Wan.Api/Mcp/McpToolPermissions.cs)):
 
 - `tools/list` devuelve solo las herramientas permitidas: el agente ni siquiera ve las demás.
 - `tools/call` de una herramienta no permitida responde con `isError: true` y el mensaje "Este token no tiene permiso para usar …".
@@ -47,8 +47,8 @@ flowchart LR
 ### Claude Code
 
 ```bash
-claude mcp add --transport http mapache https://<tu-host>/api/mcp \
-  --header "Authorization: Bearer mapache_mcp_..."
+claude mcp add --transport http wan https://<tu-host>/api/mcp \
+  --header "Authorization: Bearer wan_mcp_..."
 ```
 
 ### Cursor y otros clientes con HTTP
@@ -56,9 +56,9 @@ claude mcp add --transport http mapache https://<tu-host>/api/mcp \
 ```json
 {
   "mcpServers": {
-    "mapache": {
+    "wan": {
       "url": "https://<tu-host>/api/mcp",
-      "headers": { "Authorization": "Bearer mapache_mcp_..." }
+      "headers": { "Authorization": "Bearer wan_mcp_..." }
     }
   }
 }
@@ -71,13 +71,13 @@ Claude Desktop conecta servidores locales, así que se usa `mcp-remote` como pue
 ```json
 {
   "mcpServers": {
-    "mapache": {
+    "wan": {
       "command": "npx",
       "args": [
         "mcp-remote",
         "https://<tu-host>/api/mcp",
         "--header",
-        "Authorization: Bearer mapache_mcp_..."
+        "Authorization: Bearer wan_mcp_..."
       ]
     }
   }

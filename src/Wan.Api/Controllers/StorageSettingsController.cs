@@ -1,15 +1,15 @@
-using Mapache.Api.Audit;
+using Wan.Api.Audit;
 using System.ComponentModel.DataAnnotations;
-using Mapache.Api.Auth;
-using Mapache.Domain.Entities;
-using Mapache.Infrastructure.Persistence;
-using Mapache.Infrastructure.Recordings;
-using Mapache.Infrastructure.Security;
+using Wan.Api.Auth;
+using Wan.Domain.Entities;
+using Wan.Infrastructure.Persistence;
+using Wan.Infrastructure.Recordings;
+using Wan.Infrastructure.Security;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
-namespace Mapache.Api.Controllers;
+namespace Wan.Api.Controllers;
 
 /// <summary>Los secretos no salen de la API: solo se informa si están cargados.</summary>
 public sealed record StorageSettingsDto(
@@ -39,7 +39,7 @@ public sealed record SaveStorageSettingsRequest(
 
 [ApiController]
 [Authorize(Roles = Roles.Admin)]
-public sealed class StorageSettingsController(MapacheDbContext db, RecordingService recordings, ISecretProtector protector, TimeProvider time, AuditLog audit)
+public sealed class StorageSettingsController(WanDbContext db, RecordingService recordings, ISecretProtector protector, TimeProvider time, AuditLog audit)
     : ControllerBase
 {
     [HttpGet("api/settings/storage")]

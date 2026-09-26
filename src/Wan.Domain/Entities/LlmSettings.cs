@@ -1,4 +1,4 @@
-namespace Mapache.Domain.Entities;
+namespace Wan.Domain.Entities;
 
 /// <summary>Configuración general del LLM del bot, igual para todas las cuentas SIP. Hay una sola fila.</summary>
 public class LlmSettings

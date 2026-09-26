@@ -1,4 +1,4 @@
-namespace Mapache.Domain.Entities;
+namespace Wan.Domain.Entities;
 
 /// <summary>Herramienta que publica un servidor MCP, tal como se leyó en la última sincronización.</summary>
 public class McpToolInfo

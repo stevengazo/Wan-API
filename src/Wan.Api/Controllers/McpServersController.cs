@@ -1,16 +1,16 @@
 using System.ComponentModel.DataAnnotations;
 using System.Text.Json;
 using System.Text.Json.Nodes;
-using Mapache.Api.Auth;
-using Mapache.Domain.Entities;
-using Mapache.Infrastructure.Persistence;
-using Mapache.Infrastructure.Security;
-using Mapache.Infrastructure.Tools;
+using Wan.Api.Auth;
+using Wan.Domain.Entities;
+using Wan.Infrastructure.Persistence;
+using Wan.Infrastructure.Security;
+using Wan.Infrastructure.Tools;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
-namespace Mapache.Api.Controllers;
+namespace Wan.Api.Controllers;
 
 public sealed record McpToolDto(string Name, string ExposedName, string? Description, bool Enabled);
 
@@ -38,7 +38,7 @@ public sealed record TestMcpToolRequest(JsonObject Arguments);
 [ApiController]
 [Authorize(Roles = Roles.Admin)]
 public sealed class McpServersController(
-    MapacheDbContext db,
+    WanDbContext db,
     ISecretProtector protector,
     McpConnector connector,
     TimeProvider time) : ControllerBase

@@ -1,22 +1,22 @@
-using Mapache.Api.Controllers;
-using Mapache.Api.Realtime;
-using Mapache.Domain.Entities;
-using Mapache.Infrastructure.Actions;
-using Mapache.Infrastructure.Forms;
-using Mapache.Infrastructure.Persistence;
-using Mapache.Infrastructure.Tools;
-using Mapache.Infrastructure.Transfers;
+using Wan.Api.Controllers;
+using Wan.Api.Realtime;
+using Wan.Domain.Entities;
+using Wan.Infrastructure.Actions;
+using Wan.Infrastructure.Forms;
+using Wan.Infrastructure.Persistence;
+using Wan.Infrastructure.Tools;
+using Wan.Infrastructure.Transfers;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 
-namespace Mapache.Api.Agent;
+namespace Wan.Api.Agent;
 
 /// <summary>
 /// Recados y formularios que toma el bot. Los usan las server tools de ElevenLabs (controllers) y las
-/// herramientas internas de Mapache (<see cref="IntakeToolSource"/>) para los demás proveedores de voz.
+/// herramientas internas de Wan (<see cref="IntakeToolSource"/>) para los demás proveedores de voz.
 /// </summary>
 public sealed class AgentIntake(
-    MapacheDbContext db,
+    WanDbContext db,
     TimeProvider time,
     IFormActionQueue actionQueue,
     IHubContext<EventsHub, IEventsClient> events)
@@ -88,10 +88,10 @@ public sealed class AgentIntake(
 }
 
 /// <summary>
-/// <c>leave_message</c> y <c>submit_form</c> como herramientas de Mapache: funcionan con cualquier proveedor
+/// <c>leave_message</c> y <c>submit_form</c> como herramientas de Wan: funcionan con cualquier proveedor
 /// de voz sin configurar server tools. El número y la conversación salen de la llamada, no del modelo.
 /// </summary>
-public sealed class IntakeToolSource(MapacheDbContext db, AgentIntake intake) : IBotToolSource
+public sealed class IntakeToolSource(WanDbContext db, AgentIntake intake) : IBotToolSource
 {
     public async Task<IReadOnlyList<BotTool>> GetToolsAsync(BotCallContext call, CancellationToken ct)
     {

@@ -1,4 +1,4 @@
-namespace Mapache.Domain.Entities;
+namespace Wan.Domain.Entities;
 
 public enum FormActionType
 {
@@ -106,7 +106,7 @@ public class SmtpSettings
 
     public string? PasswordEncrypted { get; set; }
 
-    /// <summary>Remitente: <c>Mapache &lt;bot@empresa.com&gt;</c> o solo la dirección.</summary>
+    /// <summary>Remitente: <c>Wan &lt;bot@empresa.com&gt;</c> o solo la dirección.</summary>
     public string? From { get; set; }
 
     public DateTimeOffset UpdatedAt { get; set; }

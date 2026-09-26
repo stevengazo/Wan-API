@@ -1,4 +1,4 @@
-namespace Mapache.Api.Sip;
+namespace Wan.Api.Sip;
 
 /// <summary>Valores por defecto de cada proveedor de voz cuando el panel los deja vacíos.</summary>
 public static class VoiceDefaults

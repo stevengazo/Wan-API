@@ -5,17 +5,17 @@ VisualStudioVersion = 17.0.31903.59
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{827E0CD3-B72D-47B6-A68D-7590B98EB39B}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Mapache.Api", "src\Mapache.Api\Mapache.Api.csproj", "{3D2493EF-EAA9-4131-9A30-8121FEAB3962}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Wan.Api", "src\Wan.Api\Wan.Api.csproj", "{3D2493EF-EAA9-4131-9A30-8121FEAB3962}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Mapache.Domain", "src\Mapache.Domain\Mapache.Domain.csproj", "{577D260B-70A8-4DA7-924C-D8B20C269C68}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Wan.Domain", "src\Wan.Domain\Wan.Domain.csproj", "{577D260B-70A8-4DA7-924C-D8B20C269C68}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Mapache.Infrastructure", "src\Mapache.Infrastructure\Mapache.Infrastructure.csproj", "{1C741902-BDA3-4692-A2FE-5F7886D976B4}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Wan.Infrastructure", "src\Wan.Infrastructure\Wan.Infrastructure.csproj", "{1C741902-BDA3-4692-A2FE-5F7886D976B4}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Mapache.Sip", "src\Mapache.Sip\Mapache.Sip.csproj", "{BBCDFD65-6D25-4032-8FEC-CA17E85ED774}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Wan.Sip", "src\Wan.Sip\Wan.Sip.csproj", "{BBCDFD65-6D25-4032-8FEC-CA17E85ED774}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{0AB3BF05-4346-4AA6-1389-037BE0695223}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Mapache.Tests", "tests\Mapache.Tests\Mapache.Tests.csproj", "{7ED0B789-28C9-4E11-BBF8-2A563CF8DB4E}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Wan.Tests", "tests\Wan.Tests\Wan.Tests.csproj", "{7ED0B789-28C9-4E11-BBF8-2A563CF8DB4E}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

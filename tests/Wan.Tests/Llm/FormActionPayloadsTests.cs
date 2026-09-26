@@ -1,11 +1,11 @@
 using System.Security.Cryptography;
 using System.Text;
-using Mapache.Domain.Entities;
+using Wan.Domain.Entities;
 using System.Text.Json.Nodes;
-using Mapache.Infrastructure.Actions;
-using Mapache.Infrastructure.Tools;
+using Wan.Infrastructure.Actions;
+using Wan.Infrastructure.Tools;
 
-namespace Mapache.Tests.Llm;
+namespace Wan.Tests.Llm;
 
 public class FormActionPayloadsTests
 {

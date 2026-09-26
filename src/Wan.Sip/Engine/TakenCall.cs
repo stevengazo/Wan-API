@@ -1,9 +1,9 @@
-using Mapache.Sip.Media;
+using Wan.Sip.Media;
 using Microsoft.Extensions.Logging;
 using SIPSorcery.Net;
 using SIPSorcery.SIP.App;
 
-namespace Mapache.Sip.Engine;
+namespace Wan.Sip.Engine;
 
 /// <summary>
 /// Llamada entrante que atendía el bot y toma una persona desde el panel. El motor la engancha

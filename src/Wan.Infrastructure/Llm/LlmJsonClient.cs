@@ -5,10 +5,10 @@ using System.Text.Json.Nodes;
 using Anthropic;
 using Anthropic.Exceptions;
 using Anthropic.Models.Messages;
-using Mapache.Domain.Entities;
+using Wan.Domain.Entities;
 using Microsoft.Extensions.Logging;
 
-namespace Mapache.Infrastructure.Llm;
+namespace Wan.Infrastructure.Llm;
 
 /// <summary>
 /// Pide al proveedor activo una respuesta en JSON que cumpla un esquema. Para tareas del panel

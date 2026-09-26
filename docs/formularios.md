@@ -22,7 +22,7 @@ Cada campo tiene clave, etiqueta, tipo, si es obligatorio y una ayuda para el bo
 sequenceDiagram
     participant C as Quien llama
     participant B as Bot
-    participant M as Mapache
+    participant M as Wan
     participant H as Hangfire
 
     C->>B: "Quiero reportar una falla"
@@ -49,7 +49,7 @@ Cada respuesta nueva dispara las acciones activas del formulario:
 
 | Tipo | Destino | Qué se envía |
 |------|---------|--------------|
-| 🔗 **Webhook** | URL propia | `POST` JSON con `event: "form.submitted"`, formulario y respuesta (`values` por clave y `fields` con etiquetas). Con secreto: `X-Mapache-Signature: sha256=<HMAC-SHA256 del cuerpo>` |
+| 🔗 **Webhook** | URL propia | `POST` JSON con `event: "form.submitted"`, formulario y respuesta (`values` por clave y `fields` con etiquetas). Con secreto: `X-Wan-Signature: sha256=<HMAC-SHA256 del cuerpo>` |
 | 🟣 **Teams** | Flujo "Publicar en un canal cuando se reciba una solicitud de webhook" | Tarjeta adaptable |
 | 🟢 **Google Chat** | Webhook de un espacio | Texto con los datos |
 | 🟡 **Slack** | Incoming webhook | Texto con los datos |
@@ -63,7 +63,7 @@ La acción **API** arma la petición que espera el sistema destino, sin código:
 | Parte | Ejemplo |
 |-------|---------|
 | Método | `POST`, `PUT`, `PATCH`, `GET` o `DELETE` |
-| URL | `https://desk.miempresa.com/api/tickets?origen=mapache`; admite marcadores (se codifican para URL) |
+| URL | `https://desk.miempresa.com/api/tickets?origen=wan`; admite marcadores (se codifican para URL) |
 | Headers | `Authorization: Bearer …`, `X-Api-Key: …`; se guardan **cifrados** |
 | Cuerpo | JSON con marcadores; vacío = el JSON estándar del webhook |
 
@@ -89,7 +89,7 @@ En el cuerpo cada marcador se inserta ya como valor JSON (el texto con comillas)
 }
 ```
 
-Con secreto de firma, también lleva `X-Mapache-Signature`. Si el destino responde con error, se reintenta como las demás acciones y el error queda visible en la respuesta.
+Con secreto de firma, también lleva `X-Wan-Signature`. Si el destino responde con error, se reintenta como las demás acciones y el error queda visible en la respuesta.
 
 **Reintentos:** si el destino falla, Hangfire reintenta 5 veces (30 s, 2 min, 10 min, 30 min, 1 h). El panel muestra el estado, los intentos y el último error de cada acción, con un botón para reintentar. *Probar* envía una respuesta de ejemplo en el momento.
 
@@ -99,7 +99,7 @@ Con secreto de firma, también lleva `X-Mapache-Signature`. Si el destino respon
 import crypto from 'node:crypto'
 
 const expected = 'sha256=' + crypto.createHmac('sha256', SECRET).update(rawBody).digest('hex')
-const ok = crypto.timingSafeEqual(Buffer.from(expected), Buffer.from(req.headers['x-mapache-signature']))
+const ok = crypto.timingSafeEqual(Buffer.from(expected), Buffer.from(req.headers['x-wan-signature']))
 ```
 
 ## Recados
@@ -127,7 +127,7 @@ En el panel, los recados pasan por los estados **Nuevo → Leído → Resuelto**
 
 ## Grabaciones
 
-Con **Grabar llamadas** activo (Configuración → Llamadas) se graba cada llamada; con OpenAI y Deepgram graba Mapache y con ElevenLabs llega por webhook. Se guardan en disco, S3 o Azure: ver [grabaciones.md](grabaciones.md).
+Con **Grabar llamadas** activo (Configuración → Llamadas) se graba cada llamada; con OpenAI y Deepgram graba Wan y con ElevenLabs llega por webhook. Se guardan en disco, S3 o Azure: ver [grabaciones.md](grabaciones.md).
 
 - Con ElevenLabs, el webhook post-llamada guarda el MP3 de los eventos `post_call_audio`.
 - Una conversación se guarda una sola vez aunque ElevenLabs reintente el webhook.

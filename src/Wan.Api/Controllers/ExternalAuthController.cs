@@ -1,16 +1,16 @@
 using System.Security.Claims;
-using Mapache.Api.Audit;
-using Mapache.Api.Auth;
-using Mapache.Api.Sip;
-using Mapache.Domain.Entities;
-using Mapache.Infrastructure.Persistence;
+using Wan.Api.Audit;
+using Wan.Api.Auth;
+using Wan.Api.Sip;
+using Wan.Domain.Entities;
+using Wan.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.EntityFrameworkCore;
 
-namespace Mapache.Api.Controllers;
+namespace Wan.Api.Controllers;
 
 public sealed record ExternalProviderDto(ExternalProvider Provider, string DisplayName);
 
@@ -27,7 +27,7 @@ public sealed record ExternalLoginDto(ExternalProvider Provider, string? Email, 
 [ApiController]
 [Route("api/auth/external")]
 public sealed class ExternalAuthController(
-    MapacheDbContext db,
+    WanDbContext db,
     ExternalAuthService external,
     TokenService tokens,
     PublicUrlResolver publicUrl,

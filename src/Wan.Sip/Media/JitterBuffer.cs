@@ -1,4 +1,4 @@
-namespace Mapache.Sip.Media;
+namespace Wan.Sip.Media;
 
 /// <summary>
 /// Buffer de reordenamiento por número de secuencia RTP. Retiene hasta <c>depth</c> paquetes esperando

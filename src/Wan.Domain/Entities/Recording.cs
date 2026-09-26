@@ -1,4 +1,4 @@
-namespace Mapache.Domain.Entities;
+namespace Wan.Domain.Entities;
 
 /// <summary>Grabación de una conversación. El audio vive en disco; aquí solo la referencia.</summary>
 public class Recording
@@ -13,10 +13,10 @@ public class Recording
     /// <summary>Dónde quedó guardada: cambiar el almacenamiento no mueve las grabaciones anteriores.</summary>
     public StorageProvider Storage { get; set; } = StorageProvider.Local;
 
-    /// <summary>audio/mpeg (ElevenLabs) o audio/wav (grabación de Mapache).</summary>
+    /// <summary>audio/mpeg (ElevenLabs) o audio/wav (grabación de Wan).</summary>
     public string ContentType { get; set; } = "audio/mpeg";
 
-    /// <summary>Llamada de la que salió, si la grabó Mapache.</summary>
+    /// <summary>Llamada de la que salió, si la grabó Wan.</summary>
     public Guid? CallId { get; set; }
 
     public double? DurationSeconds { get; set; }

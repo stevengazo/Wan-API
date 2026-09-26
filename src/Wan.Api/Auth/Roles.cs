@@ -1,6 +1,6 @@
-using Mapache.Domain.Entities;
+using Wan.Domain.Entities;
 
-namespace Mapache.Api.Auth;
+namespace Wan.Api.Auth;
 
 public static class Roles
 {

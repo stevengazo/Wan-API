@@ -1,14 +1,14 @@
-using Mapache.Api.Audit;
+using Wan.Api.Audit;
 using System.ComponentModel.DataAnnotations;
 using System.Security.Cryptography;
-using Mapache.Infrastructure.Persistence;
-using Mapache.Infrastructure.Recordings;
+using Wan.Infrastructure.Persistence;
+using Wan.Infrastructure.Recordings;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
-namespace Mapache.Api.Controllers;
+namespace Wan.Api.Controllers;
 
 public sealed record ShareMessageRequest([Range(1, 720, ErrorMessage = Messages.Range)] int ExpiresInHours = 24);
 
@@ -31,10 +31,10 @@ public sealed record PublicMessageDto(
 /// el recado. Da acceso a ese recado y a su audio, nada más.
 /// </summary>
 [ApiController]
-public sealed class MessageShareController(MapacheDbContext db, RecordingService recordings, IDataProtectionProvider protection, TimeProvider time, AuditLog audit)
+public sealed class MessageShareController(WanDbContext db, RecordingService recordings, IDataProtectionProvider protection, TimeProvider time, AuditLog audit)
     : ControllerBase
 {
-    private ITimeLimitedDataProtector Protector => protection.CreateProtector("Mapache.MessageShare.v1").ToTimeLimitedDataProtector();
+    private ITimeLimitedDataProtector Protector => protection.CreateProtector("Wan.MessageShare.v1").ToTimeLimitedDataProtector();
 
     [HttpPost("api/messages/{id:guid}/share")]
     [Authorize]

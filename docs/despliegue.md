@@ -4,8 +4,8 @@
 
 | Imagen | Contenido | Puerto |
 |--------|-----------|--------|
-| `ghcr.io/<usuario>/mapache-api` | API, motor SIP, Hangfire y servidor MCP (.NET 10, usuario sin privilegios) | `8080` |
-| `ghcr.io/<usuario>/mapache-frontend` | Panel compilado servido por nginx, con proxy a `api:8080` | `80` |
+| `ghcr.io/<usuario>/wan-api` | API, motor SIP, Hangfire y servidor MCP (.NET 10, usuario sin privilegios) | `8080` |
+| `ghcr.io/<usuario>/wan-frontend` | Panel compilado servido por nginx, con proxy a `api:8080` | `80` |
 
 Las dos son multi-arquitectura: `linux/amd64` y `linux/arm64` (sirve para Raspberry Pi 4/5 o servidores ARM).
 
@@ -40,7 +40,7 @@ flowchart LR
   | `DOCKERHUB_USERNAME` | Tu usuario de Docker Hub |
   | `DOCKERHUB_TOKEN` | Un *access token* de Docker Hub con permiso de escritura |
 
-  Con esos secretos, las imágenes se publican también como `docker.io/<usuario>/mapache-api`.
+  Con esos secretos, las imágenes se publican también como `docker.io/<usuario>/wan-api`.
 
 ### Publicar una versión
 
@@ -68,10 +68,10 @@ services:
     restart: unless-stopped
 
   api:   # el nombre importa: nginx del panel hace proxy a http://api:8080
-    image: ghcr.io/<usuario>/mapache-api:latest
+    image: ghcr.io/<usuario>/wan-api:latest
     env_file: ./backend.env
     environment:
-      ConnectionStrings__Mapache: Host=db;Database=mapache;Username=mapache;Password=${POSTGRES_PASSWORD}
+      ConnectionStrings__Wan: Host=db;Database=mapache;Username=mapache;Password=${POSTGRES_PASSWORD}
       Sip__RtpPortStart: 40000
       Sip__RtpPortEnd: 40100
     ports:
@@ -85,7 +85,7 @@ services:
     restart: unless-stopped
 
   frontend:
-    image: ghcr.io/<usuario>/mapache-frontend:latest
+    image: ghcr.io/<usuario>/wan-frontend:latest
     ports:
       - "8080:80"
     depends_on:

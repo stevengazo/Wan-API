@@ -1,7 +1,7 @@
-using Mapache.Domain.Entities;
-using Mapache.Sip.Media;
+using Wan.Domain.Entities;
+using Wan.Sip.Media;
 
-namespace Mapache.Sip.Engine;
+namespace Wan.Sip.Engine;
 
 /// <summary>Cuenta SIP lista para registrar: la configuración del panel con la contraseña ya descifrada.</summary>
 public sealed record SipAccount(Extension Extension, string Password);

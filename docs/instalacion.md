@@ -14,7 +14,7 @@
 El monorepo tiene esta forma:
 
 ```
-Mapache/
+Wan/
 ├── docker-compose.yml   # db + api + frontend
 ├── .env                 # POSTGRES_PASSWORD
 ├── backend/             # este repositorio (.env con los secretos de la API)
@@ -58,19 +58,19 @@ Al arrancar, la API aplica las migraciones pendientes y crea el admin si hace fa
 docker compose up -d db
 cd backend
 
-dotnet user-secrets set "ConnectionStrings:Mapache" "Host=localhost;Port=5432;Database=mapache;Username=mapache;Password=<POSTGRES_PASSWORD>" --project src/Mapache.Api
-dotnet user-secrets set "Auth:Jwt:SigningKey" "$(openssl rand -base64 48)" --project src/Mapache.Api
-dotnet user-secrets set "Auth:BootstrapAdmin:Email" "admin@mapache.local" --project src/Mapache.Api
-dotnet user-secrets set "Auth:BootstrapAdmin:Password" "<contraseña>" --project src/Mapache.Api
-dotnet user-secrets set "AgentWebhooks:ToolToken" "$(openssl rand -hex 32)" --project src/Mapache.Api
-dotnet user-secrets set "AgentWebhooks:PostCallSecret" "<secreto de ElevenLabs>" --project src/Mapache.Api
+dotnet user-secrets set "ConnectionStrings:Wan" "Host=localhost;Port=5432;Database=mapache;Username=mapache;Password=<POSTGRES_PASSWORD>" --project src/Wan.Api
+dotnet user-secrets set "Auth:Jwt:SigningKey" "$(openssl rand -base64 48)" --project src/Wan.Api
+dotnet user-secrets set "Auth:BootstrapAdmin:Email" "admin@wan.local" --project src/Wan.Api
+dotnet user-secrets set "Auth:BootstrapAdmin:Password" "<contraseña>" --project src/Wan.Api
+dotnet user-secrets set "AgentWebhooks:ToolToken" "$(openssl rand -hex 32)" --project src/Wan.Api
+dotnet user-secrets set "AgentWebhooks:PostCallSecret" "<secreto de ElevenLabs>" --project src/Wan.Api
 
-dotnet run --project src/Mapache.Api
+dotnet run --project src/Wan.Api
 ```
 
 - La API queda en `http://localhost:5238`.
 - En Development el documento OpenAPI está en `/openapi/v1.json` y el panel de Hangfire en `/hangfire` (solo desde localhost).
-- [`Mapache.Api.http`](../src/Mapache.Api/Mapache.Api.http) trae requests de ejemplo para VS Code o Rider.
+- [`Wan.Api.http`](../src/Wan.Api/Wan.Api.http) trae requests de ejemplo para VS Code o Rider.
 
 Para el panel, en otra terminal: `cd frontend && npm install && npm run dev` (http://localhost:5173).
 
@@ -94,7 +94,7 @@ flowchart LR
 
 | Síntoma | Causa probable |
 |---------|----------------|
-| La API no arranca: `falta ConnectionStrings:Mapache` | Falta la cadena de conexión (user-secrets o `.env`). |
+| La API no arranca: `falta ConnectionStrings:Wan` | Falta la cadena de conexión (user-secrets o `.env`). |
 | `401 Unauthorized` al registrar | Usuario, contraseña o *usuario de autenticación* incorrectos. |
 | Se registra pero no entran llamadas | NAT: la central no llega al contenedor. Ver [motor-sip.md](motor-sip.md#red-y-nat). |
 | La llamada entra y se corta con `503` | Falta la API key o el ID del agente de ElevenLabs. |

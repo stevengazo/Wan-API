@@ -1,4 +1,4 @@
-namespace Mapache.Domain.Entities;
+namespace Wan.Domain.Entities;
 
 /// <summary>Dónde se guardan las grabaciones.</summary>
 public enum StorageProvider
@@ -36,7 +36,7 @@ public class StorageSettings
 
     public string? AzureContainer { get; set; }
 
-    /// <summary>Carpeta dentro del bucket o contenedor ("mapache/grabaciones").</summary>
+    /// <summary>Carpeta dentro del bucket o contenedor ("wan/grabaciones").</summary>
     public string? Prefix { get; set; }
 
     /// <summary>Cifrar las grabaciones nuevas antes de guardarlas, en disco o en la nube.</summary>

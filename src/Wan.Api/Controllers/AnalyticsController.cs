@@ -1,10 +1,10 @@
-using Mapache.Domain.Entities;
-using Mapache.Infrastructure.Persistence;
+using Wan.Domain.Entities;
+using Wan.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
-namespace Mapache.Api.Controllers;
+namespace Wan.Api.Controllers;
 
 public sealed record AnalyticsTotalsDto(
     int Calls,
@@ -43,7 +43,7 @@ public sealed record AnalyticsDto(
 /// <summary>Métricas de llamadas, recados, formularios y campañas en un período, en la zona horaria de quien mira.</summary>
 [ApiController]
 [Authorize]
-public sealed class AnalyticsController(MapacheDbContext db, TimeProvider time) : ControllerBase
+public sealed class AnalyticsController(WanDbContext db, TimeProvider time) : ControllerBase
 {
     private const int MaxDays = 366;
 

@@ -1,16 +1,16 @@
-using Mapache.Api.Audit;
+using Wan.Api.Audit;
 using System.ComponentModel.DataAnnotations;
 using System.Security.Claims;
-using Mapache.Api.Auth;
-using Mapache.Domain.Entities;
-using Mapache.Infrastructure.Persistence;
+using Wan.Api.Auth;
+using Wan.Domain.Entities;
+using Wan.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 
-namespace Mapache.Api.Controllers;
+namespace Wan.Api.Controllers;
 
 public sealed record LoginRequest(
     [Required(ErrorMessage = Messages.Required), EmailAddress(ErrorMessage = "Correo inválido")] string Email,
@@ -51,7 +51,7 @@ public sealed record MfaRecoveryCodesDto(IReadOnlyList<string> RecoveryCodes);
 
 [ApiController]
 [Route("api/auth")]
-public sealed class AuthController(MapacheDbContext db, IPasswordHasher<User> hasher, TokenService tokens, MfaService mfa, TimeProvider time, AuditLog audit)
+public sealed class AuthController(WanDbContext db, IPasswordHasher<User> hasher, TokenService tokens, MfaService mfa, TimeProvider time, AuditLog audit)
     : ControllerBase
 {
     /// <summary>

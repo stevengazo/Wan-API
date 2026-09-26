@@ -1,14 +1,14 @@
 using System.ComponentModel.DataAnnotations;
-using Mapache.Api.Auth;
-using Mapache.Api.Webhooks;
-using Mapache.Domain.Entities;
-using Mapache.Infrastructure.Persistence;
-using Mapache.Infrastructure.Transfers;
+using Wan.Api.Auth;
+using Wan.Api.Webhooks;
+using Wan.Domain.Entities;
+using Wan.Infrastructure.Persistence;
+using Wan.Infrastructure.Transfers;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
-namespace Mapache.Api.Controllers;
+namespace Wan.Api.Controllers;
 
 public sealed record DirectoryEntryDto(
     Guid Id,
@@ -33,7 +33,7 @@ public sealed record DirectorySearchRequest([Required(ErrorMessage = Messages.Re
 public sealed record DirectoryMatchDto(string Name, string? Department, string Target, string? Description);
 
 [ApiController]
-public sealed class DirectoryController(MapacheDbContext db, TimeProvider time) : ControllerBase
+public sealed class DirectoryController(WanDbContext db, TimeProvider time) : ControllerBase
 {
     [HttpGet("api/directory")]
     [Authorize]

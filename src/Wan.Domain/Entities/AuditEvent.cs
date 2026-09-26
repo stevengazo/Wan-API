@@ -1,4 +1,4 @@
-namespace Mapache.Domain.Entities;
+namespace Wan.Domain.Entities;
 
 /// <summary>
 /// Registro de auditoría: quién hizo qué, sobre qué y desde dónde. Solo se agregan filas; la API no permite

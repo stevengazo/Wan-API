@@ -1,9 +1,9 @@
 using System.Net;
-using Mapache.Sip.Media;
+using Wan.Sip.Media;
 using SIPSorcery.Net;
 using SIPSorcery.SIP.App;
 
-namespace Mapache.Sip.Engine;
+namespace Wan.Sip.Engine;
 
 /// <summary>
 /// Base de las llamadas atendidas desde el navegador: pasa el audio tal cual entre el RTP (G.711) y el

@@ -1,7 +1,7 @@
 using System.Buffers.Binary;
 using System.Diagnostics;
 
-namespace Mapache.Sip.Media;
+namespace Wan.Sip.Media;
 
 /// <summary>
 /// Graba una llamada mezclando las dos voces (quien llama y el bot u operador) en un WAV PCM 16 bits 8 kHz mono.

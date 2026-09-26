@@ -3,14 +3,14 @@
 FROM --platform=$BUILDPLATFORM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 ARG TARGETARCH
 WORKDIR /src
-COPY Mapache.sln ./
-COPY src/Mapache.Api/Mapache.Api.csproj src/Mapache.Api/
-COPY src/Mapache.Domain/Mapache.Domain.csproj src/Mapache.Domain/
-COPY src/Mapache.Infrastructure/Mapache.Infrastructure.csproj src/Mapache.Infrastructure/
-COPY src/Mapache.Sip/Mapache.Sip.csproj src/Mapache.Sip/
-RUN dotnet restore src/Mapache.Api/Mapache.Api.csproj -a $TARGETARCH
+COPY Wan.sln ./
+COPY src/Wan.Api/Wan.Api.csproj src/Wan.Api/
+COPY src/Wan.Domain/Wan.Domain.csproj src/Wan.Domain/
+COPY src/Wan.Infrastructure/Wan.Infrastructure.csproj src/Wan.Infrastructure/
+COPY src/Wan.Sip/Wan.Sip.csproj src/Wan.Sip/
+RUN dotnet restore src/Wan.Api/Wan.Api.csproj -a $TARGETARCH
 COPY src/ src/
-RUN dotnet publish src/Mapache.Api/Mapache.Api.csproj -c Release -a $TARGETARCH -o /app --no-restore
+RUN dotnet publish src/Wan.Api/Wan.Api.csproj -c Release -a $TARGETARCH -o /app --no-restore
 
 FROM mcr.microsoft.com/dotnet/aspnet:10.0
 WORKDIR /app
@@ -19,4 +19,4 @@ COPY --from=build /app .
 RUN mkdir -p /app/data/recordings && chown -R app:app /app/data
 USER app
 EXPOSE 8080
-ENTRYPOINT ["dotnet", "Mapache.Api.dll"]
+ENTRYPOINT ["dotnet", "Wan.Api.dll"]

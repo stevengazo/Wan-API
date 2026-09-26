@@ -1,12 +1,12 @@
 # 🗣️ Proveedores de voz
 
-Mapache no depende de un solo proveedor: la voz se elige en **Configuración → Voz** y se puede cambiar en cualquier momento, sin reiniciar.
+Wan no depende de un solo proveedor: la voz se elige en **Configuración → Voz** y se puede cambiar en cualquier momento, sin reiniciar.
 
 | Proveedor | Cómo responde el bot | Audio | Para qué conviene |
 |-----------|----------------------|-------|-------------------|
-| **ElevenLabs** | Custom LLM de Mapache | µ-law 8 kHz | Voces muy naturales y clonadas |
-| **OpenAI Realtime** | Modelo de voz a voz de OpenAI, con las instrucciones y herramientas de Mapache | µ-law 8 kHz | Muy poca latencia, un solo proveedor (misma key que la IA) |
-| **Deepgram Voice Agent** | Custom LLM de Mapache | µ-law 8 kHz | Menor costo por minuto |
+| **ElevenLabs** | Custom LLM de Wan | µ-law 8 kHz | Voces muy naturales y clonadas |
+| **OpenAI Realtime** | Modelo de voz a voz de OpenAI, con las instrucciones y herramientas de Wan | µ-law 8 kHz | Muy poca latencia, un solo proveedor (misma key que la IA) |
+| **Deepgram Voice Agent** | Custom LLM de Wan | µ-law 8 kHz | Menor costo por minuto |
 
 En los tres casos el bot usa lo mismo: instrucciones, directorio, formularios, recados, bases de conocimiento, peticiones HTTP, servidores MCP, transferencias y horario de atención (`BotSessionBuilder`).
 
@@ -26,7 +26,7 @@ flowchart LR
 
 ## ElevenLabs
 
-Ver [elevenlabs.md](elevenlabs.md). El agente se crea en ElevenLabs con LLM **Custom LLM** apuntando a `https://<host>/api/llm/v1`. Graba ElevenLabs y manda el MP3 al terminar (webhook post-llamada); con OpenAI y Deepgram graba Mapache. Ver [grabaciones.md](grabaciones.md).
+Ver [elevenlabs.md](elevenlabs.md). El agente se crea en ElevenLabs con LLM **Custom LLM** apuntando a `https://<host>/api/llm/v1`. Graba ElevenLabs y manda el MP3 al terminar (webhook post-llamada); con OpenAI y Deepgram graba Wan. Ver [grabaciones.md](grabaciones.md).
 
 ## OpenAI Realtime
 
@@ -39,7 +39,7 @@ Ver [elevenlabs.md](elevenlabs.md). El agente se crea en ElevenLabs con LLM **Cu
 | Saludo | vacío | Lo primero que dice el bot al contestar |
 
 - El bot habla primero (saludo) y detecta los turnos del lado del servidor (`semantic_vad`).
-- Las herramientas de Mapache (conocimiento, HTTP, MCP, recados, formularios, transferir) se ejecutan en Mapache cuando el modelo las pide, y el resultado vuelve a la conversación.
+- Las herramientas de Wan (conocimiento, HTTP, MCP, recados, formularios, transferir) se ejecutan en Wan cuando el modelo las pide, y el resultado vuelve a la conversación.
 
 ## Deepgram Voice Agent
 
@@ -49,7 +49,7 @@ Ver [elevenlabs.md](elevenlabs.md). El agente se crea en ElevenLabs con LLM **Cu
 | Reconocimiento | `nova-3` |
 | Voz | `aura-2-celeste-es` |
 
-Deepgram llama al Custom LLM de Mapache desde su nube (`https://<URL pública>/api/llm`), así que necesita la **URL pública** (Configuración → General) y `AgentWebhooks__ToolToken`. La extensión y la llamada viajan en los headers `x-mapache-extension` y `x-mapache-call`.
+Deepgram llama al Custom LLM de Wan desde su nube (`https://<URL pública>/api/llm`), así que necesita la **URL pública** (Configuración → General) y `AgentWebhooks__ToolToken`. La extensión y la llamada viajan en los headers `x-wan-extension` y `x-wan-call`.
 
 ## Silencio y fin de turno
 

@@ -1,7 +1,7 @@
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 using System.Xml.Linq;
-using Mapache.Infrastructure.Persistence;
+using Wan.Infrastructure.Persistence;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.DataProtection.KeyManagement;
 using Microsoft.AspNetCore.DataProtection.XmlEncryption;
@@ -11,7 +11,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
-namespace Mapache.Infrastructure.Security;
+namespace Wan.Infrastructure.Security;
 
 /// <summary>
 /// Cifrado en reposo de las llaves de Data Protection (tabla <c>DataProtectionKeys</c>). La clave maestra vive fuera
@@ -145,7 +145,7 @@ internal sealed class UnencryptedKeyRotation(IServiceProvider services, IKeyMana
     public async Task StartAsync(CancellationToken cancellationToken)
     {
         using var scope = services.CreateScope();
-        var db = scope.ServiceProvider.GetRequiredService<MapacheDbContext>();
+        var db = scope.ServiceProvider.GetRequiredService<WanDbContext>();
         var stored = await db.DataProtectionKeys.AsNoTracking().Select(k => k.Xml).ToListAsync(cancellationToken);
         var now = time.GetUtcNow();
         var newest = stored

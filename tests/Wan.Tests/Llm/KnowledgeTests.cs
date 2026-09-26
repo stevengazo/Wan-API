@@ -1,10 +1,10 @@
 using System.IO.Compression;
 using System.Text;
 using System.Text.Json.Nodes;
-using Mapache.Infrastructure.Knowledge;
-using Mapache.Infrastructure.Llm;
+using Wan.Infrastructure.Knowledge;
+using Wan.Infrastructure.Llm;
 
-namespace Mapache.Tests.Llm;
+namespace Wan.Tests.Llm;
 
 public class KnowledgeTests
 {

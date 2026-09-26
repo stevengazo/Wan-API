@@ -1,9 +1,9 @@
 using System.Text.Json.Nodes;
-using Mapache.Domain.Entities;
-using Mapache.Infrastructure.Llm;
-using Mapache.Infrastructure.Transfers;
+using Wan.Domain.Entities;
+using Wan.Infrastructure.Llm;
+using Wan.Infrastructure.Transfers;
 
-namespace Mapache.Tests.Llm;
+namespace Wan.Tests.Llm;
 
 public class BusinessHoursTests
 {

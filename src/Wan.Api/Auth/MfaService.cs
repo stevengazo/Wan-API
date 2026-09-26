@@ -1,8 +1,8 @@
-using Mapache.Domain.Entities;
-using Mapache.Infrastructure.Security;
+using Wan.Domain.Entities;
+using Wan.Infrastructure.Security;
 using Microsoft.AspNetCore.DataProtection;
 
-namespace Mapache.Api.Auth;
+namespace Wan.Api.Auth;
 
 public enum MfaCheck
 {
@@ -19,7 +19,7 @@ public sealed class MfaService(ISecretProtector protector, IDataProtectionProvid
 
     // Cambiar el propósito invalida los desafíos en curso (duran 5 minutos, no importa).
     private readonly ITimeLimitedDataProtector _challenges =
-        protection.CreateProtector("Mapache.MfaChallenge.v1").ToTimeLimitedDataProtector();
+        protection.CreateProtector("Wan.MfaChallenge.v1").ToTimeLimitedDataProtector();
 
     /// <summary>
     /// Después de la contraseña: prueba de que ya pasó el primer factor, sin dar acceso todavía. Incluye el hash
@@ -49,7 +49,7 @@ public sealed class MfaService(ISecretProtector protector, IDataProtectionProvid
     {
         var secret = Totp.NewSecret();
         user.MfaSecretEncrypted = protector.Protect(Convert.ToBase64String(secret));
-        return (Totp.ToBase32(secret), Totp.ProvisioningUri(secret, user.Email, "Mapache"));
+        return (Totp.ToBase32(secret), Totp.ProvisioningUri(secret, user.Email, "Wan"));
     }
 
     /// <summary>Verifica un código de la app o, si <paramref name="allowRecovery"/>, uno de recuperación (que se gasta).</summary>

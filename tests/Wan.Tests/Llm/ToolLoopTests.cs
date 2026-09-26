@@ -1,9 +1,9 @@
 using System.Text;
 using System.Text.Json.Nodes;
-using Mapache.Infrastructure.Llm;
-using Mapache.Infrastructure.Tools;
+using Wan.Infrastructure.Llm;
+using Wan.Infrastructure.Tools;
 
-namespace Mapache.Tests.Llm;
+namespace Wan.Tests.Llm;
 
 public class ToolLoopTests
 {
@@ -51,7 +51,7 @@ public class ToolLoopTests
     }
 
     [Fact]
-    public void AgentToolsWinOverMapacheToolsWithTheSameName()
+    public void AgentToolsWinOverWanToolsWithTheSameName()
     {
         var request = JsonNode.Parse("""{"tools":[{"type":"function","function":{"name":"end_call"}}]}""")!.AsObject();
         var tools = new Dictionary<string, BotTool>

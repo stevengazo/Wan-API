@@ -6,7 +6,7 @@ using System.Text.RegularExpressions;
 using System.Xml.Linq;
 using UglyToad.PdfPig;
 
-namespace Mapache.Infrastructure.Knowledge;
+namespace Wan.Infrastructure.Knowledge;
 
 /// <summary>Archivo que no se puede leer; el mensaje se muestra en el panel.</summary>
 public sealed class DocumentTextException(string message, Exception? inner = null) : Exception(message, inner);

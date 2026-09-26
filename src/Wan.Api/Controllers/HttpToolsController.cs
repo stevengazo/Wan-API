@@ -2,16 +2,16 @@ using System.ComponentModel.DataAnnotations;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
-using Mapache.Api.Auth;
-using Mapache.Domain.Entities;
-using Mapache.Infrastructure.Persistence;
-using Mapache.Infrastructure.Security;
-using Mapache.Infrastructure.Tools;
+using Wan.Api.Auth;
+using Wan.Domain.Entities;
+using Wan.Infrastructure.Persistence;
+using Wan.Infrastructure.Security;
+using Wan.Infrastructure.Tools;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
-namespace Mapache.Api.Controllers;
+namespace Wan.Api.Controllers;
 
 public sealed record HttpToolParameterDto(string Name, HttpToolParameterType Type, string? Description, bool Required);
 
@@ -45,7 +45,7 @@ public sealed record TestHttpToolRequest(JsonObject Arguments);
 [ApiController]
 [Authorize(Roles = Roles.Admin)]
 public sealed partial class HttpToolsController(
-    MapacheDbContext db,
+    WanDbContext db,
     ISecretProtector protector,
     HttpToolRunner runner,
     TimeProvider time) : ControllerBase

@@ -1,19 +1,19 @@
-using Mapache.Api.Audit;
+using Wan.Api.Audit;
 using System.ComponentModel.DataAnnotations;
 using System.Text.Json.Nodes;
-using Mapache.Api.Auth;
-using Mapache.Api.Webhooks;
-using Mapache.Domain.Entities;
-using Mapache.Infrastructure.Llm;
-using Mapache.Infrastructure.Persistence;
-using Mapache.Infrastructure.Security;
+using Wan.Api.Auth;
+using Wan.Api.Webhooks;
+using Wan.Domain.Entities;
+using Wan.Infrastructure.Llm;
+using Wan.Infrastructure.Persistence;
+using Wan.Infrastructure.Security;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 
-namespace Mapache.Api.Controllers;
+namespace Wan.Api.Controllers;
 
 /// <summary>La API key nunca sale de la API; solo se informa si está cargada.</summary>
 public sealed record LlmProviderSettingsDto(LlmProvider Provider, string? Model, string DefaultModel, bool HasApiKey);
@@ -37,7 +37,7 @@ public sealed record SaveLlmSettingsRequest(
 [ApiController]
 [Route("api/llm")]
 public sealed class LlmController(
-    MapacheDbContext db,
+    WanDbContext db,
     ChatCompletionRouter router,
     ISecretProtector protector,
     IOptionsMonitor<LlmOptions> options,
@@ -56,14 +56,14 @@ public sealed class LlmController(
     {
         // Deepgram no manda el extra body de ElevenLabs: la llamada viaja en headers y se normaliza aquí.
         if (request["elevenlabs_extra_body"] is null
-            && Request.Headers["x-mapache-extension"].ToString() is { Length: > 0 } extensionId)
+            && Request.Headers["x-wan-extension"].ToString() is { Length: > 0 } extensionId)
         {
             request["elevenlabs_extra_body"] = new JsonObject
             {
                 ["extension_id"] = extensionId,
-                ["call_id"] = Request.Headers["x-mapache-call"].ToString(),
-                ["campaign_id"] = Request.Headers["x-mapache-campaign"].ToString(),
-                ["contact_id"] = Request.Headers["x-mapache-contact"].ToString(),
+                ["call_id"] = Request.Headers["x-wan-call"].ToString(),
+                ["campaign_id"] = Request.Headers["x-wan-campaign"].ToString(),
+                ["contact_id"] = Request.Headers["x-wan-contact"].ToString(),
             };
         }
 

@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
 using Microsoft.Extensions.Options;
 
-namespace Mapache.Api.Webhooks;
+namespace Wan.Api.Webhooks;
 
 /// <summary>Rechaza con 401 las requests sin firma válida de ElevenLabs.</summary>
 [AttributeUsage(AttributeTargets.Class | AttributeTargets.Method)]

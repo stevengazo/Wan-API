@@ -1,9 +1,9 @@
-using Mapache.Domain.Entities;
-using Mapache.Infrastructure.Persistence;
+using Wan.Domain.Entities;
+using Wan.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
-namespace Mapache.Infrastructure.Actions;
+namespace Wan.Infrastructure.Actions;
 
 /// <summary>Avisa al panel que cambió el estado de una ejecución (SignalR en la API).</summary>
 public interface IFormActionNotifier
@@ -22,7 +22,7 @@ public interface IFormActionQueue
 /// la excepción para que la cola reintente.
 /// </summary>
 public sealed class FormActionRunner(
-    MapacheDbContext db,
+    WanDbContext db,
     FormActionSender sender,
     TimeProvider time,
     IFormActionNotifier notifier,
@@ -63,7 +63,7 @@ public sealed class FormActionRunner(
     }
 
     /// <summary>Crea una ejecución por cada acción activa del formulario y las pone en cola.</summary>
-    public static async Task<int> DispatchAsync(MapacheDbContext db, IFormActionQueue queue, FormSubmission submission, DateTimeOffset now, CancellationToken ct)
+    public static async Task<int> DispatchAsync(WanDbContext db, IFormActionQueue queue, FormSubmission submission, DateTimeOffset now, CancellationToken ct)
     {
         var actions = await db.FormActions.AsNoTracking()
             .Where(a => a.FormTemplateId == submission.FormTemplateId && a.Enabled)

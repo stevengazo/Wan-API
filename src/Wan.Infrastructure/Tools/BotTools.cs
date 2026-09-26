@@ -1,9 +1,9 @@
 using System.Text.Json.Nodes;
 
-namespace Mapache.Infrastructure.Tools;
+namespace Wan.Infrastructure.Tools;
 
 /// <summary>
-/// Herramienta que ejecuta Mapache dentro del Custom LLM (no ElevenLabs): el modelo la pide, Mapache la
+/// Herramienta que ejecuta Wan dentro del Custom LLM (no ElevenLabs): el modelo la pide, Wan la
 /// corre y le devuelve el resultado antes de que el bot siga hablando.
 /// </summary>
 public sealed record BotTool(
@@ -57,7 +57,7 @@ public sealed class BotToolRegistry(IEnumerable<IBotToolSource> sources)
     }
 
     /// <summary>
-    /// Agrega las herramientas de Mapache a las que ya trae la petición de ElevenLabs. Si el agente tiene
+    /// Agrega las herramientas de Wan a las que ya trae la petición de ElevenLabs. Si el agente tiene
     /// una con el mismo nombre, se respeta la del agente.
     /// </summary>
     public static IReadOnlyDictionary<string, BotTool> AddTo(JsonObject request, IReadOnlyDictionary<string, BotTool> tools)

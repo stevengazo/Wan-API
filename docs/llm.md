@@ -1,6 +1,6 @@
 # 🧠 LLM del bot (Custom LLM)
 
-En cada turno de la conversación, ElevenLabs le pregunta a Mapache qué responder. Mapache arma el contexto, consulta al proveedor elegido, ejecuta las herramientas que hagan falta y devuelve la respuesta en streaming.
+En cada turno de la conversación, ElevenLabs le pregunta a Wan qué responder. Wan arma el contexto, consulta al proveedor elegido, ejecuta las herramientas que hagan falta y devuelve la respuesta en streaming.
 
 ```
 POST /api/llm/v1/chat/completions
@@ -45,7 +45,7 @@ El conocimiento se busca en cada turno con lo último que dijo quien llama (ver 
 
 ## Herramientas y bucle
 
-A las tools que trae ElevenLabs, Mapache suma las suyas (`BotToolRegistry`):
+A las tools que trae ElevenLabs, Wan suma las suyas (`BotToolRegistry`):
 
 - `search_knowledge_base`, si hay alguna base activa con contenido;
 - cada **petición HTTP** activa;
@@ -61,7 +61,7 @@ sequenceDiagram
     participant E as ElevenLabs
     participant I as SseToolInterceptor
     participant A as Proveedor IA
-    participant T as Herramienta de Mapache
+    participant T as Herramienta de Wan
 
     E->>I: chat/completions
     I->>A: petición + tools

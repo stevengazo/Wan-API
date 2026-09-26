@@ -1,7 +1,7 @@
 using System.Security.Cryptography;
 using System.Text;
 
-namespace Mapache.Api.Webhooks;
+namespace Wan.Api.Webhooks;
 
 /// <summary>
 /// Verifica el header <c>ElevenLabs-Signature: t=&lt;unix&gt;,v0=&lt;hex&gt;</c> de los webhooks post-llamada:

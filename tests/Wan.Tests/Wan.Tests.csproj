@@ -19,9 +19,9 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\src\Mapache.Domain\Mapache.Domain.csproj" />
-    <ProjectReference Include="..\..\src\Mapache.Sip\Mapache.Sip.csproj" />
-    <ProjectReference Include="..\..\src\Mapache.Api\Mapache.Api.csproj" />
+    <ProjectReference Include="..\..\src\Wan.Domain\Wan.Domain.csproj" />
+    <ProjectReference Include="..\..\src\Wan.Sip\Wan.Sip.csproj" />
+    <ProjectReference Include="..\..\src\Wan.Api\Wan.Api.csproj" />
   </ItemGroup>
 
 </Project>

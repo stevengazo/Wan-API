@@ -1,15 +1,15 @@
-using Mapache.Api.Audit;
+using Wan.Api.Audit;
 using System.ComponentModel.DataAnnotations;
 using System.Security.Claims;
-using Mapache.Api.Auth;
-using Mapache.Domain.Entities;
-using Mapache.Infrastructure.Persistence;
+using Wan.Api.Auth;
+using Wan.Domain.Entities;
+using Wan.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
-namespace Mapache.Api.Controllers;
+namespace Wan.Api.Controllers;
 
 public sealed record UserListItemDto(
     Guid Id,
@@ -37,7 +37,7 @@ public sealed record ResetPasswordRequest(
 /// <summary>Usuarios del panel y sus roles. Siempre queda al menos un administrador.</summary>
 [ApiController]
 [Authorize(Roles = Roles.Admin)]
-public sealed class UsersController(MapacheDbContext db, IPasswordHasher<User> hasher, TimeProvider time, AuditLog audit) : ControllerBase
+public sealed class UsersController(WanDbContext db, IPasswordHasher<User> hasher, TimeProvider time, AuditLog audit) : ControllerBase
 {
     [HttpGet("api/users")]
     public async Task<IReadOnlyList<UserListItemDto>> List(CancellationToken ct)

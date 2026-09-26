@@ -1,16 +1,16 @@
-using Mapache.Api.Audit;
+using Wan.Api.Audit;
 using System.ComponentModel.DataAnnotations;
-using Mapache.Api.Auth;
-using Mapache.Api.Realtime;
-using Mapache.Domain.Entities;
-using Mapache.Infrastructure.Persistence;
-using Mapache.Infrastructure.Recordings;
+using Wan.Api.Auth;
+using Wan.Api.Realtime;
+using Wan.Domain.Entities;
+using Wan.Infrastructure.Persistence;
+using Wan.Infrastructure.Recordings;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 
-namespace Mapache.Api.Controllers;
+namespace Wan.Api.Controllers;
 
 public sealed record RecordingDto(
     Guid Id,
@@ -33,7 +33,7 @@ public sealed record SaveCallSettingsRequest(
 
 [ApiController]
 public sealed class RecordingsController(
-    MapacheDbContext db,
+    WanDbContext db,
     RecordingService recordings,
     TimeProvider time,
     IHubContext<EventsHub, IEventsClient> events,

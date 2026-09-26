@@ -2,10 +2,10 @@ using System.Globalization;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
-using Mapache.Domain.Entities;
-using Mapache.Infrastructure.Llm;
+using Wan.Domain.Entities;
+using Wan.Infrastructure.Llm;
 
-namespace Mapache.Infrastructure.Forms;
+namespace Wan.Infrastructure.Forms;
 
 /// <summary>Borrador de formulario para revisar en el panel antes de guardarlo.</summary>
 public sealed record FormDraft(string Name, string? Description, IReadOnlyList<FormField> Fields);

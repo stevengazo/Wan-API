@@ -1,4 +1,4 @@
-namespace Mapache.Domain.Entities;
+namespace Wan.Domain.Entities;
 
 /// <summary>Destino al que el bot puede transferir una llamada: una persona, un área o un número externo.</summary>
 public class DirectoryEntry

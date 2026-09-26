@@ -1,8 +1,8 @@
 using System.Text;
 using System.Text.Json.Nodes;
-using Mapache.Infrastructure.Llm;
+using Wan.Infrastructure.Llm;
 
-namespace Mapache.Tests.Llm;
+namespace Wan.Tests.Llm;
 
 public class ChatCompletionChunkWriterTests
 {

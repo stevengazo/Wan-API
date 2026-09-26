@@ -1,7 +1,7 @@
-namespace Mapache.Domain.Entities;
+namespace Wan.Domain.Entities;
 
 /// <summary>
-/// Token para que un cliente MCP externo (Claude Desktop, Cursor, otro agente) use el servidor MCP de Mapache.
+/// Token para que un cliente MCP externo (Claude Desktop, Cursor, otro agente) use el servidor MCP de Wan.
 /// Solo se guarda su hash: el valor se muestra una vez al crearlo.
 /// </summary>
 public class McpAccessToken

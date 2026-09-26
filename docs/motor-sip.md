@@ -1,6 +1,6 @@
 # ☎️ Motor SIP
 
-`SipEngine` ([`src/Mapache.Sip/Engine/`](../src/Mapache.Sip/Engine)) corre dentro de la API y mantiene registrada cada extensión habilitada, como un softphone con varias cuentas.
+`SipEngine` ([`src/Wan.Sip/Engine/`](../src/Wan.Sip/Engine)) corre dentro de la API y mantiene registrada cada extensión habilitada, como un softphone con varias cuentas.
 
 ## Ciclo de vida
 
@@ -105,7 +105,7 @@ sequenceDiagram
 
 ## Red y NAT
 
-Para recibir llamadas, la central tiene que poder llegar a Mapache:
+Para recibir llamadas, la central tiene que poder llegar a Wan:
 
 - **La IP y el puerto de señalización** de cada cuenta (el puerto local o uno asignado).
 - **Los puertos RTP** del audio.
@@ -131,7 +131,7 @@ Para recibir llamadas, la central tiene que poder llegar a Mapache:
 Para probar sin una central real se puede levantar un Asterisk en la misma red de Docker:
 
 ```bash
-docker run -d --name mapache-pbx --network mapache_default andrius/asterisk
+docker run -d --name wan-pbx --network wan_default andrius/asterisk
 ```
 
-Configura un endpoint PJSIP (por ejemplo `100` con contraseña) y crea en el panel una extensión con servidor `mapache-pbx`, usuario `100` y esa contraseña.
+Configura un endpoint PJSIP (por ejemplo `100` con contraseña) y crea en el panel una extensión con servidor `wan-pbx`, usuario `100` y esa contraseña.

@@ -2,15 +2,15 @@ using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
-using Mapache.Domain.Entities;
-using Mapache.Infrastructure.Persistence;
-using Mapache.Infrastructure.Security;
+using Wan.Domain.Entities;
+using Wan.Infrastructure.Persistence;
+using Wan.Infrastructure.Security;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using ModelContextProtocol.Client;
 using ModelContextProtocol.Protocol;
 
-namespace Mapache.Infrastructure.Tools;
+namespace Wan.Infrastructure.Tools;
 
 /// <summary>Se conecta a servidores MCP externos para leer sus herramientas y ejecutarlas.</summary>
 public sealed partial class McpConnector(ISecretProtector protector, TimeProvider time, ILoggerFactory loggers)
@@ -107,7 +107,7 @@ public sealed partial class McpConnector(ISecretProtector protector, TimeProvide
 }
 
 /// <summary>Herramientas habilitadas de los servidores MCP activos, con la lista guardada en la última sincronización.</summary>
-public sealed class McpToolSource(MapacheDbContext db, McpConnector connector) : IBotToolSource
+public sealed class McpToolSource(WanDbContext db, McpConnector connector) : IBotToolSource
 {
     public async Task<IReadOnlyList<BotTool>> GetToolsAsync(BotCallContext call, CancellationToken ct)
     {

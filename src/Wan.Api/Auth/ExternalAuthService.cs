@@ -2,15 +2,15 @@ using System.Collections.Concurrent;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
-using Mapache.Domain.Entities;
-using Mapache.Infrastructure.Security;
+using Wan.Domain.Entities;
+using Wan.Infrastructure.Security;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.IdentityModel.JsonWebTokens;
 using Microsoft.IdentityModel.Protocols;
 using Microsoft.IdentityModel.Protocols.OpenIdConnect;
 using Microsoft.IdentityModel.Tokens;
 
-namespace Mapache.Api.Auth;
+namespace Wan.Api.Auth;
 
 public enum ExternalFlowMode
 {
@@ -34,7 +34,7 @@ public sealed class ExternalAuthException(string message) : Exception(message);
 /// </summary>
 public sealed class ExternalAuthService(IHttpClientFactory httpFactory, IDataProtectionProvider protection, ISecretProtector secrets, ILogger<ExternalAuthService> logger)
 {
-    public const string BindingCookie = "mapache_sso";
+    public const string BindingCookie = "wan_sso";
     public static readonly TimeSpan FlowLifetime = TimeSpan.FromMinutes(10);
 
     // Inquilino de las cuentas personales de Microsoft (outlook.com, hotmail.com).
@@ -42,7 +42,7 @@ public sealed class ExternalAuthService(IHttpClientFactory httpFactory, IDataPro
 
     private static readonly ConcurrentDictionary<string, ConfigurationManager<OpenIdConnectConfiguration>> Metadata = new();
 
-    private readonly ITimeLimitedDataProtector _state = protection.CreateProtector("Mapache.ExternalLogin.v1").ToTimeLimitedDataProtector();
+    private readonly ITimeLimitedDataProtector _state = protection.CreateProtector("Wan.ExternalLogin.v1").ToTimeLimitedDataProtector();
 
     public static bool IsConfigured(SsoSettings s, ExternalProvider provider) => provider switch
     {

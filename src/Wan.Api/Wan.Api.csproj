@@ -21,9 +21,9 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Mapache.Domain\Mapache.Domain.csproj" />
-    <ProjectReference Include="..\Mapache.Infrastructure\Mapache.Infrastructure.csproj" />
-    <ProjectReference Include="..\Mapache.Sip\Mapache.Sip.csproj" />
+    <ProjectReference Include="..\Wan.Domain\Wan.Domain.csproj" />
+    <ProjectReference Include="..\Wan.Infrastructure\Wan.Infrastructure.csproj" />
+    <ProjectReference Include="..\Wan.Sip\Wan.Sip.csproj" />
   </ItemGroup>
 
 </Project>

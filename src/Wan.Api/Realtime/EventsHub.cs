@@ -1,9 +1,9 @@
 using Microsoft.AspNetCore.Authorization;
-using Mapache.Api.Sip;
-using Mapache.Domain.Entities;
+using Wan.Api.Sip;
+using Wan.Domain.Entities;
 using Microsoft.AspNetCore.SignalR;
 
-namespace Mapache.Api.Realtime;
+namespace Wan.Api.Realtime;
 
 /// <summary>
 /// Eventos que el servidor empuja al panel. Los nombres de método son los que escucha el cliente
