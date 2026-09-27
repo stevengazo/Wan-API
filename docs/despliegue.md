@@ -38,9 +38,9 @@ flowchart LR
   | Secreto | Valor |
   |---------|-------|
   | `DOCKERHUB_USERNAME` | Tu usuario de Docker Hub |
-  | `DOCKERHUB_TOKEN` | Un *access token* de Docker Hub con permiso de escritura |
+  | `DOCKERHUB_TOKEN` | Un *access token* de Docker Hub con permiso **Read, Write, Delete** (la descripción del repositorio lo requiere) |
 
-  Con esos secretos, las imágenes se publican también como `docker.io/<usuario>/wan-api`.
+  Con esos secretos, las imágenes se publican también como `docker.io/<usuario>/wan-api`, y cada push a `main` actualiza la descripción de la imagen en Docker Hub con [`DOCKERHUB.md`](../DOCKERHUB.md).
 
 ### Publicar una versión
 
