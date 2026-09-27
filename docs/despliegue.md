@@ -5,7 +5,7 @@
 | Imagen | Contenido | Puerto |
 |--------|-----------|--------|
 | `ghcr.io/<usuario>/wan-api` | API, motor SIP, Hangfire y servidor MCP (.NET 10, usuario sin privilegios) | `8080` |
-| `ghcr.io/<usuario>/wan-frontend` | Panel compilado servido por nginx, con proxy a `api:8080` | `80` |
+| `ghcr.io/<usuario>/wan-web` | Panel compilado servido por nginx, con proxy a `api:8080` | `80` |
 
 Las dos son multi-arquitectura: `linux/amd64` y `linux/arm64` (sirve para Raspberry Pi 4/5 o servidores ARM).
 
@@ -85,7 +85,7 @@ services:
     restart: unless-stopped
 
   frontend:
-    image: ghcr.io/<usuario>/wan-frontend:latest
+    image: ghcr.io/<usuario>/wan-web:latest
     ports:
       - "8080:80"
     depends_on:

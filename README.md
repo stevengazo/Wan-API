@@ -124,7 +124,7 @@ Abre **http://localhost:8080** y entra con el admin de `Auth__BootstrapAdmin__*`
 
 ```bash
 docker pull ghcr.io/<usuario>/wan-api:latest
-docker pull ghcr.io/<usuario>/wan-frontend:latest
+docker pull ghcr.io/<usuario>/wan-web:latest
 ```
 
 El `docker-compose.yml` para producción está en [docs/despliegue.md](docs/despliegue.md).
