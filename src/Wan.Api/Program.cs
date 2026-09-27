@@ -19,6 +19,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.IdentityModel.Tokens;
 using Serilog;
+using Scalar.AspNetCore;
 using Serilog.Formatting.Compact;
 
 // Logger mínimo para no perder errores que ocurran antes de que el host configure Serilog.
@@ -51,7 +52,13 @@ try
     builder.Services.AddControllers()
         .AddJsonOptions(o => o.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()));
     builder.Services.AddProblemDetails();
-    builder.Services.AddOpenApi();
+    // Sin "servers": detrás de nginx el Host llega sin puerto y Scalar mandaría las pruebas a otra URL.
+    // Vacío, el cliente usa el origen desde el que abrió la documentación.
+    builder.Services.AddOpenApi(o => o.AddDocumentTransformer((document, _, _) =>
+    {
+        document.Servers?.Clear();
+        return Task.CompletedTask;
+    }));
     builder.Services.AddSingleton(TimeProvider.System);
     builder.Services.AddSignalR()
         .AddJsonProtocol(o => o.PayloadSerializerOptions.Converters.Add(new JsonStringEnumConverter()));
@@ -165,9 +172,18 @@ try
 
     app.UseExceptionHandler();
     app.UseSerilogRequestLogging();
+    // Bajo /api para que nginx lo sirva por el mismo origen del panel: Scalar manda la cookie de sesión.
+    if (app.Environment.IsDevelopment() || app.Configuration.GetValue<bool>("ApiDocs:Enabled"))
+    {
+        app.MapOpenApi("/api/openapi/{documentName}.json").AllowAnonymous();
+        app.MapScalarApiReference("/api/docs", o => o
+            .WithTitle("Wan API")
+            .WithOpenApiRoutePattern("/api/openapi/{documentName}.json"))
+            .AllowAnonymous();
+    }
+
     if (app.Environment.IsDevelopment())
     {
-        app.MapOpenApi();
         // Por defecto el dashboard solo acepta requests locales; no se expone fuera de desarrollo.
         app.UseHangfireDashboard("/hangfire");
     }

@@ -81,6 +81,7 @@ Las API keys y el modelo se cargan en el panel. Aquí solo van los valores por d
 
 | Clave | Por defecto | Descripción |
 |-------|-------------|-------------|
+| `ApiDocs:Enabled` | `false` (`true` en Docker) | Publica la especificación OpenAPI en `/api/openapi/v1.json` y Scalar en `/api/docs`. En desarrollo siempre están activos. Los endpoints siguen pidiendo autenticación: Scalar usa la sesión del panel. |
 | `Recordings:Path` | `data/recordings` | Carpeta de las grabaciones (volumen `recordings` en Docker). |
 | `ReverseProxy:Enabled` | `false` | Toma la IP real de `X-Forwarded-For`. Solo con un proxy delante; sin proxy, el cliente podría falsear su IP y saltarse el límite de intentos de login. |
 | `Serilog:*` | | Niveles de log. |
