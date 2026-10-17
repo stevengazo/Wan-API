@@ -55,14 +55,23 @@ public sealed class AuthController(WanDbContext db, IPasswordHasher<User> hasher
     : ControllerBase
 {
     /// <summary>
-    /// Registro abierto: la cuenta queda activa al instante con rol <see cref="UserRole.Admin"/>.
-    /// Cualquiera con acceso a la URL obtiene control total; cerrar o restringir antes de exponer el panel.
+    /// Registro de arranque: solo funciona mientras no exista ningún usuario y crea el primer
+    /// administrador. Una vez que hay cuentas, queda cerrado y los demás usuarios los crea un
+    /// administrador desde <c>/api/users</c>; así nadie puede escalar a Admin desde internet.
     /// </summary>
     [HttpPost("register")]
     [AllowAnonymous]
     [EnableRateLimiting("login")]
     public async Task<ActionResult<LoginResponse>> Register(RegisterRequest request, CancellationToken ct)
     {
+        // Cerrado en cuanto existe al menos una cuenta: el registro abierto solo sirve para el primer admin.
+        if (await db.Users.AnyAsync(ct))
+        {
+            return Problem(
+                statusCode: StatusCodes.Status403Forbidden,
+                title: "El registro está cerrado; pide a un administrador que te cree la cuenta");
+        }
+
         var email = request.Email.Trim().ToLowerInvariant();
         if (await db.Users.AnyAsync(u => u.Email == email, ct))
         {
