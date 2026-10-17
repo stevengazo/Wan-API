@@ -1,4 +1,5 @@
 using System.Text.Json.Nodes;
+using System.Threading.Channels;
 using Microsoft.Extensions.Logging;
 
 namespace Wan.Sip.Media;
@@ -11,8 +12,21 @@ public sealed class OpenAiRealtimeSession : WebSocketVoiceSession
 {
     private readonly BotBrainSession _brain;
 
+    // Las herramientas se ejecutan en este worker y no dentro del loop de recepción: mientras una tool corre
+    // (I/O a la API de Wan, que puede tardar) el socket sigue procesando audio, barge-in y transcripciones.
+    private readonly Channel<JsonArray> _toolBatches =
+        Channel.CreateUnbounded<JsonArray>(new UnboundedChannelOptions { SingleReader = true });
+    private readonly CancellationTokenSource _toolCts;
+    private Task? _toolWorker;
+    private int _toolsStopped;
+
     private OpenAiRealtimeSession(BotBrainSession brain, ILogger logger)
-        : base(logger) => _brain = brain;
+        : base(logger)
+    {
+        _brain = brain;
+        // Enlazado al Lifetime para que un cierre del proveedor también detenga las herramientas en curso.
+        _toolCts = CancellationTokenSource.CreateLinkedTokenSource(Lifetime);
+    }
 
     protected override string ProviderName => "OpenAI Realtime";
 
@@ -92,6 +106,7 @@ public sealed class OpenAiRealtimeSession : WebSocketVoiceSession
             }
         }
 
+        session._toolWorker = Task.Run(session.ProcessToolCallsAsync);
         session.StartReceiving();
         // Que el bot hable primero, como una recepción: sin esto espera a que quien llama diga algo.
         await session.SendJsonAsync(new JsonObject { ["type"] = "response.create" }, ct);
@@ -148,7 +163,12 @@ public sealed class OpenAiRealtimeSession : WebSocketVoiceSession
                 break;
 
             case "response.done":
-                await RunToolCallsAsync(message["response"]?["output"] as JsonArray);
+                // Encolar y volver de inmediato: ejecutar las tools acá bloquearía la recepción.
+                if (message["response"]?["output"] is JsonArray output && HasToolCalls(output))
+                {
+                    _toolBatches.Writer.TryWrite(output);
+                }
+
                 break;
 
             case "error":
@@ -157,10 +177,32 @@ public sealed class OpenAiRealtimeSession : WebSocketVoiceSession
         }
     }
 
-    /// <summary>Ejecuta las herramientas que pidió el modelo, devuelve los resultados y le pide seguir.</summary>
-    private async Task RunToolCallsAsync(JsonArray? output)
+    private static bool HasToolCalls(JsonArray output) =>
+        output.OfType<JsonObject>().Any(o => o["type"]?.GetValue<string>() == "function_call");
+
+    /// <summary>Procesa en serie los lotes de herramientas encolados desde el loop de recepción.</summary>
+    private async Task ProcessToolCallsAsync()
     {
-        var calls = output?.OfType<JsonObject>().Where(o => o["type"]?.GetValue<string>() == "function_call").ToList() ?? [];
+        try
+        {
+            await foreach (var output in _toolBatches.Reader.ReadAllAsync(_toolCts.Token))
+            {
+                await RunToolCallsAsync(output);
+            }
+        }
+        catch (OperationCanceledException)
+        {
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error procesando herramientas de OpenAI Realtime");
+        }
+    }
+
+    /// <summary>Ejecuta las herramientas que pidió el modelo, devuelve los resultados y le pide seguir.</summary>
+    private async Task RunToolCallsAsync(JsonArray output)
+    {
+        var calls = output.OfType<JsonObject>().Where(o => o["type"]?.GetValue<string>() == "function_call").ToList();
         if (calls.Count == 0)
         {
             return;
@@ -172,7 +214,7 @@ public sealed class OpenAiRealtimeSession : WebSocketVoiceSession
             string result;
             try
             {
-                result = await _brain.ExecuteToolAsync(name, call["arguments"]?.GetValue<string>() ?? "{}", Lifetime);
+                result = await _brain.ExecuteToolAsync(name, call["arguments"]?.GetValue<string>() ?? "{}", _toolCts.Token);
             }
             catch (Exception ex) when (ex is not OperationCanceledException)
             {
@@ -190,12 +232,36 @@ public sealed class OpenAiRealtimeSession : WebSocketVoiceSession
                     ["call_id"] = call["call_id"]?.GetValue<string>(),
                     ["output"] = result,
                 },
-            }, Lifetime);
+            }, _toolCts.Token);
         }
 
-        await SendJsonAsync(new JsonObject { ["type"] = "response.create" }, Lifetime);
+        await SendJsonAsync(new JsonObject { ["type"] = "response.create" }, _toolCts.Token);
     }
 
     private static string ErrorText(JsonObject message) =>
         message["error"]?["message"]?.GetValue<string>() ?? message.ToJsonString();
+
+    public override async ValueTask DisposeAsync()
+    {
+        // Detener el worker de herramientas antes de que la base cierre el socket y los locks que usa.
+        if (Interlocked.Exchange(ref _toolsStopped, 1) == 0)
+        {
+            _toolBatches.Writer.TryComplete();
+            await _toolCts.CancelAsync();
+            if (_toolWorker is not null)
+            {
+                try
+                {
+                    await _toolWorker;
+                }
+                catch (OperationCanceledException)
+                {
+                }
+            }
+
+            _toolCts.Dispose();
+        }
+
+        await base.DisposeAsync();
+    }
 }
