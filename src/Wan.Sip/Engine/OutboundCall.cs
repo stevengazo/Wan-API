@@ -32,7 +32,18 @@ internal sealed class OutboundCall : BrowserCall
 
     public override async Task<string> RunAsync(CancellationToken ct)
     {
-        var callId = await _runtime.OutboundCallStartedAsync(_number);
+        Guid callId;
+        try
+        {
+            callId = await _runtime.OutboundCallStartedAsync(_number);
+        }
+        catch (InvalidOperationException ex)
+        {
+            // Límite de simultáneas alcanzado en la reserva: avisar y terminar sin cupo que liberar.
+            Raise(PhoneCallState.Ended, ex.Message);
+            return ex.Message;
+        }
+
         var status = CallStatus.Failed;
         var reason = "error";
         using var scope = _logger.BeginScope("Llamada saliente {CallId} a {Number}", callId, _number);

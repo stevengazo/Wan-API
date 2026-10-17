@@ -225,6 +225,35 @@ internal sealed class SipAccountRuntime : IAsyncDisposable
         }
     }
 
+    /// <summary>
+    /// Reserva un cupo de llamada simultánea de forma atómica; devuelve false sin reservar si ya se alcanzó
+    /// <see cref="Extension.MaxConcurrentCalls"/>. Comprobar e incrementar por separado dejaba que dos
+    /// llamadas a la vez (ráfaga de INVITE o campaña marcando en paralelo) superaran el límite.
+    /// </summary>
+    private bool TryReserveCallSlot()
+    {
+        var max = _ext.MaxConcurrentCalls;
+        if (max <= 0)
+        {
+            Interlocked.Increment(ref _activeCalls);
+            return true;
+        }
+
+        while (true)
+        {
+            var current = Volatile.Read(ref _activeCalls);
+            if (current >= max)
+            {
+                return false;
+            }
+
+            if (Interlocked.CompareExchange(ref _activeCalls, current + 1, current) == current)
+            {
+                return true;
+            }
+        }
+    }
+
     private async Task HandleInboundAsync(SIPRequest invite)
     {
         var caller = invite.Header.From?.FromURI?.User ?? "desconocido";
@@ -233,14 +262,13 @@ internal sealed class SipAccountRuntime : IAsyncDisposable
         var ua = new SIPUserAgent(_transport, null);
         var uas = ua.AcceptCall(invite);
 
-        if (_ext.MaxConcurrentCalls > 0 && Volatile.Read(ref _activeCalls) >= _ext.MaxConcurrentCalls)
+        if (!TryReserveCallSlot())
         {
             _logger.LogInformation("Llamada rechazada: límite de {Max} simultáneas", _ext.MaxConcurrentCalls);
             uas.Reject(SIPResponseStatusCodesEnum.BusyHere, null, null);
             return;
         }
 
-        Interlocked.Increment(ref _activeCalls);
         var callId = await _services.Events.CallStartedAsync(_ext.Id, caller, CallDirection.Inbound);
         await PublishStatusAsync();
         var status = CallStatus.Failed;
@@ -505,10 +533,24 @@ internal sealed class SipAccountRuntime : IAsyncDisposable
 
     internal async Task<Guid> OutboundCallStartedAsync(string number)
     {
-        Interlocked.Increment(ref _activeCalls);
-        var callId = await _services.Events.CallStartedAsync(_ext.Id, number, CallDirection.Outbound);
-        await PublishStatusAsync();
-        return callId;
+        // Reserva autoritativa del cupo: el chequeo de PrepareOutbound es solo una guarda temprana.
+        if (!TryReserveCallSlot())
+        {
+            throw new InvalidOperationException($"La extensión ya tiene {_ext.MaxConcurrentCalls} llamadas en curso, su límite.");
+        }
+
+        try
+        {
+            var callId = await _services.Events.CallStartedAsync(_ext.Id, number, CallDirection.Outbound);
+            await PublishStatusAsync();
+            return callId;
+        }
+        catch
+        {
+            // No se llegó a registrar la llamada: liberar el cupo para que no quede colgado.
+            Interlocked.Decrement(ref _activeCalls);
+            throw;
+        }
     }
 
     internal async Task CallFinishedAsync(Guid callId, CallStatus status, string reason)
