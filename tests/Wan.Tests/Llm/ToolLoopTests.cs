@@ -7,7 +7,7 @@ namespace Wan.Tests.Llm;
 
 public class ToolLoopTests
 {
-    private static string Chunk(object delta, string? finish = null) =>
+    private static string Chunk(object delta, string? finish = null, string eol = "\n") =>
         "data: " + new JsonObject
         {
             ["choices"] = new JsonArray(new JsonObject
@@ -16,7 +16,7 @@ public class ToolLoopTests
                 ["delta"] = System.Text.Json.JsonSerializer.SerializeToNode(delta),
                 ["finish_reason"] = finish,
             }),
-        }.ToJsonString() + "\n\n";
+        }.ToJsonString() + eol + eol;
 
     [Fact]
     public async Task TextPassesThroughAndToolCallsAreHeld()
@@ -48,6 +48,34 @@ public class ToolLoopTests
 
         await interceptor.ReleaseHeldAsync(CancellationToken.None);
         Assert.EndsWith("data: [DONE]\n\n", Encoding.UTF8.GetString(output.ToArray()));
+    }
+
+    [Fact]
+    public async Task HandlesCrlfEventTerminators()
+    {
+        using var output = new MemoryStream();
+        var interceptor = new SseToolInterceptor(output);
+        // Un proveedor "OpenAI-compatible" que cierra los eventos con CRLF (\r\n\r\n) en vez de LF.
+        var stream = Chunk(new { content = "Hola" }, eol: "\r\n")
+            + Chunk(new { tool_calls = new[] { new { index = 0, id = "call_1", type = "function", function = new { name = "consultar_pedido", arguments = "{}" } } } }, eol: "\r\n")
+            + Chunk(new { }, "tool_calls", eol: "\r\n")
+            + "data: [DONE]\r\n\r\n";
+
+        var bytes = Encoding.UTF8.GetBytes(stream);
+        for (var i = 0; i < bytes.Length; i += 37)
+        {
+            await interceptor.WriteAsync(bytes.AsMemory(i, Math.Min(37, bytes.Length - i)));
+        }
+
+        var passed = Encoding.UTF8.GetString(output.ToArray());
+        // El texto debe fluir en vivo; la tool call y el [DONE] quedan retenidos, igual que con LF.
+        Assert.Contains("Hola", passed);
+        Assert.DoesNotContain("consultar_pedido", passed);
+        Assert.DoesNotContain("[DONE]", passed);
+
+        var call = Assert.Single(interceptor.ToolCalls);
+        Assert.Equal(("call_1", "consultar_pedido"), (call.Id, call.Name));
+        Assert.Equal("Hola", interceptor.Text);
     }
 
     [Fact]

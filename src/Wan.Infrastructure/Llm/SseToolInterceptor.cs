@@ -21,6 +21,13 @@ public sealed class StreamedToolCall
 /// </summary>
 public sealed class SseToolInterceptor(Stream output) : Stream
 {
+    /// <summary>
+    /// Tope de seguridad: si un evento SSE no cierra dentro de este tamaño, se deja pasar tal cual en lugar
+    /// de retener memoria sin límite (p. ej. un proveedor cuyo formato no reconocemos). Un chunk de chat
+    /// completions son unos pocos cientos de bytes, así que 1 MB nunca se alcanza en condiciones normales.
+    /// </summary>
+    private const int MaxPendingBytes = 1024 * 1024;
+
     private readonly List<byte> _pending = [];
     private readonly List<byte[]> _held = [];
     private readonly SortedDictionary<int, StreamedToolCall> _calls = [];
@@ -35,10 +42,10 @@ public sealed class SseToolInterceptor(Stream output) : Stream
     {
         _pending.AddRange(buffer.Span);
         // Los eventos SSE terminan en una línea vacía; un trozo puede traer medio evento.
-        while (IndexOfEventEnd() is var end and >= 0)
+        while (NextEventLength() is var len and > 0)
         {
-            var raw = _pending.GetRange(0, end + 2).ToArray();
-            _pending.RemoveRange(0, end + 2);
+            var raw = _pending.GetRange(0, len).ToArray();
+            _pending.RemoveRange(0, len);
             if (Inspect(raw))
             {
                 await output.WriteAsync(raw, cancellationToken);
@@ -47,6 +54,14 @@ public sealed class SseToolInterceptor(Stream output) : Stream
             {
                 _held.Add(raw);
             }
+        }
+
+        // Si nunca aparece el cierre de evento, no acumular sin límite: se deja pasar lo pendiente.
+        if (_pending.Count > MaxPendingBytes)
+        {
+            var raw = _pending.ToArray();
+            _pending.Clear();
+            await output.WriteAsync(raw, cancellationToken);
         }
     }
 
@@ -77,7 +92,8 @@ public sealed class SseToolInterceptor(Stream output) : Stream
     private bool Inspect(byte[] raw)
     {
         var text = Encoding.UTF8.GetString(raw);
-        var data = string.Concat(text.Split('\n').Where(l => l.StartsWith("data:", StringComparison.Ordinal)).Select(l => l[5..].TrimStart()));
+        // Trim (no solo TrimStart): así un terminador CRLF deja "data: [DONE]\r" como "[DONE]" y no como basura.
+        var data = string.Concat(text.Split('\n').Where(l => l.StartsWith("data:", StringComparison.Ordinal)).Select(l => l[5..].Trim()));
         if (data.Length == 0)
         {
             return true;
@@ -144,13 +160,27 @@ public sealed class SseToolInterceptor(Stream output) : Stream
         return !hold;
     }
 
-    private int IndexOfEventEnd()
+    /// <summary>
+    /// Cuántos bytes ocupa el próximo evento completo, con su línea en blanco de cierre incluida, o -1 si
+    /// todavía no llegó entero. Reconoce terminadores LF (<c>\n\n</c>) y CRLF (<c>\r\n\r\n</c>).
+    /// </summary>
+    private int NextEventLength()
     {
         for (var i = 0; i < _pending.Count - 1; i++)
         {
-            if (_pending[i] == '\n' && _pending[i + 1] == '\n')
+            if (_pending[i] != '\n')
             {
-                return i;
+                continue;
+            }
+
+            if (_pending[i + 1] == '\n')
+            {
+                return i + 2;
+            }
+
+            if (_pending[i + 1] == '\r' && i + 2 < _pending.Count && _pending[i + 2] == '\n')
+            {
+                return i + 3;
             }
         }
 
